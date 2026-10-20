@@ -74,7 +74,7 @@ export interface TeamView {
   starterOverall: number;
   roster: RosterRow[];
   staff: StaffRow[];
-  picks: { id: number; season: number; round: number; from: string }[];
+  picks: { id: number; season: number; round: number; from: string; overall: number | null }[];
 }
 
 export interface PlayerView {
@@ -249,7 +249,13 @@ export function teamView(league: League, teamId: string, viewer: Viewer): TeamVi
     }));
   const picks = league.draftPicks
     .filter((p) => p.ownerTeamId === teamId)
-    .map((p) => ({ id: p.id, season: p.season, round: p.round, from: p.originalTeamId }));
+    .map((p) => ({
+      id: p.id,
+      season: p.season,
+      round: p.round,
+      from: p.originalTeamId,
+      overall: p.overall,
+    }));
   return {
     team: teamCard(league, team),
     starterOverall: starterOverall(roster),

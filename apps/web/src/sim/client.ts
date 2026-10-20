@@ -8,7 +8,11 @@ import type { FromWorker, Method, Params, Result, ToWorker } from "./protocol";
 const worker = new Worker(new URL("./sim.worker.ts", import.meta.url), { type: "module" });
 const waiting = new Map<
   number,
-  { resolve: (value: unknown) => void; reject: (error: Error) => void }
+  {
+    resolve: (value: unknown) => void;
+    reject: (error: Error) => void;
+    onProgress?: (label: string) => void;
+  }
 >();
 let nextId = 1;
 
@@ -16,15 +20,23 @@ worker.onmessage = (event: MessageEvent<FromWorker>) => {
   const reply = event.data;
   const pending = waiting.get(reply.id);
   if (!pending) return;
+  if ("progress" in reply) {
+    pending.onProgress?.(reply.progress);
+    return;
+  }
   waiting.delete(reply.id);
   if (reply.ok) pending.resolve(reply.result);
   else pending.reject(new Error(reply.error));
 };
 
-export function call<M extends Method>(method: M, params: Params<M>): Promise<Result<M>> {
+export function call<M extends Method>(
+  method: M,
+  params: Params<M>,
+  onProgress?: (label: string) => void,
+): Promise<Result<M>> {
   const id = nextId++;
   return new Promise((resolve, reject) => {
-    waiting.set(id, { resolve: resolve as (value: unknown) => void, reject });
+    waiting.set(id, { resolve: resolve as (value: unknown) => void, reject, onProgress });
     const transfer =
       params && typeof params === "object" && "bytes" in params
         ? [(params.bytes as Uint8Array).buffer]

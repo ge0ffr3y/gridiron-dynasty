@@ -7,6 +7,7 @@ import {
   FolderOpen,
   Handshake,
   Home,
+  ListOrdered,
   Moon,
   Shield,
   Sun,
@@ -17,16 +18,21 @@ import {
 import type { ReactNode } from "react";
 import { Link, Route, Router, Switch, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
+import { SimControls } from "@/components/SimControls";
 import { Loading } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { SessionProvider, useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { CoachPage } from "@/pages/CoachPage";
+import { HistoryPage } from "@/pages/HistoryPage";
 import { HomePage } from "@/pages/HomePage";
 import { LeaguePage } from "@/pages/LeaguePage";
 import { PlayerPage } from "@/pages/PlayerPage";
 import { PlayersPage } from "@/pages/PlayersPage";
+import { PlayoffsPage } from "@/pages/PlayoffsPage";
+import { SchedulePage } from "@/pages/SchedulePage";
+import { StandingsPage } from "@/pages/StandingsPage";
 import { TeamPage } from "@/pages/TeamPage";
 import { TeamsPage } from "@/pages/TeamsPage";
 import { useSim } from "@/sim/client";
@@ -45,12 +51,13 @@ const NAV: NavItem[] = [
   { label: "League", icon: Home, href: "/league", needsLeague: true },
   { label: "Teams", icon: Shield, href: "/teams", needsLeague: true },
   { label: "Players", icon: Users, href: "/players", needsLeague: true },
-  { label: "Schedule", icon: CalendarDays, phase: 2 },
-  { label: "Standings", icon: Trophy, phase: 2 },
+  { label: "Schedule", icon: CalendarDays, href: "/schedule", needsLeague: true },
+  { label: "Standings", icon: ListOrdered, href: "/standings", needsLeague: true },
+  { label: "Playoffs", icon: Trophy, href: "/playoffs", needsLeague: true },
+  { label: "History", icon: BookOpen, href: "/history", needsLeague: true },
   { label: "Games", icon: Activity, phase: 3 },
-  { label: "Free agency", icon: Handshake, phase: 12 },
   { label: "Draft", icon: ClipboardList, phase: 11 },
-  { label: "History", icon: BookOpen, phase: 15 },
+  { label: "Free agency", icon: Handshake, phase: 12 },
 ];
 
 export function App() {
@@ -99,6 +106,11 @@ function Shell() {
             {theme === "dark" ? <Sun /> : <Moon />}
           </Button>
         </header>
+        {league && (
+          <div className="border-b px-4 py-2 md:px-6">
+            <SimControls />
+          </div>
+        )}
 
         <nav className="flex gap-1 overflow-x-auto border-b px-2 py-2 md:hidden">
           {NAV.filter((item) => item.href).map((item) => (
@@ -125,6 +137,26 @@ function Shell() {
                   <TeamPage teamId={params.id} />
                 </NeedsLeague>
               )}
+            </Route>
+            <Route path="/schedule">
+              <NeedsLeague>
+                <SchedulePage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/standings">
+              <NeedsLeague>
+                <StandingsPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/playoffs">
+              <NeedsLeague>
+                <PlayoffsPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/history">
+              <NeedsLeague>
+                <HistoryPage />
+              </NeedsLeague>
             </Route>
             <Route path="/players">
               <NeedsLeague>

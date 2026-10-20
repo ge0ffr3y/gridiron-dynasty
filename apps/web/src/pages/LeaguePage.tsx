@@ -2,12 +2,14 @@ import { Link } from "wouter";
 import { ErrorNote, Facts, Loading, OverallBadge, PageHeader, TeamChip } from "@/components/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatLeagueDate } from "@/lib/format";
-import { useSession } from "@/lib/session";
+import { useLeagueKey } from "@/lib/session";
 import { useSim } from "@/sim/client";
 
 export function LeaguePage() {
-  const { league } = useSession();
-  const summary = useSim("leagueSummary", {}, league?.id ?? "");
+  const key = useLeagueKey();
+  const summary = useSim("leagueSummary", {}, key);
+  const calendar = useSim("calendar", {}, key);
+  const history = useSim("historyView", {}, key);
   if (summary.error) return <ErrorNote message={summary.error} />;
   if (!summary.data) return <Loading />;
   const s = summary.data;
@@ -36,6 +38,48 @@ export function LeaguePage() {
           )}
         </CardContent>
       </Card>
+
+      {calendar.data && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {calendar.data.season} season · {calendar.data.label}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            {history.data?.seasons[0] && (
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">
+                  {history.data.seasons[0].season} champion:
+                </span>
+                <TeamChip team={history.data.seasons[0].champion} />
+                <Link
+                  href={`/team/${history.data.seasons[0].champion.id}`}
+                  className="font-medium hover:underline"
+                >
+                  {history.data.seasons[0].champion.city}{" "}
+                  {history.data.seasons[0].champion.nickname}
+                </Link>
+                <span className="text-muted-foreground">
+                  ({history.data.seasons[0].score} over{" "}
+                  {history.data.seasons[0].runnerUp.abbreviation})
+                </span>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-3">
+              <Link href="/schedule" className="underline">
+                Schedule
+              </Link>
+              <Link href="/standings" className="underline">
+                Standings
+              </Link>
+              <Link href="/playoffs" className="underline">
+                Playoff picture
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {s.conferences.map((conference) => (
         <section key={conference.id} className="flex flex-col gap-3">

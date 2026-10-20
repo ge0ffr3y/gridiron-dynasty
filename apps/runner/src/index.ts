@@ -4,13 +4,17 @@
  *
  *   npm run sim -- --new-league --seed 42                 summary of a generated league
  *   npm run sim -- --new-league --seed 42 --out l.json    also write the league file
+ *   npm run sim -- --seasons 10 --seed 42                 simulate seasons, checking every schedule
  */
 import { writeFileSync } from "node:fs";
 import { GAME_ENGINE_VERSION } from "@fgm/game-engine";
 import {
   POSITIONS,
   SIM_CORE_VERSION,
+  advance,
+  advanceUntil,
   createLeague,
+  validateSchedule,
   fingerprint,
   playersView,
   serializeLeague,
@@ -37,8 +41,16 @@ console.log(
   `FootballGM Sim runner (sim-core ${SIM_CORE_VERSION}, game-engine ${GAME_ENGINE_VERSION})`,
 );
 
+const seasonsArg = option(args, "--seasons");
+if (seasonsArg !== undefined) {
+  runSeasons(readSeed(args), Number(seasonsArg));
+  process.exit(0);
+}
+
 if (!args.includes("--new-league")) {
-  console.log("Usage: npm run sim -- --new-league [--seed N] [--out league.json]");
+  console.log("Usage:");
+  console.log("  npm run sim -- --new-league [--seed N] [--out league.json]");
+  console.log("  npm run sim -- --seasons N [--seed N]");
   process.exit(0);
 }
 
@@ -81,4 +93,55 @@ const out = option(args, "--out");
 if (out) {
   writeFileSync(out, text);
   console.log(`\nWrote ${out}`);
+}
+
+/** Simulates many seasons, validating each schedule, and prints a line per season. */
+function runSeasons(seed: number, count: number): void {
+  if (!Number.isInteger(count) || count < 1)
+    throw new Error("--seasons must be a whole number of 1 or more");
+  const started = process.hrtime.bigint();
+  const league = createLeague({ seed, name: `League ${seed}` });
+  console.log(
+    `\nSeed ${seed}: simulating ${count} season${count === 1 ? "" : "s"} (placeholder scores until the Phase 3 engine).\n`,
+  );
+  console.log(
+    "season  champion  runner-up  score    best record     pts/team/game  home win%  ties  schedule",
+  );
+  const totals = { points: 0, games: 0, homeWins: 0, ties: 0, problems: 0 };
+  for (let i = 0; i < count; i++) {
+    const last = league.history.at(-1)!;
+    const finish = new Map(last.standings.map((s) => [s.teamId, s.divisionRank]));
+    const problems = validateSchedule(
+      league.rules,
+      league.season,
+      league.teams,
+      league.games,
+      finish,
+    );
+    totals.problems += problems.length;
+    advanceUntil(league, (l) => l.calendar.stage === "complete");
+    const h = league.history.at(-1)!;
+    const regular = league.games.filter((g) => g.round === "regular" && g.result);
+    const points = regular.reduce((sum, g) => sum + g.result!.homeScore + g.result!.awayScore, 0);
+    const homeWins = regular.filter((g) => g.result!.homeScore > g.result!.awayScore).length;
+    const ties = regular.filter((g) => g.result!.homeScore === g.result!.awayScore).length;
+    totals.points += points;
+    totals.games += regular.length;
+    totals.homeWins += homeWins;
+    totals.ties += ties;
+    const best = [...h.standings].sort((a, b) => b.wins + b.ties / 2 - (a.wins + a.ties / 2))[0]!;
+    const final = h.playoffGames.find((g) => g.round === "championship")!;
+    const score = `${Math.max(final.homeScore, final.awayScore)}-${Math.min(final.homeScore, final.awayScore)}`;
+    console.log(
+      `${h.season}    ${h.championId.padEnd(8)}  ${h.runnerUpId.padEnd(9)}  ${score.padEnd(7)}  ${`${best.teamId} ${best.wins}-${best.losses}-${best.ties}`.padEnd(14)}  ${(points / regular.length / 2).toFixed(1).padStart(13)}  ${((homeWins / regular.length) * 100).toFixed(1).padStart(9)}  ${String(ties).padStart(4)}  ${problems.length === 0 ? "valid" : `${problems.length} problems`}`,
+    );
+    if (problems.length > 0) for (const p of problems.slice(0, 5)) console.log(`        ${p}`);
+    advance(league); // next league year
+  }
+  const seconds = Number(process.hrtime.bigint() - started) / 1e9;
+  console.log(
+    `\n${count} seasons in ${seconds.toFixed(1)} s (${((seconds / count) * 1000).toFixed(0)} ms per season). ` +
+      `Average ${(totals.points / totals.games / 2).toFixed(1)} points per team per game, home teams won ${((totals.homeWins / totals.games) * 100).toFixed(1)}%, ` +
+      `${totals.ties} ties, ${totals.problems} schedule problems.`,
+  );
 }

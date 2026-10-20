@@ -20,14 +20,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ordinal } from "@/lib/format";
-import { useSession } from "@/lib/session";
+import { useLeagueKey } from "@/lib/session";
 import { useSim } from "@/sim/client";
 
 type Tab = "roster" | "staff" | "picks";
 
 export function TeamPage({ teamId }: { teamId: string }) {
-  const { league } = useSession();
-  const view = useSim("teamView", { teamId }, `${league?.id}:${teamId}`);
+  const view = useSim("teamView", { teamId }, useLeagueKey(String(teamId)));
   const [tab, setTab] = useState<Tab>("roster");
   if (view.error) return <ErrorNote message={view.error} />;
   if (!view.data) return <Loading />;
@@ -129,6 +128,9 @@ export function TeamPage({ teamId }: { teamId: string }) {
                     .map((p) => (
                       <li key={p.id}>
                         {ordinal(p.round)} round
+                        {p.overall !== null && (
+                          <span className="text-muted-foreground"> · pick #{p.overall}</span>
+                        )}
                         {p.from !== team.id && (
                           <span className="text-muted-foreground"> (from {p.from})</span>
                         )}

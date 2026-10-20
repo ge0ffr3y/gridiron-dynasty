@@ -56,3 +56,9 @@ export function ageOn(birthDate: LeagueDate, on: LeagueDate): number {
 export function yearOf(date: LeagueDate): number {
   return parts(date)[0];
 }
+
+/** Day of the week: 0 = Monday ... 6 = Sunday. */
+export function weekdayOf(date: LeagueDate): number {
+  // 1970-01-01 (day 0) was a Thursday.
+  return (((toDayNumber(date) + 3) % 7) + 7) % 7;
+}

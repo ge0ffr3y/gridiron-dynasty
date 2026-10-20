@@ -2,14 +2,13 @@ import { Link } from "wouter";
 import { ErrorNote, Facts, Loading, OverallBadge, RatingBar, TeamChip } from "@/components/shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatHeight, formatLeagueDate, ordinal } from "@/lib/format";
-import { useSession } from "@/lib/session";
+import { useLeagueKey } from "@/lib/session";
 import { useSim } from "@/sim/client";
 
 const GROUP_TITLES = { physical: "Physical", technical: "Technical", mental: "Mental" } as const;
 
 export function PlayerPage({ playerId }: { playerId: number }) {
-  const { league } = useSession();
-  const view = useSim("playerView", { id: playerId }, `${league?.id}:${playerId}`);
+  const view = useSim("playerView", { id: playerId }, useLeagueKey(String(playerId)));
   if (view.error) return <ErrorNote message={view.error} />;
   if (!view.data) return <Loading />;
   const p = view.data;

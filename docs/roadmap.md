@@ -154,25 +154,25 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** Sim complete seasons with placeholder scores: real NFL schedule formula, standings, every tiebreaker, and the 14-team playoff.
 
 ### Steps
-- [ ] **League calendar state machine:** offseason stages (stubs for now), preseason, regular-season weeks 1–18, playoff rounds, championship; an "advance" action moves through it
-- [ ] **Schedule formula:** division home-and-away, rotating same-conference division, rotating other-conference division, two same-place games, the 17th game vs. an other-conference same-place finisher; rotation tables in rules config
-- [ ] **Week assignment:** 17 games in 18 weeks, one bye per team inside the bye window, no conflicts; home/away balance (constraint solver)
-- [ ] **Schedule validator** test that checks every formula rule
-- [ ] **Placeholder game result:** team strength + home field + randomness → final score (replaced in Phase 3)
-- [ ] **Standings:** W-L-T, win %, division / conference / common-game records, points for/against, streaks, strength of victory and schedule
-- [ ] **Full NFL tiebreaker procedures** (two-club and three-plus-club, division, wild card, and draft order), coin toss via RNG; tests built from the NFL's published worked examples
-- [ ] **Playoffs:** 7 seeds per conference, top-seed bye, reseeding, neutral-site championship
-- [ ] **Draft order** from final standings and playoff exits
-- [ ] **Sim controls** (in the worker, with progress): sim one week, to the trade deadline, to end of regular season, through the playoffs, full season
-- [ ] **Season rollover:** archive the season, age everyone a year (placeholder), build next season's schedule from new standings
-- [ ] **UI:** schedule & results, standings (division / conference / league), playoff picture during the season, playoff bracket, list of past champions
-- [ ] **Headless runner v1:** `npm run sim -- --seasons 10 --seed 42`
+- [x] **League calendar state machine:** offseason stages (stubs for now), preseason, regular-season weeks 1–18, playoff rounds, championship; an "advance" action moves through it
+- [x] **Schedule formula:** division home-and-away, rotating same-conference division, rotating other-conference division, two same-place games, the 17th game vs. an other-conference same-place finisher; rotation tables in rules config
+- [x] **Week assignment:** 17 games in 18 weeks, one bye per team inside the bye window, no conflicts; home/away balance (constraint solver)
+- [x] **Schedule validator** test that checks every formula rule
+- [x] **Placeholder game result:** team strength + home field + randomness → final score (replaced in Phase 3)
+- [x] **Standings:** W-L-T, win %, division / conference / common-game records, points for/against, streaks, strength of victory and schedule
+- [x] **Full NFL tiebreaker procedures** (two-club and three-plus-club, division, wild card, and draft order), coin toss via RNG; tests built from the NFL's published worked examples *(the NFL publishes none; built from hand-made scenarios, one per step; the coin toss is a fixed hash of the seed, season, and clubs rather than a random draw, so viewing standings never changes the future)*
+- [x] **Playoffs:** 7 seeds per conference, top-seed bye, reseeding, neutral-site championship
+- [x] **Draft order** from final standings and playoff exits
+- [x] **Sim controls** (in the worker, with progress): sim one week, to the trade deadline, to end of regular season, through the playoffs, full season
+- [x] **Season rollover:** archive the season, age everyone a year (placeholder), build next season's schedule from new standings
+- [x] **UI:** schedule & results, standings (division / conference / league), playoff picture during the season, playoff bracket, list of past champions
+- [x] **Headless runner v1:** `npm run sim -- --seasons 10 --seed 42`
 
 ### Done when
-- [ ] Every team plays 17 games in 18 weeks with one bye, and the validator passes for 20 straight generated seasons
-- [ ] Every tiebreaker worked-example test passes
-- [ ] The standings and bracket look right after a full season
-- [ ] 100 seasons (placeholder scores) run headless in under a minute
+- [x] Every team plays 17 games in 18 weeks with one bye, and the validator passes for 20 straight generated seasons *(100 straight in the runner)*
+- [x] Every tiebreaker worked-example test passes
+- [x] The standings and bracket look right after a full season
+- [x] 100 seasons (placeholder scores) run headless in under a minute *(7.8 s)*
 
 > [!example]- Kickoff prompt
 > "Phase 2: implement the league calendar state machine, the NFL scheduling formula with a validator, standings, the full tiebreaker procedures with tests from the NFL's published examples, the 7-seed playoff, draft order, sim controls in the worker, season rollover, the schedule/standings/bracket screens, and headless runner v1. Game results are a placeholder strength-based score for now. Plan first."

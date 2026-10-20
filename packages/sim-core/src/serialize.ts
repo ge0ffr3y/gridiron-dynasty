@@ -32,8 +32,12 @@ export function parseLeague(text: string): League {
   const header = data as { format?: unknown; formatVersion?: unknown } | null;
   if (header?.format !== LEAGUE_FORMAT) throw new Error("This isn't a FootballGM Sim league file.");
   if (header.formatVersion !== LEAGUE_FORMAT_VERSION) {
+    const older =
+      typeof header.formatVersion === "number" && header.formatVersion < LEAGUE_FORMAT_VERSION;
     throw new Error(
-      `This league file is format version ${String(header.formatVersion)}; this version reads ${LEAGUE_FORMAT_VERSION}.`,
+      older
+        ? `This league was saved by an older version of the game (save format ${String(header.formatVersion)}) and can't be opened. Create a new league instead.`
+        : `This league was saved by a newer version of the game (save format ${String(header.formatVersion)}). Update the game to open it.`,
     );
   }
   const result = LeagueSchema.safeParse(data);

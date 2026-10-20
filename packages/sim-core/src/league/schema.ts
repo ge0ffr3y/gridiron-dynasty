@@ -8,7 +8,7 @@ import { ATTRIBUTE_KEYS, POSITIONS, type AttributeKey } from "../players/positio
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 1;
+export const LEAGUE_FORMAT_VERSION = 2;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -134,6 +134,103 @@ export const DraftPickSchema = z.object({
   round: z.number().int().positive(),
   originalTeamId: z.string(),
   ownerTeamId: z.string(),
+  /** Overall pick number, once the draft order is known (after the previous season). */
+  overall: z.number().int().positive().nullable(),
+});
+
+export const GAME_ROUNDS = [
+  "regular",
+  "wildcard",
+  "divisional",
+  "conference",
+  "championship",
+] as const;
+export type GameRound = (typeof GAME_ROUNDS)[number];
+export const PLAYOFF_ROUNDS = ["wildcard", "divisional", "conference", "championship"] as const;
+export type PlayoffRound = (typeof PLAYOFF_ROUNDS)[number];
+
+export const GameSchema = z.object({
+  id: z.number().int().nonnegative(),
+  season: z.number().int(),
+  round: z.enum(GAME_ROUNDS),
+  /** Regular-season week (1-18); playoff games carry the week after the season they're played in. */
+  week: z.number().int().positive(),
+  date: IsoDate,
+  homeId: z.string(),
+  awayId: z.string(),
+  /** No home-field advantage (the championship). */
+  neutral: z.boolean(),
+  /** Scores and touchdowns, null until the game is played. */
+  result: z
+    .object({
+      homeScore: z.number().int().nonnegative(),
+      awayScore: z.number().int().nonnegative(),
+      homeTouchdowns: z.number().int().nonnegative(),
+      awayTouchdowns: z.number().int().nonnegative(),
+      overtime: z.boolean(),
+    })
+    .nullable(),
+});
+
+export const CALENDAR_STAGES = [
+  "offseason",
+  "preseason",
+  "regular",
+  "wildcard",
+  "divisional",
+  "conference",
+  "championship",
+  "complete",
+] as const;
+export type CalendarStage = (typeof CALENDAR_STAGES)[number];
+
+export const CalendarSchema = z.object({
+  stage: z.enum(CALENDAR_STAGES),
+  /** The next regular-season week to be played (meaningful in the regular stage). */
+  week: z.number().int().positive(),
+});
+
+export const PLAYOFF_EXITS = [
+  "missed",
+  "wildcard",
+  "divisional",
+  "conference",
+  "runner-up",
+  "champion",
+] as const;
+
+export const SeasonHistorySchema = z.object({
+  season: z.number().int(),
+  championId: z.string(),
+  runnerUpId: z.string(),
+  standings: z.array(
+    z.object({
+      teamId: z.string(),
+      wins: z.number().int(),
+      losses: z.number().int(),
+      ties: z.number().int(),
+      pointsFor: z.number().int(),
+      pointsAgainst: z.number().int(),
+      divisionRank: z.number().int().positive(),
+      /** Playoff seed (1-7) or null. */
+      seed: z.number().int().positive().nullable(),
+      exit: z.enum(PLAYOFF_EXITS),
+    }),
+  ),
+  playoffGames: z.array(
+    z.object({
+      round: z.enum(PLAYOFF_ROUNDS),
+      homeId: z.string(),
+      awayId: z.string(),
+      homeScore: z.number().int(),
+      awayScore: z.number().int(),
+      overtime: z.boolean(),
+    }),
+  ),
+  /** First-round order of the next draft (1st pick first). */
+  draftOrder: z.array(z.string()),
+  /** How ties in the final standings were broken. */
+  tiebreakNotes: z.array(z.string()),
 });
 
 export const TransactionSchema = z.object({
@@ -173,10 +270,15 @@ export const LeagueSchema = z.object({
   rules: RulesSchema,
   date: IsoDate,
   season: z.number().int(),
+  calendar: CalendarSchema,
   teams: z.array(TeamSchema),
   players: z.array(PlayerSchema),
   coaches: z.array(CoachSchema),
   draftPicks: z.array(DraftPickSchema),
+  /** This season's games (regular season and playoffs). */
+  games: z.array(GameSchema),
+  /** One summary per completed season, oldest first. */
+  history: z.array(SeasonHistorySchema),
   transactions: z.array(TransactionSchema),
   pendingDecisions: z.array(PendingDecisionSchema),
   rng: z.partialRecord(z.string(), RngStateSchema),
@@ -198,3 +300,8 @@ export type Transaction = z.infer<typeof TransactionSchema>;
 export type DecisionRequest = z.infer<typeof DecisionRequestSchema>;
 export type PendingDecision = z.infer<typeof PendingDecisionSchema>;
 export type League = z.infer<typeof LeagueSchema>;
+export type Game = z.infer<typeof GameSchema>;
+export type GameResult = NonNullable<Game["result"]>;
+export type Calendar = z.infer<typeof CalendarSchema>;
+export type SeasonHistory = z.infer<typeof SeasonHistorySchema>;
+export type PlayoffExit = (typeof PLAYOFF_EXITS)[number];

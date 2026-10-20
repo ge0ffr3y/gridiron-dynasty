@@ -215,7 +215,14 @@ export function generateDraftPicks(
   for (let s = season; s < season + seasons; s++) {
     for (let round = 1; round <= rounds; round++) {
       for (const teamId of teamIds)
-        picks.push({ id: id++, season: s, round, originalTeamId: teamId, ownerTeamId: teamId });
+        picks.push({
+          id: id++,
+          season: s,
+          round,
+          originalTeamId: teamId,
+          ownerTeamId: teamId,
+          overall: null,
+        });
     }
   }
   return picks;

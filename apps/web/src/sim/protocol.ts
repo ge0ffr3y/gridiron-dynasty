@@ -2,7 +2,20 @@
  * Messages between the page and the simulation worker. The worker owns the
  * league; the page asks for screen data by name and gets plain data back.
  */
-import type { CoachView, LeagueSummary, PlayerView, RosterRow, TeamView } from "@fgm/sim-core";
+import type {
+  CalendarView,
+  CoachView,
+  HistoryView,
+  LeagueSummary,
+  PlayerView,
+  PlayoffsView,
+  RosterRow,
+  ScheduleSelection,
+  ScheduleView,
+  SimActionId,
+  StandingsView,
+  TeamView,
+} from "@fgm/sim-core";
 
 /** A league saved in this browser. */
 export interface SavedLeague {
@@ -37,6 +50,13 @@ export interface SimApi {
   playersView(params: Record<string, never>): RosterRow[];
   playerView(params: { id: number }): PlayerView;
   coachView(params: { id: number }): CoachView;
+  calendar(params: Record<string, never>): CalendarView;
+  /** Runs a sim button; progress messages arrive while it runs. The league is saved afterwards. */
+  simAction(params: { action: SimActionId }): CalendarView;
+  scheduleView(params: { selection?: ScheduleSelection }): ScheduleView;
+  standingsView(params: Record<string, never>): StandingsView;
+  playoffsView(params: Record<string, never>): PlayoffsView;
+  historyView(params: Record<string, never>): HistoryView;
 }
 
 export type Method = keyof SimApi;
@@ -50,4 +70,7 @@ export interface ToWorker {
 }
 
 export type FromWorker =
-  { id: number; ok: true; result: unknown } | { id: number; ok: false; error: string };
+  | { id: number; ok: true; result: unknown }
+  | { id: number; ok: false; error: string }
+  /** Progress while a long request runs (not the final answer). */
+  | { id: number; progress: string };

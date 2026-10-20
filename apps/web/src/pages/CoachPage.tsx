@@ -2,12 +2,11 @@ import { Link } from "wouter";
 import { ErrorNote, Facts, Loading, RatingBar, TeamChip } from "@/components/shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatLeagueDate } from "@/lib/format";
-import { useSession } from "@/lib/session";
+import { useLeagueKey } from "@/lib/session";
 import { useSim } from "@/sim/client";
 
 export function CoachPage({ coachId }: { coachId: number }) {
-  const { league } = useSession();
-  const view = useSim("coachView", { id: coachId }, `${league?.id}:${coachId}`);
+  const view = useSim("coachView", { id: coachId }, useLeagueKey(String(coachId)));
   if (view.error) return <ErrorNote message={view.error} />;
   if (!view.data) return <Loading />;
   const c = view.data;

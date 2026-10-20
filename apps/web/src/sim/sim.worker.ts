@@ -7,7 +7,13 @@ import { GAME_ENGINE_VERSION } from "@fgm/game-engine";
 import {
   RngStreams,
   SIM_CORE_VERSION,
+  calendarView,
   coachView,
+  historyView,
+  playoffsView,
+  runAction,
+  scheduleView,
+  standingsView,
   createLeague,
   fingerprint,
   leagueSummary,
@@ -29,6 +35,12 @@ declare const self: DedicatedWorkerGlobalScope;
 const VIEWER: Viewer = { kind: "league" };
 
 let open: { saved: SavedLeague; league: League } | null = null;
+
+/** The request being handled, so long-running handlers can report progress. */
+let currentRequest = 0;
+function progress(label: string): void {
+  self.postMessage({ id: currentRequest, progress: label } satisfies FromWorker);
+}
 
 function requireLeague(): League {
   if (!open) throw new Error("No league is open.");
@@ -135,10 +147,38 @@ const handlers: Handlers = {
   coachView({ id }) {
     return coachView(requireLeague(), id);
   },
+
+  calendar() {
+    return calendarView(requireLeague());
+  },
+
+  async simAction({ action }) {
+    const league = requireLeague();
+    runAction(league, action, progress);
+    open = { saved: await save(league, open!.saved), league };
+    return calendarView(league);
+  },
+
+  scheduleView({ selection }) {
+    return scheduleView(requireLeague(), selection);
+  },
+
+  standingsView() {
+    return standingsView(requireLeague());
+  },
+
+  playoffsView() {
+    return playoffsView(requireLeague());
+  },
+
+  historyView() {
+    return historyView(requireLeague());
+  },
 };
 
 self.onmessage = async (event: MessageEvent<ToWorker>) => {
   const { id, method, params } = event.data;
+  currentRequest = id;
   try {
     const handler = handlers[method] as (p: unknown) => unknown;
     const result = await handler(params);

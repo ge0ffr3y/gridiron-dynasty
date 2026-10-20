@@ -9,20 +9,52 @@
         "id": "A",
         "name": "Conference A",
         "divisions": [
-          { "id": "A-EAST", "name": "East", "teams": ["BUF", "MIA", "NE", "NYA"] },
-          { "id": "A-NORTH", "name": "North", "teams": ["BAL", "CIN", "CLE", "PIT"] },
-          { "id": "A-SOUTH", "name": "South", "teams": ["HOU", "IND", "JAX", "TEN"] },
-          { "id": "A-WEST", "name": "West", "teams": ["DEN", "KC", "LV", "LAA"] }
+          {
+            "id": "A-EAST",
+            "name": "East",
+            "teams": ["BUF", "MIA", "NE", "NYA"]
+          },
+          {
+            "id": "A-NORTH",
+            "name": "North",
+            "teams": ["BAL", "CIN", "CLE", "PIT"]
+          },
+          {
+            "id": "A-SOUTH",
+            "name": "South",
+            "teams": ["HOU", "IND", "JAX", "TEN"]
+          },
+          {
+            "id": "A-WEST",
+            "name": "West",
+            "teams": ["DEN", "KC", "LV", "LAA"]
+          }
         ]
       },
       {
         "id": "B",
         "name": "Conference B",
         "divisions": [
-          { "id": "B-EAST", "name": "East", "teams": ["DAL", "NYB", "PHI", "WAS"] },
-          { "id": "B-NORTH", "name": "North", "teams": ["CHI", "DET", "GB", "MIN"] },
-          { "id": "B-SOUTH", "name": "South", "teams": ["ATL", "CAR", "NO", "TB"] },
-          { "id": "B-WEST", "name": "West", "teams": ["ARI", "LAB", "SF", "SEA"] }
+          {
+            "id": "B-EAST",
+            "name": "East",
+            "teams": ["DAL", "NYB", "PHI", "WAS"]
+          },
+          {
+            "id": "B-NORTH",
+            "name": "North",
+            "teams": ["CHI", "DET", "GB", "MIN"]
+          },
+          {
+            "id": "B-SOUTH",
+            "name": "South",
+            "teams": ["ATL", "CAR", "NO", "TB"]
+          },
+          {
+            "id": "B-WEST",
+            "name": "West",
+            "teams": ["ARI", "LAB", "SF", "SEA"]
+          }
         ]
       }
     ]
@@ -39,5 +71,68 @@
     "source": "Seven rounds; teams hold their picks for the current draft and the next two. Verify trading-window rules in Phase 8.",
     "rounds": 7,
     "seasonsOfPicksHeld": 3
+  },
+  "calendar": {
+    "source": "Week 1 of the 2026 season starts Thursday Sept 10 (the league opened Wed Sept 9); other seasons start the Thursday after Labor Day. Playoff rounds are a week apart with an open week before the championship, which puts the 2025 championship on Feb 8, 2026, as in reality. Preseason dates are stubs.",
+    "kickoffThursday": "2026-09-10",
+    "preseasonStartDaysBeforeKickoff": 35,
+    "playoffRoundGapDays": 7,
+    "championshipGapDays": 14
+  },
+  "schedule": {
+    "source": "NFL scheduling formula (operations.nfl.com, 2021 17-game announcement). Rotation tables: index 0 is the 2026 season, read from NFL.com's 2026 opponent lists; the other years follow the 3-year (same conference) and 4-year (other conference) cycles. Each other-conference pair is [Conference A division, Conference B division]. The 17th game pairs same-place finishers using the other-conference pairing from two seasons earlier; Conference B hosts it in even years (NFC hosts in 2026). Byes in Weeks 5-14 with at most 6 teams off per week (2025 schedule); Week 18 all division games; trade deadline after Week 9 (2025 deadline Nov 4).",
+    "regularSeasonWeeks": 18,
+    "byeWeeks": [5, 14],
+    "maxByesPerWeek": 6,
+    "finalWeekDivisionOnly": true,
+    "tradeDeadlineAfterWeek": 9,
+    "rotationBaseSeason": 2026,
+    "sameConferenceRotation": [
+      [
+        ["East", "West"],
+        ["North", "South"]
+      ],
+      [
+        ["East", "South"],
+        ["North", "West"]
+      ],
+      [
+        ["East", "North"],
+        ["South", "West"]
+      ]
+    ],
+    "otherConferenceRotation": [
+      [
+        ["East", "North"],
+        ["North", "South"],
+        ["South", "East"],
+        ["West", "West"]
+      ],
+      [
+        ["East", "East"],
+        ["North", "West"],
+        ["South", "South"],
+        ["West", "North"]
+      ],
+      [
+        ["East", "West"],
+        ["North", "East"],
+        ["South", "North"],
+        ["West", "South"]
+      ],
+      [
+        ["East", "South"],
+        ["North", "North"],
+        ["South", "West"],
+        ["West", "East"]
+      ]
+    ],
+    "seventeenthGameRotationOffset": 2,
+    "seventeenthGameHostInEvenSeasons": "B"
+  },
+  "playoffs": {
+    "source": "Seven clubs per conference (four division winners seeded 1-4, three wild cards 5-7); the top seed has a bye; 2v7, 3v6, 4v5; reseeded after the wild-card round so the top seed hosts the lowest remaining seed; higher seed hosts; neutral-site championship.",
+    "teamsPerConference": 7,
+    "byesPerConference": 1
   }
 }

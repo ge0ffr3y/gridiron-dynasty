@@ -9,12 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useSession } from "@/lib/session";
+import { useLeagueKey } from "@/lib/session";
 import { useSim } from "@/sim/client";
 
 export function TeamsPage() {
-  const { league } = useSession();
-  const summary = useSim("leagueSummary", {}, league?.id ?? "");
+  const summary = useSim("leagueSummary", {}, useLeagueKey());
   if (summary.error) return <ErrorNote message={summary.error} />;
   if (!summary.data) return <Loading />;
 

@@ -55,6 +55,7 @@ npm run format       format with Prettier (npm run format:check in CI)
 npm run dev          start the web app locally
 npm run build        production build of the web app
 npm run sim -- --new-league --seed 42 [--out league.json]   generate a league, print a summary
+npm run sim -- --seasons 100 --seed 7     simulate seasons; validates every schedule; prints champions and scoring
 npm run pipeline     data pipeline (Phase 6)
 ```
 
@@ -68,4 +69,8 @@ npm run pipeline     data pipeline (Phase 6)
 - **Ratings** (`sim-core/src/players/`): 28 attributes (0-100, our own scale), position overall = weighted average shifted so an average starter shows 75 everywhere. Weights, physical profiles, and sizes are config in `positions.ts`; generation tuning is in `generate/config.ts`.
 - **Perception** (`sim-core/src/perception.ts`): screens get ratings only via `perceivePlayer()`; a guardrail test fails if `apps/web/src` touches `.ratings`, `.hidden`, or `.personality`.
 - **Decisions** (`sim-core/src/decisions.ts`): `askTeam()` routes each team decision to the AI (answers with a reason) or queues it for the human (`pendingDecisions`). Add a decision kind by extending `DecisionRequestSchema` and `AI_POLICIES`.
+- **Seasons** (`sim-core/src/season/`): `flow.ts` moves the calendar one step at a time (`advance`), `actions.ts` maps the sim buttons onto it, `schedule.ts` builds the 272-game schedule (formula from the rotation tables in the rules, then a seeded week search; `validate.ts` checks every rule), `standings.ts` + `tiebreakers.ts` + `seeding.ts` implement the official NFL tie-breaking procedures (each step records a reason), `playoffs.ts` the 7-team bracket with reseeding, `draftOrder.ts` the draft order with tied clubs rotating each round. Games are placeholder scores (`placeholderGame.ts`) until the Phase 3 engine replaces `playGames()` in `flow.ts`.
+- Coin tosses in tiebreakers hash the league seed, season, and clubs instead of drawing random numbers, so computing standings (any number of times) never changes the future. Keep anything a screen can trigger free of RNG draws.
+- A new fictional league plays a placeholder 2025 season at creation, so 2026 has real standings for the schedule, same-place games, draft order, and History. The first league day is the day after that championship (Feb 9, 2026).
+- League saves carry `formatVersion` (now 2). Older saves are refused with a plain-English message; add a migration if a change should keep old saves working.
 - Team identities and conference names are placeholders (`generate/teams.ts`, rules file) until the Phase 6 naming session; none may be a real pro team's nickname.

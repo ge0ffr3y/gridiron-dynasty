@@ -12,7 +12,8 @@ import {
 } from "../league/schema";
 import { POSITIONS } from "../players/positions";
 import { RngStreams } from "../rng";
-import { RULES_BY_SEASON, teamIdsInOrder, type Rules } from "../rules";
+import { RULES_BY_SEASON, rulesFor, teamIdsInOrder, type Rules } from "../rules";
+import { advanceUntil, scheduleSeason, startNextSeason } from "../season/flow";
 import { generateCoach } from "./coaches";
 import { ROSTER_MIX, STAFF, TEAM_STRENGTH_SPREAD } from "./config";
 import { COLLEGES } from "./names";
@@ -101,17 +102,20 @@ export function createLeague(options: NewLeagueOptions): League {
     0,
   );
 
-  return {
+  const league: League = {
     format: LEAGUE_FORMAT,
     formatVersion: LEAGUE_FORMAT_VERSION,
     meta: { name: options.name, seed: options.seed, kind: "fictional" },
-    rules,
+    rules: rulesFor(season - 1),
     date,
-    season,
+    season: season - 1,
+    calendar: { stage: "regular", week: 1 },
     teams,
     players,
     coaches,
     draftPicks,
+    games: [],
+    history: [],
     transactions: [
       {
         id: 0,
@@ -124,7 +128,7 @@ export function createLeague(options: NewLeagueOptions): League {
       },
     ],
     pendingDecisions: [],
-    rng: streams.getState(),
+    rng: {},
     nextIds: {
       player: players.length,
       coach: coaches.length,
@@ -133,4 +137,21 @@ export function createLeague(options: NewLeagueOptions): League {
       decision: 0,
     },
   };
+
+  // A fictional league has a past: play a placeholder version of the season
+  // before the first one, so schedules, same-place games, the draft order and
+  // History all have real results to come from. Finishes for the season
+  // before that are drawn at random.
+  const scheduleRng = streams.get("schedule");
+  const finish = new Map<string, number>();
+  for (const conference of rules.structure.conferences) {
+    for (const division of conference.divisions) {
+      scheduleRng.shuffle([...division.teams]).forEach((t, i) => finish.set(t, i + 1));
+    }
+  }
+  league.rng = streams.getState();
+  scheduleSeason(league, finish);
+  advanceUntil(league, (l) => l.calendar.stage === "complete");
+  startNextSeason(league, { agePlayers: false });
+  return league;
 }

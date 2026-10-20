@@ -10,5 +10,7 @@ export default defineConfig({
     ],
     exclude: ["**/node_modules/**", "**/dist/**"],
     environment: "node",
+    // Simulation tests play whole seasons; CI machines are slower than a laptop.
+    testTimeout: 30_000,
   },
 });

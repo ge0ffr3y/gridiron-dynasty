@@ -63,9 +63,9 @@ Decisions that block a phase. Record the answer here when made.
 
 | Decision | Needed by | Answer |
 |---|---|---|
-| GitHub repo name, visibility, license | Phase 0 | |
+| GitHub repo name, visibility, license | Phase 0 | `ge0ffr3y/footballgm-sim`, private for now; license when public |
 | Hosting: GitHub Pages or Vercel | Phase 0 | |
-| Working title / app name | Phase 0 (placeholder ok) | |
+| Working title / app name | Phase 0 (placeholder ok) | "FootballGM Sim" as placeholder (rename before going public: "Football GM" is ZenGM's game) |
 | League name, championship name, 32 team names, mascots, colors | Phase 6 | |
 | Is the generated real-league file published in the public repo, or built locally only? | Phase 6 | |
 | Real college names for prospects, or fictional schools? | Phase 11 | |
@@ -81,19 +81,19 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** A working project skeleton deployed to the web, with the guardrails in place before any league code exists.
 
 ### Steps
-- [ ] Decide repo name, visibility, and license; create the GitHub repo
-- [ ] Scaffold the monorepo (npm workspaces): `packages/sim-core`, `packages/game-engine`, `apps/web`, `apps/runner`, `pipeline/`, `rules/`, `docs/`
-- [ ] `apps/web`: Vite + React + TypeScript + Tailwind + shadcn/ui, with a basic app shell (sidebar nav, header, light/dark theme)
-- [ ] TypeScript strict mode, ESLint, Prettier across all packages
-- [ ] Vitest with one trivial passing test per package
-- [ ] **Seeded RNG** in `sim-core` with **named streams** (schedule, game, injuries, AI…) so adding a feature in one area doesn't reshuffle every other random outcome; test: same seed → same numbers
-- [ ] **Deterministic math helpers** (exp, log, pow…) and a lint rule banning `Math.random`, `Date.now`, and raw transcendental `Math.*` calls inside `sim-core` and `game-engine` (lesson carried over from Evolution Sim: those can differ across browsers)
-- [ ] **Money type:** all money stored as whole dollars (integers), never floating point
-- [ ] **Web Worker bridge:** the UI talks to the simulation only through a worker (hello-world round trip)
-- [ ] Write `CLAUDE.md` (rules below)
-- [ ] GitHub Action: typecheck, lint, test, build on every push
-- [ ] Auto-deploy `apps/web` (GitHub Pages or Vercel)
-- [ ] Create `docs/devlog/` with entry #0, and the Obsidian `03 - Devlog` note
+- [x] Decide repo name, visibility, and license; create the GitHub repo *(ge0ffr3y/footballgm-sim, private for now; license chosen when it goes public)*
+- [x] Scaffold the monorepo (npm workspaces): `packages/sim-core`, `packages/game-engine`, `apps/web`, `apps/runner`, `pipeline/`, `rules/`, `docs/`
+- [x] `apps/web`: Vite + React + TypeScript + Tailwind + shadcn/ui, with a basic app shell (sidebar nav, header, light/dark theme)
+- [ ] TypeScript strict mode, ESLint, Prettier across all packages *(strict TS and Prettier done; ESLint left out: typescript-eslint doesn't support TypeScript 7 yet, and the guardrail test already enforces the simulation bans)*
+- [x] Vitest with one trivial passing test per package
+- [x] **Seeded RNG** in `sim-core` with **named streams** (schedule, game, injuries, AI…) so adding a feature in one area doesn't reshuffle every other random outcome; test: same seed → same numbers
+- [x] **Deterministic math helpers** (exp, log, pow…) and a lint rule banning `Math.random`, `Date.now`, and raw transcendental `Math.*` calls inside `sim-core` and `game-engine` (lesson carried over from Evolution Sim: those can differ across browsers) *(the ban is a guardrail test, as in Evolution Sim)*
+- [x] **Money type:** all money stored as whole dollars (integers), never floating point
+- [x] **Web Worker bridge:** the UI talks to the simulation only through a worker (hello-world round trip)
+- [x] Write `CLAUDE.md` (rules below)
+- [x] GitHub Action: typecheck, lint, test, build on every push *(format check stands in for lint)*
+- [ ] Auto-deploy `apps/web` (GitHub Pages or Vercel) *(waiting on the hosting decision: Pages needs a public repo on the free plan)*
+- [x] Create `docs/devlog/` with entry #0, and the Obsidian `03 - Devlog` note
 
 ### `CLAUDE.md` rules to include
 - `sim-core` and `game-engine` never import browser APIs (no `window`, `document`, DOM, IndexedDB).
@@ -109,9 +109,9 @@ Decisions that block a phase. Record the answer here when made.
 
 ### Done when
 - [ ] The live URL shows the app shell titled "FootballGM Sim" with a light/dark toggle
-- [ ] The page shows "Sim worker: ready" (the worker round trip works)
+- [x] The page shows "Sim worker: ready" (the worker round trip works)
 - [ ] CI is green on GitHub
-- [ ] The RNG determinism test passes
+- [x] The RNG determinism test passes
 
 > [!example]- Kickoff prompt
 > "We're starting FootballGM Sim, a pro football GM game and league simulator in TypeScript. Read the attached overview and roadmap. Phase 0: set up the npm-workspaces monorepo from the roadmap (sim-core, game-engine, web, runner, pipeline, rules, docs), the React + Tailwind + shadcn app shell, Vitest, a seeded RNG with named streams and a determinism test, deterministic math helpers with a lint ban on Math.random/Date.now, an integer money type, a Web Worker hello-world, CI, and deployment. Write CLAUDE.md with the roadmap's rules. Propose a plan first, then build step by step, explaining each step in plain English."

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+package-lock.json
+pipeline/private/
+pipeline/cache/
+# Snapshots of the Obsidian notes; keep them exactly as written there.
+docs/overview.md
+docs/roadmap.md

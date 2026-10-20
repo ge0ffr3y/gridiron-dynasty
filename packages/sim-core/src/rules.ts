@@ -6,6 +6,38 @@ import { z } from "zod";
 import rules2026 from "../../../rules/2026.json";
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "dates are written YYYY-MM-DD");
+const OvertimeSchema = z.object({
+  periodMinutes: z.number().positive(),
+  /** null = keep playing periods until someone wins. */
+  maxPeriods: z.number().int().positive().nullable(),
+  timeouts: z.number().int().nonnegative(),
+  bothTeamsPossess: z.boolean(),
+});
+
+/** Rules of a single game (clock, kicks, overtime). The game engine reads these. */
+export const GameRulesSchema = z.object({
+  source: z.string(),
+  quarterMinutes: z.number().positive(),
+  timeoutsPerHalf: z.number().int().nonnegative(),
+  twoMinuteWarning: z.boolean(),
+  playClockSeconds: z.number().int().positive(),
+  outOfBoundsStopsClockLastSeconds: z.object({
+    firstHalf: z.number().int(),
+    secondHalf: z.number().int(),
+  }),
+  extraPointSpot: z.number().int().positive(),
+  twoPointSpot: z.number().int().positive(),
+  kickoff: z.object({
+    touchbackSpot: z.number().int().positive(),
+    landingZoneTouchbackSpot: z.number().int().positive(),
+    shortOrOutOfBoundsSpot: z.number().int().positive(),
+  }),
+  puntTouchbackSpot: z.number().int().positive(),
+  safetyFreeKickFrom: z.number().int().positive(),
+  overtime: z.object({ regularSeason: OvertimeSchema, playoffs: OvertimeSchema }),
+});
+export type GameRules = z.infer<typeof GameRulesSchema>;
+
 /** Two division names, e.g. ["East", "West"]. */
 const DivisionPair = z.tuple([z.string(), z.string()]);
 
@@ -68,6 +100,7 @@ export const RulesSchema = z
       teamsPerConference: z.number().int().positive(),
       byesPerConference: z.number().int().nonnegative(),
     }),
+    game: GameRulesSchema,
   })
   .superRefine((rules, ctx) => {
     const seen = new Set<string>();

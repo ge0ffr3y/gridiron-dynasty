@@ -2,7 +2,7 @@
  * Tuning numbers for generated leagues (CLAUDE.md, rule 4).
  * Phase 6 checks these shapes against the real league.
  */
-import type { Position } from "../players/positions";
+import type { Position } from "@fgm/foundation";
 
 /** A 90-man offseason roster. */
 export const ROSTER_MIX: Record<Position, number> = {

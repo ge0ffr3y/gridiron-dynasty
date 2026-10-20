@@ -8,7 +8,7 @@ Planning notes live in the owner's Obsidian vault: `Projects/FootballGM Sim Proj
 
 ## Hard rules
 
-1. `packages/sim-core` and `packages/game-engine` never use browser APIs (no `window`, `document`, DOM, IndexedDB, `localStorage`) or Node-only imports. They must run unchanged in a browser, a Web Worker, and Node.
+1. `packages/foundation`, `packages/sim-core` and `packages/game-engine` never use browser APIs (no `window`, `document`, DOM, IndexedDB, `localStorage`) or Node-only imports. They must run unchanged in a browser, a Web Worker, and Node.
 2. Never use `Math.random()`, `Date.now()`, `new Date()` or `performance.now()` in simulation logic. All randomness comes from the seeded `RngStreams` in `sim-core`; each area of the sim uses its own named stream (`RNG_STREAMS`) so new random draws in one area never reshuffle another.
    In the simulation packages, also avoid `Math.exp/log/pow/sin/cos/...` and the `**` operator: browsers may round them differently, so the same seed would play out differently in Chrome and Safari. Use `dmath` from `sim-core` (exact `+ - * /` underneath). `Math.sqrt`, `Math.floor`, `Math.round`, `Math.min/max/abs`, `Math.imul` are fine. `tests/guardrails.test.ts` enforces this.
 3. League time is the in-game calendar, never the real clock.
@@ -35,8 +35,10 @@ Planning notes live in the owner's Obsidian vault: `Projects/FootballGM Sim Proj
 ## Layout
 
 ```
-packages/sim-core/     league logic: rules, contracts, cap, AI, seeded RNG, dmath, money. No UI, no browser or Node APIs
-packages/game-engine/  the play-by-play engine (separately testable and calibratable)
+packages/foundation/   shared basics: seeded RNG, dmath, money, dates, positions and the rating model
+packages/sim-core/     league logic: rules, data model, seasons, standings, AI. No UI, no browser or Node APIs
+packages/game-engine/  the play-by-play engine (separately testable and calibratable); depends only on foundation
+calibration/           real-NFL targets and fitted shapes (targets.json, built by the pipeline from nflverse)
 apps/web/              the game: React + Tailwind + shadcn/ui; the sim runs in a Web Worker (src/sim/)
 apps/runner/           Node CLI for headless calibration runs and experiments (tsx)
 pipeline/              real-league import (Phase 6); pipeline/private/ and pipeline/cache/ are git-ignored
@@ -56,7 +58,8 @@ npm run dev          start the web app locally
 npm run build        production build of the web app
 npm run sim -- --new-league --seed 42 [--out league.json]   generate a league, print a summary
 npm run sim -- --seasons 100 --seed 7     simulate seasons; validates every schedule; prints champions and scoring
-npm run pipeline     data pipeline (Phase 6)
+npm run pipeline -- calibration   rebuild calibration/targets.json from nflverse play-by-play (downloads ~80 MB once)
+npm run sim -- --calibrate [--leagues 4 --seasons 2 --seed 42]   scorecard: simulated seasons vs. real NFL ranges
 ```
 
 ## Tech notes
@@ -74,3 +77,9 @@ npm run pipeline     data pipeline (Phase 6)
 - A new fictional league plays a placeholder 2025 season at creation, so 2026 has real standings for the schedule, same-place games, draft order, and History. The first league day is the day after that championship (Feb 9, 2026).
 - League saves carry `formatVersion` (now 2). Older saves are refused with a plain-English message; add a migration if a change should keep old saves working.
 - Team identities and conference names are placeholders (`generate/teams.ts`, rules file) until the Phase 6 naming session; none may be a real pro team's nickname.
+- **Package layering:** `foundation` ← `game-engine` ← `sim-core` ← apps. The engine never imports sim-core; sim-core builds lineups and calls `simulateGame()`. Shared types the league stores (box score, stat lines) are defined in the engine, and sim-core's zod schemas are checked against them at compile time.
+- **The game engine** (`packages/game-engine/src/`): `engine.ts` runs a game snap by snap; `playcall.ts` is the tendency-table play caller; `units.ts` turns a lineup into unit strengths; `boxscore.ts` builds stats from the play list; `calibrate.ts` measures seasons for the scorecard. Real-NFL shapes (yardage quantiles, completion by depth, kicking) come from `calibration/targets.json` (`REAL` in `config.ts`); the engine's own knobs are in `TUNING`. When tuning, change one knob at a time and judge by `npm run sim -- --calibrate` across several seeds, never one season.
+- Nudging a random draw: use `shiftedUniform()` (log-odds shift). Never add to a uniform number and clamp it: that piles draws onto the extreme value and, with a tail, produces 200-yard plays (Phase 3 found this the hard way).
+- Every game has its own seed (`gameSeed()` in `season/flow.ts`), so games don't depend on play order. Season stat totals count regular-season games only; playoff box scores stay on the games.
+- Play-by-play is NOT in the league file: the worker stores it in the `playLogs` IndexedDB table for the current and previous season (`apps/web/src/sim/db.ts`), and `gameView()` renders it as text. Box scores and stats are in the league file.
+- `tests/calibration.test.ts` keeps the core stats inside the real ranges in CI; if a change breaks it, run the scorecard.

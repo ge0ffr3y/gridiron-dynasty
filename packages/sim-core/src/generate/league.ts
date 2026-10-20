@@ -10,8 +10,8 @@ import {
   type Player,
   type Team,
 } from "../league/schema";
-import { POSITIONS } from "../players/positions";
-import { RngStreams } from "../rng";
+import { POSITIONS } from "@fgm/foundation";
+import { RngStreams } from "@fgm/foundation";
 import { RULES_BY_SEASON, rulesFor, teamIdsInOrder, type Rules } from "../rules";
 import { advanceUntil, scheduleSeason, startNextSeason } from "../season/flow";
 import { generateCoach } from "./coaches";

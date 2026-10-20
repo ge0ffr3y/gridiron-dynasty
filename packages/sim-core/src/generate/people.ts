@@ -1,4 +1,4 @@
-import type { Rng } from "../rng";
+import type { Rng } from "@fgm/foundation";
 import { FIRST_NAMES, LAST_NAMES } from "./names";
 
 /** Hands out full names that are unique within a league. */

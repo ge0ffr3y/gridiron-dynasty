@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { askTeam, answerDecision } from "./decisions";
-import { ageOn } from "./dates";
+import { ageOn } from "@fgm/foundation";
 import { ROSTER_MIX } from "./generate/config";
 import { createLeague } from "./generate/league";
 import { perceivePlayer } from "./perception";
-import { POSITIONS, type Position } from "./players/positions";
-import { overallAt } from "./players/ratings";
+import { POSITIONS, type Position } from "@fgm/foundation";
+import { overallAt } from "@fgm/foundation";
 import { fingerprint, parseLeague, serializeLeague } from "./serialize";
 import { leagueSummary, playerView, playersView, teamView } from "./views";
 

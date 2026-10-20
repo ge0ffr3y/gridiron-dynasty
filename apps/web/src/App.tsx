@@ -1,6 +1,5 @@
-import { RngStreams } from "@fgm/sim-core";
+import { RngStreams } from "@fgm/foundation";
 import {
-  Activity,
   BookOpen,
   CalendarDays,
   ClipboardList,
@@ -25,6 +24,7 @@ import { SessionProvider, useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { CoachPage } from "@/pages/CoachPage";
+import { GamePage } from "@/pages/GamePage";
 import { HistoryPage } from "@/pages/HistoryPage";
 import { HomePage } from "@/pages/HomePage";
 import { LeaguePage } from "@/pages/LeaguePage";
@@ -55,7 +55,6 @@ const NAV: NavItem[] = [
   { label: "Standings", icon: ListOrdered, href: "/standings", needsLeague: true },
   { label: "Playoffs", icon: Trophy, href: "/playoffs", needsLeague: true },
   { label: "History", icon: BookOpen, href: "/history", needsLeague: true },
-  { label: "Games", icon: Activity, phase: 3 },
   { label: "Draft", icon: ClipboardList, phase: 11 },
   { label: "Free agency", icon: Handshake, phase: 12 },
 ];
@@ -157,6 +156,13 @@ function Shell() {
               <NeedsLeague>
                 <HistoryPage />
               </NeedsLeague>
+            </Route>
+            <Route path="/game/:id">
+              {(params) => (
+                <NeedsLeague>
+                  <GamePage gameId={Number(params.id)} />
+                </NeedsLeague>
+              )}
             </Route>
             <Route path="/players">
               <NeedsLeague>

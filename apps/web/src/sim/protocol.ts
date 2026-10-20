@@ -5,6 +5,7 @@
 import type {
   CalendarView,
   CoachView,
+  GameView,
   HistoryView,
   LeagueSummary,
   PlayerView,
@@ -57,6 +58,7 @@ export interface SimApi {
   standingsView(params: Record<string, never>): StandingsView;
   playoffsView(params: Record<string, never>): PlayoffsView;
   historyView(params: Record<string, never>): HistoryView;
+  gameView(params: { gameId: number }): GameView;
 }
 
 export type Method = keyof SimApi;

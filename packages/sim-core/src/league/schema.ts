@@ -4,11 +4,12 @@
  * on import.
  */
 import { z } from "zod";
-import { ATTRIBUTE_KEYS, POSITIONS, type AttributeKey } from "../players/positions";
+import { ATTRIBUTE_KEYS, POSITIONS, type AttributeKey } from "@fgm/foundation";
+import { STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-engine";
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 2;
+export const LEAGUE_FORMAT_VERSION = 3;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -52,6 +53,54 @@ export const DraftInfoSchema = z.object({
   teamId: z.string(),
 });
 
+/** A player's stats: only non-zero numbers are stored. */
+export const StatLineSchema = z.partialRecord(z.enum(STAT_KEYS), z.number());
+
+/** One season's stats for one team (a player traded mid-season has two). */
+export const SeasonStatsSchema = z.object({
+  season: z.number().int(),
+  teamId: z.string(),
+  line: StatLineSchema,
+});
+
+const TeamGameStatsSchema = z.object({
+  points: z.number().int(),
+  firstDowns: z.number().int(),
+  plays: z.number().int(),
+  totalYards: z.number().int(),
+  passYards: z.number().int(),
+  rushYards: z.number().int(),
+  passAtt: z.number().int(),
+  passCmp: z.number().int(),
+  sacked: z.number().int(),
+  sackedYds: z.number().int(),
+  rushAtt: z.number().int(),
+  turnovers: z.number().int(),
+  thirdDownAtt: z.number().int(),
+  thirdDownConv: z.number().int(),
+  fourthDownAtt: z.number().int(),
+  fourthDownConv: z.number().int(),
+  punts: z.number().int(),
+  drives: z.number().int(),
+  possessionSeconds: z.number().int(),
+});
+
+export const BoxScoreSchema = z.object({
+  periods: z.object({ home: z.array(z.number().int()), away: z.array(z.number().int()) }),
+  home: TeamGameStatsSchema,
+  away: TeamGameStatsSchema,
+  players: z.array(
+    z.object({ id: z.number().int(), side: z.enum(["home", "away"]), line: StatLineSchema }),
+  ),
+});
+
+// The engine's box score and the saved one must be the same shape.
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
+const boxScoresMatch: Same<z.infer<typeof BoxScoreSchema>, BoxScore> = true;
+const statLinesMatch: Same<z.infer<typeof StatLineSchema>, StatLine> = true;
+void boxScoresMatch;
+void statLinesMatch;
+
 export const PlayerSchema = z.object({
   id: z.number().int().nonnegative(),
   firstName: z.string(),
@@ -73,6 +122,8 @@ export const PlayerSchema = z.object({
   hidden: HiddenTraitsSchema,
   personality: PersonalitySchema,
   contract: ContractStubSchema.nullable(),
+  /** Season-by-season stats, oldest first. Career totals are the sum. */
+  stats: z.array(SeasonStatsSchema),
 });
 
 export const COACH_ROLES = ["HC", "OC", "DC", "STC", "SCOUT"] as const;
@@ -170,6 +221,8 @@ export const GameSchema = z.object({
       overtime: z.boolean(),
     })
     .nullable(),
+  /** Team and player stats for the game (null before it's played, or for games from older saves). */
+  boxScore: BoxScoreSchema.nullable(),
 });
 
 export const CALENDAR_STAGES = [

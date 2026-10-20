@@ -184,26 +184,26 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** Replace placeholder scores with real snap-by-snap games that already produce believable basic stats.
 
 ### Steps
-- [ ] **Game state:** quarter, clock, down, distance, ball spot, possession, score, timeouts, play log
-- [ ] **Play types v1:** inside run, outside run, short / medium / deep pass, punt, field goal, extra point, 2-point try, kneel, spike
-- [ ] **Play-calling v1:** a tendency table by down, distance, field position, score, and time (later owned by coordinators in Phase 10)
-- [ ] **Resolution v1:** team-unit strengths (run blocking, pass protection, pass rush, coverage…) → outcome distributions: yards, completions, sacks, interceptions, fumbles
-- [ ] **Clock rules:** running vs. stopped clock, two-minute warning, end of half / game, from rules config
-- [ ] **Scoring:** touchdowns, field goals, safeties, extra points, 2-point conversions
-- [ ] Basic kickoffs and punts; overtime per rules config
-- [ ] **Player credit:** every play credits a passer / rusher / receiver / tackler
-- [ ] **Box score and play-by-play text** (e.g., "2nd & 7 at SEA 34 — pass short right to #81 for 12 yards")
-- [ ] **Stats:** player game / season / career stats; team stats
-- [ ] **Calibration targets v1:** pipeline script downloads nflverse play-by-play (recent seasons), computes league averages (points, plays, yards per play, completion %, sack rate, interception rate, run/pass split, punts, FG %), saves them as a targets file (these are facts; safe to commit)
-- [ ] **Calibration harness v1:** the runner sims N seasons and prints a **scorecard**: sim vs. real, with a pass/fail range for each stat
-- [ ] Engine tests: determinism, score equals the sum of scoring plays, clock never negative, downs and distance always valid
-- [ ] **UI:** game page with box score and scrollable play-by-play; scores link to games
+- [x] **Game state:** quarter, clock, down, distance, ball spot, possession, score, timeouts, play log
+- [x] **Play types v1:** inside run, outside run, short / medium / deep pass, punt, field goal, extra point, 2-point try, kneel, spike
+- [x] **Play-calling v1:** a tendency table by down, distance, field position, score, and time (later owned by coordinators in Phase 10)
+- [x] **Resolution v1:** team-unit strengths (run blocking, pass protection, pass rush, coverage…) → outcome distributions: yards, completions, sacks, interceptions, fumbles
+- [x] **Clock rules:** running vs. stopped clock, two-minute warning, end of half / game, from rules config
+- [x] **Scoring:** touchdowns, field goals, safeties, extra points, 2-point conversions
+- [x] Basic kickoffs and punts; overtime per rules config
+- [x] **Player credit:** every play credits a passer / rusher / receiver / tackler
+- [x] **Box score and play-by-play text** (e.g., "2nd & 7 at SEA 34 — pass short right to #81 for 12 yards")
+- [x] **Stats:** player game / season / career stats; team stats *(season totals are regular season only; playoff stats stay in box scores for now)*
+- [x] **Calibration targets v1:** pipeline script downloads nflverse play-by-play (recent seasons), computes league averages (points, plays, yards per play, completion %, sack rate, interception rate, run/pass split, punts, FG %), saves them as a targets file (these are facts; safe to commit)
+- [x] **Calibration harness v1:** the runner sims N seasons and prints a **scorecard**: sim vs. real, with a pass/fail range for each stat
+- [x] Engine tests: determinism, score equals the sum of scoring plays, clock never negative, downs and distance always valid
+- [x] **UI:** game page with box score and scrollable play-by-play; scores link to games
 
 ### Done when
-- [ ] Reading a play-by-play feels like real football
-- [ ] The scorecard's core stats (points per game, yards per play, completion %, sack rate, turnovers) land inside real NFL ranges
-- [ ] A full 272-game season sims in under 10 seconds
-- [ ] Same seed → identical game, play for play
+- [x] Reading a play-by-play feels like real football
+- [x] The scorecard's core stats (points per game, yards per play, completion %, sack rate, turnovers) land inside real NFL ranges *(all 26 scorecard stats inside, across three independent sets of leagues)*
+- [x] A full 272-game season sims in under 10 seconds *(about 0.25 s headless; 0.6 s in the browser including saving)*
+- [x] Same seed → identical game, play for play
 
 > [!example]- Kickoff prompt
 > "Phase 3: build game-engine v1 as a separate package: game state, core play types, a tendency-table play caller, unit-strength resolution, clock and scoring rules from the rules config, player credit, box scores, play-by-play text, and stats. Add a pipeline script that computes real NFL calibration targets from nflverse play-by-play, and a runner scorecard comparing sim vs. real. Plan first."

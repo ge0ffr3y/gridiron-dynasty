@@ -16,6 +16,7 @@ import {
   standingsView,
   createLeague,
   fingerprint,
+  gameView,
   leagueSummary,
   parseLeague,
   playerView,
@@ -25,7 +26,8 @@ import {
   type League,
   type Viewer,
 } from "@fgm/sim-core";
-import { db } from "./db";
+import type { Play } from "@fgm/game-engine";
+import { db, PLAY_LOG_SEASONS_KEPT, type PlayLog } from "./db";
 import { decodeLeagueFile, encodeLeagueFile, leagueFileName } from "./leagueFile";
 import type { FromWorker, Method, SavedLeague, SimApi, ToWorker } from "./protocol";
 
@@ -109,9 +111,10 @@ const handlers: Handlers = {
   },
 
   async deleteLeague({ id }) {
-    await db.transaction("rw", db.leagues, db.leagueData, async () => {
+    await db.transaction("rw", db.leagues, db.leagueData, db.playLogs, async () => {
       await db.leagues.delete(id);
       await db.leagueData.delete(id);
+      await db.playLogs.where("leagueId").equals(id).delete();
     });
     if (open?.saved.id === id) open = null;
   },
@@ -154,9 +157,29 @@ const handlers: Handlers = {
 
   async simAction({ action }) {
     const league = requireLeague();
-    runAction(league, action, progress);
+    const id = open!.saved.id;
+    const logs: PlayLog[] = [];
+    runAction(league, action, {
+      onStep: progress,
+      onGame: (game, output) =>
+        logs.push({ leagueId: id, season: game.season, gameId: game.id, plays: output.plays }),
+    });
     open = { saved: await save(league, open!.saved), league };
+    await db.playLogs.bulkPut(logs);
+    // Keep play-by-play for recent seasons only.
+    const oldest = league.season - PLAY_LOG_SEASONS_KEPT + 1;
+    await db.playLogs
+      .where("leagueId")
+      .equals(id)
+      .and((log) => log.season < oldest)
+      .delete();
     return calendarView(league);
+  },
+
+  async gameView({ gameId }) {
+    const league = requireLeague();
+    const log = await db.playLogs.get([open!.saved.id, league.season, gameId]);
+    return gameView(league, gameId, (log?.plays as Play[] | undefined) ?? null);
   },
 
   scheduleView({ selection }) {

@@ -8,7 +8,7 @@
  * division games.
  */
 import type { Team } from "../league/schema";
-import type { Rng } from "../rng";
+import type { Rng } from "@fgm/foundation";
 import type { Rules } from "../rules";
 
 export interface Matchup {

@@ -1,7 +1,7 @@
 /**
  * The season's key dates, worked out from the rules with exact date math.
  */
-import { addDays, weekdayOf, yearOf, type LeagueDate } from "../dates";
+import { addDays, weekdayOf, yearOf, type LeagueDate } from "@fgm/foundation";
 import type { CalendarStage, GameRound } from "../league/schema";
 import type { Rules } from "../rules";
 

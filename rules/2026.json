@@ -134,5 +134,39 @@
     "source": "Seven clubs per conference (four division winners seeded 1-4, three wild cards 5-7); the top seed has a bye; 2v7, 3v6, 4v5; reseeded after the wild-card round so the top seed hosts the lowest remaining seed; higher seed hosts; neutral-site championship.",
     "teamsPerConference": 7,
     "byesPerConference": 1
+  },
+  "game": {
+    "source": "NFL rulebook timing rules (15-minute quarters, 3 timeouts per half, two-minute warning, 40-second play clock, clock stops on out-of-bounds plays only in the last 2:00 of the first half and last 5:00 of the second half); extra point snapped from the 15, 2-point try from the 2; dynamic kickoff (2025): touchback to the 35, landing-zone touchback to the 20, short or out of bounds to the 40; punt touchback to the 20; safety free kick from the 20. Overtime (owners, March 2025): both teams get a possession in the regular season too; regular-season overtime is one 10-minute period with 2 timeouts per team and can end tied; playoff overtime is 15-minute periods, 3 timeouts per two periods, until there is a winner.",
+    "quarterMinutes": 15,
+    "timeoutsPerHalf": 3,
+    "twoMinuteWarning": true,
+    "playClockSeconds": 40,
+    "outOfBoundsStopsClockLastSeconds": {
+      "firstHalf": 120,
+      "secondHalf": 300
+    },
+    "extraPointSpot": 15,
+    "twoPointSpot": 2,
+    "kickoff": {
+      "touchbackSpot": 35,
+      "landingZoneTouchbackSpot": 20,
+      "shortOrOutOfBoundsSpot": 40
+    },
+    "puntTouchbackSpot": 20,
+    "safetyFreeKickFrom": 20,
+    "overtime": {
+      "regularSeason": {
+        "periodMinutes": 10,
+        "maxPeriods": 1,
+        "timeouts": 2,
+        "bothTeamsPossess": true
+      },
+      "playoffs": {
+        "periodMinutes": 15,
+        "maxPeriods": null,
+        "timeouts": 3,
+        "bothTeamsPossess": true
+      }
+    }
   }
 }

@@ -6,8 +6,8 @@
  * scouting noise here, and nothing else has to change.
  */
 import type { League, Player } from "./league/schema";
-import { POSITIONS, type Position, type Ratings } from "./players/positions";
-import { overallWithFamiliarity } from "./players/ratings";
+import { POSITIONS, type Position, type Ratings } from "@fgm/foundation";
+import { overallWithFamiliarity } from "@fgm/foundation";
 
 /** Who is looking: a team's staff, or the neutral league office (Simulation Mode). */
 export type Viewer = { kind: "league" } | { kind: "team"; teamId: string };

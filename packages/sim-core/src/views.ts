@@ -3,7 +3,7 @@
  * perception layer, so screens never see true ratings. Everything returned is
  * plain data that can cross from the worker to the page.
  */
-import { ageOn } from "./dates";
+import { ageOn } from "@fgm/foundation";
 import { STARTERS } from "./generate/config";
 import type { Coach, CoachRole, League, Player, Team } from "./league/schema";
 import { perceivePlayer, type Viewer } from "./perception";
@@ -14,8 +14,9 @@ import {
   type AttributeGroup,
   type Position,
   type Side,
-} from "./players/positions";
-import { fortyTime } from "./players/ratings";
+} from "@fgm/foundation";
+import { fortyTime } from "@fgm/foundation";
+import { LONGEST_STATS, type StatKey, type StatLine } from "@fgm/game-engine";
 
 export interface TeamCard {
   id: string;
@@ -72,6 +73,20 @@ export interface LeagueSummary {
 export interface TeamView {
   team: TeamCard;
   starterOverall: number;
+  /** This season so far: totals from the team's box scores and its stat leaders. */
+  season: {
+    year: number;
+    games: number;
+    pointsFor: number;
+    pointsAgainst: number;
+    yardsFor: number;
+    yardsAgainst: number;
+    passYards: number;
+    rushYards: number;
+    turnovers: number;
+    takeaways: number;
+    leaders: { label: string; player: { id: number; name: string } | null; value: number }[];
+  };
   roster: RosterRow[];
   staff: StaffRow[];
   picks: { id: number; season: number; round: number; from: string; overall: number | null }[];
@@ -100,6 +115,9 @@ export interface PlayerView {
     attributes: { key: string; label: string; value: number }[];
   }[];
   contract: { team: string; expiresAfterSeason: number } | null;
+  /** Season-by-season stats (one row per team played for), newest first, plus career totals. */
+  stats: { season: number; team: string; line: StatLine }[];
+  career: StatLine;
 }
 
 export interface CoachView {
@@ -259,9 +277,84 @@ export function teamView(league: League, teamId: string, viewer: Viewer): TeamVi
   return {
     team: teamCard(league, team),
     starterOverall: starterOverall(roster),
+    season: teamSeason(league, teamId),
     roster,
     staff,
     picks,
+  };
+}
+
+/** Adds stat lines together (longest-play stats keep the best). */
+export function sumLines(lines: StatLine[]): StatLine {
+  const total: StatLine = {};
+  for (const line of lines) {
+    for (const [key, value] of Object.entries(line) as [StatKey, number][]) {
+      const current = total[key];
+      total[key] = LONGEST_STATS.includes(key)
+        ? Math.max(current ?? value, value)
+        : (current ?? 0) + value;
+    }
+  }
+  return total;
+}
+
+function teamSeason(league: League, teamId: string): TeamView["season"] {
+  const totals = {
+    games: 0,
+    pointsFor: 0,
+    pointsAgainst: 0,
+    yardsFor: 0,
+    yardsAgainst: 0,
+    passYards: 0,
+    rushYards: 0,
+    turnovers: 0,
+    takeaways: 0,
+  };
+  for (const g of league.games) {
+    if (!g.boxScore || g.round !== "regular" || (g.homeId !== teamId && g.awayId !== teamId))
+      continue;
+    const us = g.homeId === teamId ? g.boxScore.home : g.boxScore.away;
+    const them = g.homeId === teamId ? g.boxScore.away : g.boxScore.home;
+    totals.games += 1;
+    totals.pointsFor += us.points;
+    totals.pointsAgainst += them.points;
+    totals.yardsFor += us.totalYards;
+    totals.yardsAgainst += them.totalYards;
+    totals.passYards += us.passYards;
+    totals.rushYards += us.rushYards;
+    totals.turnovers += us.turnovers;
+    totals.takeaways += them.turnovers;
+  }
+  const lines = league.players.flatMap((p) =>
+    p.stats
+      .filter((s) => s.season === league.season && s.teamId === teamId)
+      .map((s) => ({ player: p, line: s.line })),
+  );
+  const leader = (label: string, key: StatKey) => {
+    let best: { player: Player; value: number } | null = null;
+    for (const { player, line } of lines) {
+      const value = line[key] ?? 0;
+      if (value > 0 && (!best || value > best.value)) best = { player, value };
+    }
+    return {
+      label,
+      player: best
+        ? { id: best.player.id, name: `${best.player.firstName} ${best.player.lastName}` }
+        : null,
+      value: best?.value ?? 0,
+    };
+  };
+  return {
+    year: league.season,
+    ...totals,
+    leaders: [
+      leader("Passing yards", "passYds"),
+      leader("Rushing yards", "rushYds"),
+      leader("Receiving yards", "recYds"),
+      leader("Tackles", "tackles"),
+      leader("Sacks", "sacks"),
+      leader("Interceptions", "defInt"),
+    ],
   };
 }
 
@@ -316,6 +409,10 @@ export function playerView(league: League, playerId: number, viewer: Viewer): Pl
           expiresAfterSeason: player.contract.expiresAfterSeason,
         }
       : null,
+    stats: [...player.stats]
+      .sort((a, b) => b.season - a.season)
+      .map((s) => ({ season: s.season, team: s.teamId, line: s.line })),
+    career: sumLines(player.stats.map((s) => s.line)),
   };
 }
 

@@ -1,6 +1,13 @@
 /**
- * The real-league data pipeline (roadmap Phase 6): download public data, build
- * ratings, rename every person, and write the starting league file.
- * Empty for now. Restricted inputs go in pipeline/private/ (git-ignored).
+ * The data pipeline. Steps so far:
+ *
+ *   npm run pipeline -- calibration    real NFL calibration targets (Phase 3)
+ *
+ * The real-league import arrives in Phase 6. Restricted inputs go in
+ * pipeline/private/ (git-ignored).
  */
-console.log("The data pipeline is built in roadmap Phase 6.");
+import { calibration } from "./calibration";
+
+const step = process.argv[2];
+if (step === "calibration") await calibration();
+else console.log("Usage: npm run pipeline -- calibration");

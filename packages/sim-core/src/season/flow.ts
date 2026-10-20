@@ -4,23 +4,28 @@
  * conference -> championship -> season complete -> next league year.
  */
 import { STARTERS } from "../generate/config";
-import { addDays } from "../dates";
+import { addDays, POSITIONS, overallAt, Rng, RngStreams, streamSeed } from "@fgm/foundation";
 import type {
   CalendarStage,
   Game,
   League,
+  Player,
   PlayoffExit,
   PlayoffRound,
   SeasonHistory,
 } from "../league/schema";
-import { POSITIONS } from "../players/positions";
-import { overallAt } from "../players/ratings";
-import { RngStreams } from "../rng";
+import {
+  LONGEST_STATS,
+  simulateGame,
+  type BoxScore,
+  type GameOutput,
+  type StatKey,
+} from "@fgm/game-engine";
+import { teamLineup } from "./lineups";
 import { rulesFor } from "../rules";
 import { generateDraftPicks } from "../generate/players";
 import { seasonDates } from "./calendar";
 import { computeDraftOrder } from "./draftOrder";
-import { playPlaceholderGame } from "./placeholderGame";
 import { loserOf, nextRoundMatchups, winnerOf } from "./playoffs";
 import { assignWeeks, buildMatchups } from "./schedule";
 import { computeStandings, type Standings } from "./seeding";
@@ -89,23 +94,72 @@ export function scheduleSeason(league: League, finish: Map<string, number>): voi
     awayId: g.awayId,
     neutral: false,
     result: null,
+    boxScore: null,
   }));
 }
 
-function playGames(league: League, games: Game[], allowTie: boolean): void {
-  const strength = starterStrengths(league);
-  withRng(league, (s) => {
-    const rng = s.get("game");
-    for (const g of games) {
-      g.result = playPlaceholderGame(
-        rng,
-        strength.get(g.homeId) ?? 0,
-        strength.get(g.awayId) ?? 0,
-        g.neutral,
-        allowTie,
-      );
+/** Lets callers watch games as they're played (e.g. to keep the play-by-play). */
+export interface SimHooks {
+  onStep?: (label: string) => void;
+  onGame?: (game: Game, output: GameOutput) => void;
+}
+
+/** Each game's own random seed: games don't depend on the order they're played in. */
+export function gameSeed(league: League, game: Game): number {
+  return streamSeed(league.meta.seed, `game:${league.season}:${game.id}`);
+}
+
+/** Adds a game's player stat lines to each player's season totals. */
+function recordStats(
+  league: League,
+  game: Game,
+  box: BoxScore,
+  players: Map<number, Player>,
+): void {
+  for (const entry of box.players) {
+    const player = players.get(entry.id);
+    if (!player) continue;
+    const teamId = entry.side === "home" ? game.homeId : game.awayId;
+    let season = player.stats.find((s) => s.season === league.season && s.teamId === teamId);
+    if (!season) {
+      season = { season: league.season, teamId, line: {} };
+      player.stats.push(season);
     }
-  });
+    for (const [key, value] of Object.entries(entry.line) as [StatKey, number][]) {
+      const current = season.line[key];
+      season.line[key] = LONGEST_STATS.includes(key)
+        ? Math.max(current ?? value, value)
+        : (current ?? 0) + value;
+    }
+  }
+}
+
+function playGames(league: League, games: Game[], hooks: SimHooks): void {
+  const lineups = new Map(league.teams.map((t) => [t.id, teamLineup(league, t.id)]));
+  const players = new Map(league.players.map((p) => [p.id, p]));
+  for (const g of games) {
+    const output = simulateGame(
+      {
+        home: { id: g.homeId, lineup: lineups.get(g.homeId)! },
+        away: { id: g.awayId, lineup: lineups.get(g.awayId)! },
+        neutral: g.neutral,
+        playoff: g.round !== "regular",
+        rules: league.rules.game,
+      },
+      new Rng(gameSeed(league, g)),
+    );
+    g.result = {
+      homeScore: output.homeScore,
+      awayScore: output.awayScore,
+      homeTouchdowns: output.homeTouchdowns,
+      awayTouchdowns: output.awayTouchdowns,
+      overtime: output.overtime,
+    };
+    g.boxScore = output.box;
+    // Season totals are regular-season stats, as in real record books; playoff box scores stay on the games.
+    if (g.round === "regular") recordStats(league, g, output.box, players);
+    hooks.onGame?.(g, output);
+  }
 }
 
 function addPlayoffRound(league: League, round: PlayoffRound): void {
@@ -123,6 +177,7 @@ function addPlayoffRound(league: League, round: PlayoffRound): void {
       week,
       date,
       result: null,
+      boxScore: null,
       ...m,
     });
   }
@@ -136,7 +191,7 @@ const NEXT_ROUND: Record<PlayoffRound, PlayoffRound | null> = {
 };
 
 /** Takes one step forward. Returns a short description of what happened. */
-export function advance(league: League): string {
+export function advance(league: League, hooks: SimHooks = {}): string {
   const cal = league.calendar;
   const dates = seasonDates(league.rules, league.season);
   switch (cal.stage) {
@@ -154,7 +209,7 @@ export function advance(league: League): string {
       playGames(
         league,
         league.games.filter((g) => g.round === "regular" && g.week === week),
-        true,
+        hooks,
       );
       league.date = dates.weekSundays[week - 1] as string;
       if (week >= league.rules.schedule.regularSeasonWeeks) {
@@ -171,7 +226,7 @@ export function advance(league: League): string {
       playGames(
         league,
         league.games.filter((g) => g.round === round),
-        false,
+        hooks,
       );
       league.date = dates.playoffs[round];
       const next = NEXT_ROUND[round];
@@ -194,11 +249,11 @@ export function advance(league: League): string {
 export function advanceUntil(
   league: League,
   stop: (league: League) => boolean,
-  onStep?: (label: string) => void,
+  hooks: SimHooks = {},
 ): void {
   for (let guard = 0; guard < 100 && !stop(league); guard++) {
-    const label = advance(league);
-    onStep?.(label);
+    const label = advance(league, hooks);
+    hooks.onStep?.(label);
   }
 }
 

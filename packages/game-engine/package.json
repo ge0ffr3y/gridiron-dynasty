@@ -9,6 +9,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@fgm/sim-core": "*"
+    "@fgm/foundation": "*"
   }
 }

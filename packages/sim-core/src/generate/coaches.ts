@@ -1,6 +1,6 @@
-import { addDays, type LeagueDate } from "../dates";
+import { addDays, type LeagueDate } from "@fgm/foundation";
 import { DEFENSIVE_SCHEMES, OFFENSIVE_SCHEMES, type Coach, type CoachRole } from "../league/schema";
-import type { Rng } from "../rng";
+import type { Rng } from "@fgm/foundation";
 import { COACH_RATING, COACH_ROLE_BONUS } from "./config";
 import type { NamePicker } from "./people";
 import { bounded } from "./util";

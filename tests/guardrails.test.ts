@@ -11,7 +11,11 @@ import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = join(import.meta.dirname, "..");
-const SIM_PACKAGES = ["packages/sim-core/src", "packages/game-engine/src"];
+const SIM_PACKAGES = [
+  "packages/foundation/src",
+  "packages/sim-core/src",
+  "packages/game-engine/src",
+];
 const WEB_SOURCE = "apps/web/src";
 
 // inStrings: the pattern is checked with string contents kept (import paths live in strings).

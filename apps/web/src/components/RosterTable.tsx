@@ -2,7 +2,8 @@
  * Sortable, filterable player table (TanStack Table), used for a team's roster
  * and for the league-wide player list.
  */
-import { POSITIONS, type Position, type RosterRow } from "@fgm/sim-core";
+import { POSITIONS, type Position } from "@fgm/foundation";
+import type { RosterRow } from "@fgm/sim-core";
 import {
   flexRender,
   getCoreRowModel,

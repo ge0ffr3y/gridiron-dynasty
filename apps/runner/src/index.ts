@@ -5,9 +5,10 @@
  *   npm run sim -- --new-league --seed 42                 summary of a generated league
  *   npm run sim -- --new-league --seed 42 --out l.json    also write the league file
  *   npm run sim -- --seasons 10 --seed 42                 simulate seasons, checking every schedule
+ *   npm run sim -- --calibrate [--leagues 4 --seasons 2 --seed 42]   compare simulated seasons with real NFL ranges
  */
 import { writeFileSync } from "node:fs";
-import { GAME_ENGINE_VERSION } from "@fgm/game-engine";
+import { GAME_ENGINE_VERSION, measureSeason, scorecard, type MeasuredGame } from "@fgm/game-engine";
 import {
   POSITIONS,
   SIM_CORE_VERSION,
@@ -40,6 +41,15 @@ const args = process.argv.slice(2);
 console.log(
   `FootballGM Sim runner (sim-core ${SIM_CORE_VERSION}, game-engine ${GAME_ENGINE_VERSION})`,
 );
+
+if (args.includes("--calibrate")) {
+  runCalibration(
+    readSeed(args),
+    Number(option(args, "--leagues") ?? 4),
+    Number(option(args, "--seasons") ?? 2),
+  );
+  process.exit(0);
+}
 
 const seasonsArg = option(args, "--seasons");
 if (seasonsArg !== undefined) {
@@ -144,4 +154,47 @@ function runSeasons(seed: number, count: number): void {
       `Average ${(totals.points / totals.games / 2).toFixed(1)} points per team per game, home teams won ${((totals.homeWins / totals.games) * 100).toFixed(1)}%, ` +
       `${totals.ties} ties, ${totals.problems} schedule problems.`,
   );
+}
+
+/**
+ * Simulates regular seasons in several leagues (each league draws its own
+ * talent, like a different real season) and prints the calibration scorecard:
+ * each stat is measured per season, then averaged, as the real targets were.
+ */
+function runCalibration(seed: number, leagues: number, seasonsPerLeague: number): void {
+  const started = process.hrtime.bigint();
+  const perSeason: Record<string, number>[] = [];
+  let gameCount = 0;
+  for (let l = 0; l < leagues; l++) {
+    const league = createLeague({ seed: seed + l, name: `League ${seed + l}` });
+    for (let i = 0; i < seasonsPerLeague; i++) {
+      const games: MeasuredGame[] = [];
+      advanceUntil(league, (x) => x.calendar.stage === "regular");
+      advanceUntil(league, (x) => x.calendar.stage !== "regular", {
+        onGame: (g, output) => games.push({ homeId: g.homeId, awayId: g.awayId, output }),
+      });
+      perSeason.push(measureSeason(games));
+      gameCount += games.length;
+      advanceUntil(league, (x) => x.calendar.stage === "complete");
+      advance(league);
+    }
+  }
+  const averaged: Record<string, number> = {};
+  for (const key of Object.keys(perSeason[0]!)) {
+    averaged[key] = perSeason.reduce((sum, v) => sum + (v[key] ?? 0), 0) / perSeason.length;
+  }
+  const lines = scorecard(averaged);
+  console.log(
+    `\nCalibration: ${perSeason.length} simulated regular seasons (${leagues} league${leagues === 1 ? "" : "s"} from seed ${seed}, ${gameCount} games) vs. real NFL 2022-2025\n`,
+  );
+  console.log("stat                          simulated        real     real range          ");
+  const fmt = (v: number) => (Math.abs(v) < 1.5 ? v.toFixed(3) : v.toFixed(2));
+  for (const line of lines) {
+    console.log(
+      `${line.key.padEnd(28)} ${fmt(line.sim).padStart(10)}  ${fmt(line.real).padStart(10)}   ${`${fmt(line.range[0])} to ${fmt(line.range[1])}`.padEnd(18)}  ${line.pass ? "ok" : "MISS"}`,
+    );
+  }
+  const passed = lines.filter((x) => x.pass).length;
+  const total = Number(process.hrtime.bigint() - started) / 1e9;
+  console.log(`\n${passed} of ${lines.length} inside the real range (${total.toFixed(1)} s).`);
 }

@@ -1,4 +1,4 @@
-import type { Rng } from "../rng";
+import type { Rng } from "@fgm/foundation";
 
 /** Limited to [min, max], then rounded to a whole number. */
 export function bounded(value: number, min: number, max: number): number {

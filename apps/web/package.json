@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@fgm/foundation": "*",
     "@fgm/game-engine": "*",
     "@fgm/sim-core": "*",
     "@radix-ui/react-dialog": "^1.3.1",

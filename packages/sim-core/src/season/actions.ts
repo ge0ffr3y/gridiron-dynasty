@@ -2,7 +2,7 @@
  * The sim buttons: what you can do next at each point of the calendar.
  */
 import type { League } from "../league/schema";
-import { advance, advanceUntil } from "./flow";
+import { advance, advanceUntil, type SimHooks } from "./flow";
 
 export type SimActionId =
   "start-season" | "week" | "deadline" | "regular-end" | "round" | "season-end" | "next-season";
@@ -48,13 +48,13 @@ export function availableActions(league: League): SimAction[] {
   }
 }
 
-/** Runs an action, reporting each step. */
-export function runAction(league: League, id: SimActionId, onStep?: (label: string) => void): void {
+/** Runs an action, reporting each step (and each game, if asked). */
+export function runAction(league: League, id: SimActionId, hooks: SimHooks = {}): void {
   const deadline = league.rules.schedule.tradeDeadlineAfterWeek;
-  const step = () => onStep?.(advance(league));
+  const step = () => hooks.onStep?.(advance(league, hooks));
   switch (id) {
     case "start-season":
-      advanceUntil(league, (l) => l.calendar.stage === "regular", onStep);
+      advanceUntil(league, (l) => l.calendar.stage === "regular", hooks);
       return;
     case "week":
     case "round":
@@ -65,14 +65,14 @@ export function runAction(league: League, id: SimActionId, onStep?: (label: stri
       advanceUntil(
         league,
         (l) => l.calendar.stage !== "regular" || l.calendar.week > deadline,
-        onStep,
+        hooks,
       );
       return;
     case "regular-end":
-      advanceUntil(league, (l) => l.calendar.stage !== "regular", onStep);
+      advanceUntil(league, (l) => l.calendar.stage !== "regular", hooks);
       return;
     case "season-end":
-      advanceUntil(league, (l) => l.calendar.stage === "complete", onStep);
+      advanceUntil(league, (l) => l.calendar.stage === "complete", hooks);
       return;
   }
 }

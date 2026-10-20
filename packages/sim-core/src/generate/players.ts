@@ -2,7 +2,7 @@
  * Generated players: size, age, ratings, hidden traits, and personality,
  * shaped by position and by where the player sits on the depth chart.
  */
-import { addDays, type LeagueDate } from "../dates";
+import { addDays, type LeagueDate } from "@fgm/foundation";
 import type { DraftPick, Player } from "../league/schema";
 import {
   ALTERNATE_POSITIONS,
@@ -12,9 +12,9 @@ import {
   STARTER_OVERALL,
   type Position,
   type Ratings,
-} from "../players/positions";
-import { baseProfile, overallAt } from "../players/ratings";
-import type { Rng } from "../rng";
+} from "@fgm/foundation";
+import { baseProfile, overallAt } from "@fgm/foundation";
+import type { Rng } from "@fgm/foundation";
 import {
   AGE_SPREAD,
   ATTRIBUTE_NOISE,
@@ -199,6 +199,7 @@ export function generatePlayer(
       expiresAfterSeason:
         ctx.season + rng.intBetween(CONTRACT_YEARS_LEFT[0], CONTRACT_YEARS_LEFT[1]),
     },
+    stats: [],
   };
 }
 

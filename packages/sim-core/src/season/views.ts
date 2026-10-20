@@ -45,7 +45,7 @@ export function calendarView(league: League): CalendarView {
   };
 }
 
-export interface GameView {
+export interface GameSummary {
   id: number;
   round: Game["round"];
   week: number;
@@ -58,7 +58,7 @@ export interface GameView {
   overtime: boolean;
 }
 
-function gameView(league: League, g: Game): GameView {
+function gameSummary(league: League, g: Game): GameSummary {
   return {
     id: g.id,
     round: g.round,
@@ -82,7 +82,7 @@ export interface ScheduleView {
   weeks: number[];
   /** Playoff rounds that have games so far. */
   rounds: PlayoffRound[];
-  games: GameView[];
+  games: GameSummary[];
   byes: TeamTag[];
 }
 
@@ -107,7 +107,7 @@ export function scheduleView(league: League, selection?: ScheduleSelection): Sch
     selection: sel,
     weeks: Array.from({ length: league.rules.schedule.regularSeasonWeeks }, (_, i) => i + 1),
     rounds: PLAYOFF_ROUNDS.filter((r) => league.games.some((g) => g.round === r)),
-    games: games.map((g) => gameView(league, g)),
+    games: games.map((g) => gameSummary(league, g)),
     byes:
       sel.kind === "week"
         ? league.teams.filter((t) => !playing.has(t.id)).map((t) => tag(league, t.id))
@@ -216,7 +216,7 @@ export interface PlayoffsView {
     /** The next few teams outside the playoff spots. */
     hunt: { team: TeamTag; record: string }[];
   }[];
-  rounds: { round: PlayoffRound; games: GameView[] }[];
+  rounds: { round: PlayoffRound; games: GameSummary[] }[];
   champion: TeamTag | null;
 }
 
@@ -252,7 +252,7 @@ export function playoffsView(league: League): PlayoffsView {
     }),
     rounds: PLAYOFF_ROUNDS.map((round) => ({
       round,
-      games: league.games.filter((g) => g.round === round).map((g) => gameView(league, g)),
+      games: league.games.filter((g) => g.round === round).map((g) => gameSummary(league, g)),
     })).filter((r) => r.games.length > 0),
     champion: winner && stage === "complete" ? tag(league, winner) : null,
   };

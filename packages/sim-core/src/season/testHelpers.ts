@@ -50,6 +50,7 @@ export class Results {
       homeId: home,
       awayId: away,
       neutral: false,
+      boxScore: null,
       result: {
         homeScore: hs,
         awayScore: as,

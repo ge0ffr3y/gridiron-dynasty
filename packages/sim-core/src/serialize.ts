@@ -3,6 +3,7 @@
  * league always produces exactly the same text (and the same fingerprint).
  */
 import { LEAGUE_FORMAT, LEAGUE_FORMAT_VERSION, LeagueSchema, type League } from "./league/schema";
+import { rulesFor } from "./rules";
 
 function sortKeys(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortKeys);
@@ -21,7 +22,23 @@ export function serializeLeague(league: League): string {
   return JSON.stringify(sortKeys(league));
 }
 
-/** Reads a league file, checking its format and every field. */
+/**
+ * Brings an older save up to the current format, in place.
+ * Version 2 -> 3: players get an empty stats history, games get no box score,
+ * and the league's rules gain the game rules (clock, kicks, overtime) from
+ * the rules file for its season.
+ */
+function upgrade(data: Record<string, unknown>): void {
+  if (data["formatVersion"] === 2) {
+    for (const p of (data["players"] as Record<string, unknown>[]) ?? []) p["stats"] = [];
+    for (const g of (data["games"] as Record<string, unknown>[]) ?? []) g["boxScore"] = null;
+    const rules = data["rules"] as Record<string, unknown> | undefined;
+    if (rules && !rules["game"]) rules["game"] = rulesFor(Number(data["season"])).game;
+    data["formatVersion"] = 3;
+  }
+}
+
+/** Reads a league file (upgrading older saves), checking its format and every field. */
 export function parseLeague(text: string): League {
   let data: unknown;
   try {
@@ -31,6 +48,7 @@ export function parseLeague(text: string): League {
   }
   const header = data as { format?: unknown; formatVersion?: unknown } | null;
   if (header?.format !== LEAGUE_FORMAT) throw new Error("This isn't a FootballGM Sim league file.");
+  upgrade(data as Record<string, unknown>);
   if (header.formatVersion !== LEAGUE_FORMAT_VERSION) {
     const older =
       typeof header.formatVersion === "number" && header.formatVersion < LEAGUE_FORMAT_VERSION;

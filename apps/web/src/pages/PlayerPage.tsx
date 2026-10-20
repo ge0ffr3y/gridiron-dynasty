@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { StatTables } from "@/components/StatTables";
 import { ErrorNote, Facts, Loading, OverallBadge, RatingBar, TeamChip } from "@/components/shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatHeight, formatLeagueDate, ordinal } from "@/lib/format";
@@ -88,6 +89,29 @@ export function PlayerPage({ playerId }: { playerId: number }) {
               )}
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Stats</CardTitle>
+          <CardDescription>Season by season, with career totals.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <StatTables
+            firstColumn="Season"
+            rows={[
+              ...p.stats.map((s) => ({
+                key: `${s.season}-${s.team}`,
+                label: `${s.season} ${s.team}`,
+                href: `/team/${s.team}`,
+                line: s.line,
+              })),
+              ...(p.stats.length > 1
+                ? [{ key: "career", label: "Career", line: p.career, emphasis: true }]
+                : []),
+            ]}
+          />
         </CardContent>
       </Card>
 

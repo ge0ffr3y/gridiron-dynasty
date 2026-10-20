@@ -71,7 +71,7 @@ Decisions that block a phase. Record the answer here when made.
 | Real college names for prospects, or fictional schools? | Phase 11 | |
 | Can more than one team be human-controlled? | Phase 14 | |
 | How far back imported history goes (since 1920 vs. championship era + all-time record books) | Phase 15 | |
-| Fully fictional league as an alternative start? | Phase 1 | *Effectively yes: it's how we build Phases 1–5* |
+| Fully fictional league as an alternative start? | Phase 1 | *Effectively yes: it's how we build Phases 1–5* (built in Phase 1) |
 | Data licensing approach for the public release | Phase 18 (guardrails from Phase 6) | |
 
 ---
@@ -123,26 +123,26 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** A complete fictional league you can browse: 32 teams, ~2,800 players (90-man offseason rosters), coaches, all generated, saved in the browser.
 
 ### Steps
-- [ ] **Data model:** League, Season, Conference, Division, Team, Player, Coach, Staff, Contract (stub), DraftPick, Transaction
-- [ ] **Positions:** every NFL position (QB, RB, FB, WR, TE, OT, OG, C, EDGE, DT, LB, CB, S, K, P, LS, plus return roles) with **position flexibility** (e.g., a guard who can play center)
-- [ ] **Rating model v1:** our own physical / technical / mental attributes and scale; position-specific overall formulas
-- [ ] **Truth vs. perception layer:** ratings are stored as truth, but every screen reads through a "what your staff believes" layer (perfectly accurate for now, so scouting plugs in later without rewiring)
-- [ ] **Hidden traits & personality fields** (potential, work ethic, consistency, injury proneness, durability, coachability, clutch; ego, loyalty, leadership, priorities, temperament), generated now, used in later phases
-- [ ] **Player generator:** realistic size / speed / age / experience distributions by position
-- [ ] **Coach generator** with placeholder attributes
-- [ ] **Fictional name generator** (no duplicates within a league; later checked against a real-name blocklist)
-- [ ] Placeholder team identities: 32 real cities in the real conference/division alignment, placeholder names
-- [ ] **Rules config v1** (`rules/2026.json`) with schema validation (zod): league structure, roster limits; loaded and validated at startup
-- [ ] **Decision-maker interface:** every team decision goes through a "decider" that can be AI or Human. This is how "one engine, two modes" works; stubbed for now
-- [ ] Transaction / event log skeleton
-- [ ] **Save/load:** leagues stored in IndexedDB (Dexie); export/import a compressed league file; round-trip test
-- [ ] **UI:** New League dialog, league home, teams list, team page (roster table with TanStack Table: sort, filter), player page, coach page
+- [x] **Data model:** League, Season, Conference, Division, Team, Player, Coach, Staff, Contract (stub), DraftPick, Transaction
+- [x] **Positions:** every NFL position (QB, RB, FB, WR, TE, OT, OG, C, EDGE, DT, LB, CB, S, K, P, LS, plus return roles) with **position flexibility** (e.g., a guard who can play center)
+- [x] **Rating model v1:** our own physical / technical / mental attributes and scale; position-specific overall formulas
+- [x] **Truth vs. perception layer:** ratings are stored as truth, but every screen reads through a "what your staff believes" layer (perfectly accurate for now, so scouting plugs in later without rewiring)
+- [x] **Hidden traits & personality fields** (potential, work ethic, consistency, injury proneness, durability, coachability, clutch; ego, loyalty, leadership, priorities, temperament), generated now, used in later phases
+- [x] **Player generator:** realistic size / speed / age / experience distributions by position
+- [x] **Coach generator** with placeholder attributes
+- [x] **Fictional name generator** (no duplicates within a league; later checked against a real-name blocklist)
+- [x] Placeholder team identities: 32 real cities in the real conference/division alignment, placeholder names
+- [x] **Rules config v1** (`rules/2026.json`) with schema validation (zod): league structure, roster limits; loaded and validated at startup
+- [x] **Decision-maker interface:** every team decision goes through a "decider" that can be AI or Human. This is how "one engine, two modes" works; stubbed for now
+- [x] Transaction / event log skeleton
+- [x] **Save/load:** leagues stored in IndexedDB (Dexie); export/import a compressed league file; round-trip test
+- [x] **UI:** New League dialog, league home, teams list, team page (roster table with TanStack Table: sort, filter), player page, coach page
 
 ### Done when
-- [ ] "New League" creates a full fictional league in a few seconds
-- [ ] You can browse every roster, sort by position or rating, and open any player or coach
-- [ ] Reloading the browser keeps the league; export → import gives the same league
-- [ ] Same seed → byte-identical league file (test)
+- [x] "New League" creates a full fictional league in a few seconds *(about 0.2 s including saving)*
+- [x] You can browse every roster, sort by position or rating, and open any player or coach
+- [x] Reloading the browser keeps the league; export → import gives the same league *(import checked through the worker with the same fingerprint; the browser download itself not clicked)*
+- [x] Same seed → byte-identical league file (test)
 
 > [!example]- Kickoff prompt
 > "Phase 1: build the league skeleton and a generated fictional league as described in the roadmap. Keep all league logic in sim-core. Ratings must be stored as truth and read through a perception layer. Add the rules config v1 with schema validation, the AI/Human decision-maker interface stub, IndexedDB save/load with export/import, and the browse screens. Plan first."

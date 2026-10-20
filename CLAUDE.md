@@ -54,7 +54,7 @@ npm run typecheck    type-check every workspace
 npm run format       format with Prettier (npm run format:check in CI)
 npm run dev          start the web app locally
 npm run build        production build of the web app
-npm run sim -- --seed 42   headless runner
+npm run sim -- --new-league --seed 42 [--out league.json]   generate a league, print a summary
 npm run pipeline     data pipeline (Phase 6)
 ```
 
@@ -62,4 +62,10 @@ npm run pipeline     data pipeline (Phase 6)
 
 - TypeScript everywhere, npm workspaces. Packages are consumed as TypeScript source (no build step); imports have no file extension.
 - The web app uses Tailwind v4 with shadcn/ui-style components in `apps/web/src/components/ui/` (`components.json` is set up, so `npx shadcn add <component>` works from `apps/web`). Colors come only from the theme tokens in `src/index.css`, which has light and dark sets.
-- The page talks to the simulation only through the worker messages in `apps/web/src/sim/protocol.ts`.
+- The page talks to the simulation only through the worker messages in `apps/web/src/sim/protocol.ts`. The worker owns the open league, saves it to IndexedDB (Dexie, `sim/db.ts`), and answers screen requests with data from `sim-core/src/views.ts`. Add a screen by adding a view function in sim-core, a method in `protocol.ts`, and a handler in `sim.worker.ts`.
+- **League data model** (`sim-core/src/league/schema.ts`): zod schemas; TypeScript types are inferred from them and the same schemas validate imported files. A league is plain JSON (no classes). `serializeLeague()` sorts keys, so the same league is always byte-identical; `fingerprint()` hashes the file text and is shown on screen. Changing the schema in a way old files can't load means bumping `LEAGUE_FORMAT_VERSION`.
+- **Rules** (`rules/2026.json`, loaded by `sim-core/src/rules.ts`): every block carries a `source` note saying where the numbers came from.
+- **Ratings** (`sim-core/src/players/`): 28 attributes (0-100, our own scale), position overall = weighted average shifted so an average starter shows 75 everywhere. Weights, physical profiles, and sizes are config in `positions.ts`; generation tuning is in `generate/config.ts`.
+- **Perception** (`sim-core/src/perception.ts`): screens get ratings only via `perceivePlayer()`; a guardrail test fails if `apps/web/src` touches `.ratings`, `.hidden`, or `.personality`.
+- **Decisions** (`sim-core/src/decisions.ts`): `askTeam()` routes each team decision to the AI (answers with a reason) or queues it for the human (`pendingDecisions`). Add a decision kind by extending `DecisionRequestSchema` and `AI_POLICIES`.
+- Team identities and conference names are placeholders (`generate/teams.ts`, rules file) until the Phase 6 naming session; none may be a real pro team's nickname.

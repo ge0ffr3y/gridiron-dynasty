@@ -1,0 +1,293 @@
+import { Download, FolderOpen, Plus, Shuffle, Trash2, Upload } from "lucide-react";
+import { useRef, useState, type FormEvent } from "react";
+import { useLocation } from "wouter";
+import { ErrorNote, Loading, PageHeader } from "@/components/shared";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input, Label } from "@/components/ui/input";
+import { formatLeagueDate } from "@/lib/format";
+import { useSession } from "@/lib/session";
+import { call, useSim } from "@/sim/client";
+import type { SavedLeague } from "@/sim/protocol";
+
+function randomSeed(): number {
+  // Choosing a seed is a UI convenience, not simulation logic, so browser randomness is fine here.
+  return crypto.getRandomValues(new Uint32Array(1))[0]! % 1_000_000;
+}
+
+export function HomePage() {
+  const leagues = useSim("listLeagues", {}, "list");
+  const { league: openLeague, setLeague } = useSession();
+  const [, navigate] = useLocation();
+  const [creating, setCreating] = useState(false);
+  const [toDelete, setToDelete] = useState<SavedLeague | null>(null);
+  const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  async function open(league: SavedLeague) {
+    try {
+      setLeague(await call("openLeague", { id: league.id }));
+      navigate("/league");
+    } catch (error) {
+      setMessage({ kind: "error", text: (error as Error).message });
+    }
+  }
+
+  async function exportLeague(league: SavedLeague) {
+    try {
+      const { fileName, bytes } = await call("exportLeague", { id: league.id });
+      const url = URL.createObjectURL(
+        new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/gzip" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      URL.revokeObjectURL(url);
+      setMessage({
+        kind: "ok",
+        text: `Exported ${fileName} (${(bytes.length / 1024).toFixed(0)} KB).`,
+      });
+    } catch (error) {
+      setMessage({ kind: "error", text: (error as Error).message });
+    }
+  }
+
+  async function importFile(file: File) {
+    try {
+      const saved = await call("importLeague", { bytes: new Uint8Array(await file.arrayBuffer()) });
+      setMessage({
+        kind: "ok",
+        text: `Imported "${saved.name}" (fingerprint ${saved.fingerprint}).`,
+      });
+      leagues.reload();
+    } catch (error) {
+      setMessage({ kind: "error", text: (error as Error).message });
+    }
+  }
+
+  async function confirmDelete() {
+    if (!toDelete) return;
+    await call("deleteLeague", { id: toDelete.id });
+    if (openLeague?.id === toDelete.id) setLeague(null);
+    setMessage({ kind: "ok", text: `Deleted "${toDelete.name}".` });
+    setToDelete(null);
+    leagues.reload();
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Leagues"
+        subtitle="Leagues are saved in this browser. Export one to keep a copy or move it."
+      >
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => fileInput.current?.click()}>
+            <Upload /> Import
+          </Button>
+          <Button onClick={() => setCreating(true)}>
+            <Plus /> New league
+          </Button>
+        </div>
+      </PageHeader>
+      <input
+        ref={fileInput}
+        type="file"
+        accept=".fgmleague,application/gzip"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void importFile(file);
+          e.target.value = "";
+        }}
+      />
+
+      {message && (
+        <p
+          className={
+            message.kind === "error" ? "text-sm text-destructive" : "text-sm text-muted-foreground"
+          }
+          role="status"
+        >
+          {message.text}
+        </p>
+      )}
+
+      {leagues.loading && !leagues.data && <Loading what="Loading saved leagues" />}
+      {leagues.error && <ErrorNote message={leagues.error} />}
+      {leagues.data?.length === 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>No leagues yet</CardTitle>
+            <CardDescription>
+              Create a fictional league: 32 teams with full 90-man offseason rosters, coaching
+              staffs, and draft picks. The real-league start arrives in Phase 6.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => setCreating(true)}>
+              <Plus /> New league
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {leagues.data?.map((league) => (
+          <Card key={league.id}>
+            <CardHeader>
+              <CardTitle>{league.name}</CardTitle>
+              <CardDescription>
+                {league.kind === "fictional" ? "Fictional league" : "Real league"} ·{" "}
+                {formatLeagueDate(league.date)} · {league.teamCount} teams ·{" "}
+                {league.playerCount.toLocaleString()} players
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              <p className="text-xs text-muted-foreground">
+                Seed {league.seed} · fingerprint{" "}
+                <span className="font-mono">{league.fingerprint}</span>
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => void open(league)}>
+                  <FolderOpen /> Open
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => void exportLeague(league)}>
+                  <Download /> Export
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setToDelete(league)}
+                  aria-label={`Delete ${league.name}`}
+                >
+                  <Trash2 /> Delete
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <NewLeagueDialog
+        open={creating}
+        onOpenChange={setCreating}
+        onCreated={(saved) => {
+          setLeague(saved);
+          navigate("/league");
+        }}
+      />
+
+      <Dialog open={toDelete !== null} onOpenChange={(o) => !o && setToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete "{toDelete?.name}"?</DialogTitle>
+            <DialogDescription>
+              This removes the league from this browser. Export it first if you want a copy.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setToDelete(null)}>
+              Keep it
+            </Button>
+            <Button onClick={() => void confirmDelete()}>Delete league</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function NewLeagueDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCreated: (league: SavedLeague) => void;
+}) {
+  const [name, setName] = useState("My League");
+  const [seed, setSeed] = useState(() => String(randomSeed()));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const seedNumber = Number(seed);
+    if (!Number.isInteger(seedNumber) || seedNumber < 0) {
+      setError("The seed must be a whole number (0 or more).");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const saved = await call("createLeague", { name, seed: seedNumber });
+      onOpenChange(false);
+      onCreated(saved);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <form onSubmit={(e) => void submit(e)} className="grid gap-4">
+          <DialogHeader>
+            <DialogTitle>New fictional league</DialogTitle>
+            <DialogDescription>
+              The same seed always builds exactly the same league. Team names are placeholders for
+              now.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="league-name">League name</Label>
+            <Input
+              id="league-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={60}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="league-seed">Seed</Label>
+            <div className="flex gap-2">
+              <Input
+                id="league-seed"
+                value={seed}
+                onChange={(e) => setSeed(e.target.value)}
+                inputMode="numeric"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setSeed(String(randomSeed()))}
+                aria-label="Random seed"
+              >
+                <Shuffle />
+              </Button>
+            </div>
+          </div>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button type="submit" disabled={busy}>
+              {busy ? "Building league…" : "Create league"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 
 const ROOT = join(import.meta.dirname, "..");
 const SIM_PACKAGES = ["packages/sim-core/src", "packages/game-engine/src"];
+const WEB_SOURCE = "apps/web/src";
 
 // inStrings: the pattern is checked with string contents kept (import paths live in strings).
 const FORBIDDEN: { pattern: RegExp; why: string; inStrings?: boolean }[] = [
@@ -42,7 +43,7 @@ function sourceFiles(dir: string): string[] {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) out.push(...sourceFiles(path));
-    else if (path.endsWith(".ts") && !path.endsWith(".test.ts")) out.push(path);
+    else if (/\.tsx?$/.test(path) && !/\.test\.tsx?$/.test(path)) out.push(path);
   }
   return out;
 }
@@ -70,5 +71,17 @@ describe("simulation-package guardrails", () => {
         expect(problems).toEqual([]);
       });
     }
+  }
+});
+
+describe("truth vs. perception guardrail (CLAUDE.md, rule 7)", () => {
+  // The web app shows what a team's staff believes, never the truth: it gets
+  // player data only through sim-core's views, which go through perceivePlayer.
+  for (const file of sourceFiles(join(ROOT, WEB_SOURCE))) {
+    const name = relative(ROOT, file);
+    it(`${name} never reads true ratings or hidden traits`, () => {
+      const code = withoutStrings(withoutComments(readFileSync(file, "utf8")));
+      expect(code.match(/\.(ratings|hidden|personality)\b/g) ?? []).toEqual([]);
+    });
   }
 });

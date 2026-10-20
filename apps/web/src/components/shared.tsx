@@ -1,0 +1,125 @@
+import type { TeamCard } from "@fgm/sim-core";
+import type { ReactNode } from "react";
+import { Link } from "wouter";
+import { cn } from "@/lib/utils";
+
+/** Black or white, whichever reads better on a background color like "#1d4ed8". */
+export function readableTextOn(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  const channel = (c: number) => {
+    const v = c / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance =
+    0.2126 * channel((n >> 16) & 255) +
+    0.7152 * channel((n >> 8) & 255) +
+    0.0722 * channel(n & 255);
+  return luminance > 0.18 ? "#000000" : "#ffffff";
+}
+
+/** A team's abbreviation on its own colors, linking to the team. */
+export function TeamChip({
+  team,
+  className,
+}: {
+  team: Pick<TeamCard, "id" | "abbreviation" | "colors">;
+  className?: string;
+}) {
+  return (
+    <Link
+      href={`/team/${team.id}`}
+      className={cn(
+        "inline-flex h-6 min-w-10 items-center justify-center rounded px-1.5 text-xs font-bold tracking-wide",
+        className,
+      )}
+      style={{ backgroundColor: team.colors.primary, color: readableTextOn(team.colors.primary) }}
+    >
+      {team.abbreviation}
+    </Link>
+  );
+}
+
+/** An overall rating, shaded by how good it is. */
+export function OverallBadge({ value, className }: { value: number; className?: string }) {
+  const tone =
+    value >= 85
+      ? "bg-primary text-primary-foreground"
+      : value >= 75
+        ? "bg-primary/25 text-foreground"
+        : value >= 65
+          ? "bg-muted text-foreground"
+          : "bg-muted text-muted-foreground";
+  return (
+    <span
+      className={cn(
+        "inline-flex h-6 w-9 items-center justify-center rounded text-xs font-semibold tabular-nums",
+        tone,
+        className,
+      )}
+    >
+      {value}
+    </span>
+  );
+}
+
+/** A 0-100 value as a labeled bar. */
+export function RatingBar({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="grid grid-cols-[minmax(0,8rem)_minmax(3rem,1fr)_2rem] items-center gap-2 text-sm">
+      <span className="truncate text-muted-foreground">{label}</span>
+      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-primary"
+          style={{ width: `${value}%`, opacity: 0.35 + value / 160 }}
+        />
+      </div>
+      <span className="text-right tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+export function PageHeader({
+  title,
+  subtitle,
+  children,
+}: {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="min-w-0">
+        <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
+        {subtitle && <div className="mt-1 text-sm text-muted-foreground">{subtitle}</div>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export function Loading({ what = "Loading" }: { what?: string }) {
+  return <p className="text-sm text-muted-foreground">{what}…</p>;
+}
+
+export function ErrorNote({ message }: { message: string }) {
+  return (
+    <p className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">
+      {message}
+    </p>
+  );
+}
+
+/** Stat label + value pairs. */
+export function Facts({ items }: { items: [string, ReactNode][] }) {
+  return (
+    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm sm:grid-cols-3">
+      {items.map(([label, value]) => (
+        <div key={label}>
+          <dt className="text-xs text-muted-foreground">{label}</dt>
+          <dd className="font-medium">{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}

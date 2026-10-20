@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "season": 2026,
+  "startDate": "2026-02-09",
+  "structure": {
+    "source": "Two conferences of four 4-team divisions, in the real league's alignment. Conference names are placeholders until the Phase 6 naming session.",
+    "conferences": [
+      {
+        "id": "A",
+        "name": "Conference A",
+        "divisions": [
+          { "id": "A-EAST", "name": "East", "teams": ["BUF", "MIA", "NE", "NYA"] },
+          { "id": "A-NORTH", "name": "North", "teams": ["BAL", "CIN", "CLE", "PIT"] },
+          { "id": "A-SOUTH", "name": "South", "teams": ["HOU", "IND", "JAX", "TEN"] },
+          { "id": "A-WEST", "name": "West", "teams": ["DEN", "KC", "LV", "LAA"] }
+        ]
+      },
+      {
+        "id": "B",
+        "name": "Conference B",
+        "divisions": [
+          { "id": "B-EAST", "name": "East", "teams": ["DAL", "NYB", "PHI", "WAS"] },
+          { "id": "B-NORTH", "name": "North", "teams": ["CHI", "DET", "GB", "MIN"] },
+          { "id": "B-SOUTH", "name": "South", "teams": ["ATL", "CAR", "NO", "TB"] },
+          { "id": "B-WEST", "name": "West", "teams": ["ARI", "LAB", "SF", "SEA"] }
+        ]
+      }
+    ]
+  },
+  "roster": {
+    "source": "2025 season roster rules as reported by NBC Sports (Aug 2025): 90 in the offseason, 53 from cutdown day on, 48 active on game day, practice squad of 16 plus one International Player Pathway slot. Enforced from Phase 8; re-check against the CBA then.",
+    "offseasonMax": 90,
+    "regularSeasonMax": 53,
+    "gameDayActives": 48,
+    "practiceSquadMax": 16,
+    "practiceSquadInternationalExemption": 1
+  },
+  "draft": {
+    "source": "Seven rounds; teams hold their picks for the current draft and the next two. Verify trading-window rules in Phase 8.",
+    "rounds": 7,
+    "seasonsOfPicksHeld": 3
+  }
+}

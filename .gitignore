@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+.env
+.env.*
+coverage/
+
+# Restricted or bulky source data for the real-league pipeline (see docs/roadmap.md, Phase 6).
+# Never commit Madden ratings or anything whose terms forbid republishing.
+pipeline/private/
+pipeline/cache/
+
+# Local tooling
+.claude/

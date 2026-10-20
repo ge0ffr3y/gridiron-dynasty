@@ -64,7 +64,7 @@ Decisions that block a phase. Record the answer here when made.
 | Decision | Needed by | Answer |
 |---|---|---|
 | GitHub repo name, visibility, license | Phase 0 | `ge0ffr3y/footballgm-sim`, private for now; license when public |
-| Hosting: GitHub Pages or Vercel | Phase 0 | |
+| Hosting: GitHub Pages or Vercel | Phase 0 | Deferred: no hosting while private; set up when the repo goes public |
 | Working title / app name | Phase 0 (placeholder ok) | "FootballGM Sim" as placeholder (rename before going public: "Football GM" is ZenGM's game) |
 | League name, championship name, 32 team names, mascots, colors | Phase 6 | |
 | Is the generated real-league file published in the public repo, or built locally only? | Phase 6 | |
@@ -92,7 +92,7 @@ Decisions that block a phase. Record the answer here when made.
 - [x] **Web Worker bridge:** the UI talks to the simulation only through a worker (hello-world round trip)
 - [x] Write `CLAUDE.md` (rules below)
 - [x] GitHub Action: typecheck, lint, test, build on every push *(format check stands in for lint)*
-- [ ] Auto-deploy `apps/web` (GitHub Pages or Vercel) *(waiting on the hosting decision: Pages needs a public repo on the free plan)*
+- [ ] Auto-deploy `apps/web` (GitHub Pages or Vercel) *(deferred until the repo goes public, then GitHub Pages; Phase 0 merged to main without it)*
 - [x] Create `docs/devlog/` with entry #0, and the Obsidian `03 - Devlog` note
 
 ### `CLAUDE.md` rules to include
@@ -108,7 +108,7 @@ Decisions that block a phase. Record the answer here when made.
 - Explain changes in plain English for a non-programmer. Prefer simple, readable code over clever code.
 
 ### Done when
-- [ ] The live URL shows the app shell titled "FootballGM Sim" with a light/dark toggle
+- [ ] The live URL shows the app shell *(deferred with hosting; verified locally)* titled "FootballGM Sim" with a light/dark toggle
 - [x] The page shows "Sim worker: ready" (the worker round trip works)
 - [x] CI is green on GitHub
 - [x] The RNG determinism test passes

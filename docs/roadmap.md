@@ -110,7 +110,7 @@ Decisions that block a phase. Record the answer here when made.
 ### Done when
 - [ ] The live URL shows the app shell titled "FootballGM Sim" with a light/dark toggle
 - [x] The page shows "Sim worker: ready" (the worker round trip works)
-- [ ] CI is green on GitHub
+- [x] CI is green on GitHub
 - [x] The RNG determinism test passes
 
 > [!example]- Kickoff prompt

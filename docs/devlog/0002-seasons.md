@@ -20,7 +20,7 @@ Time moves now. A league plays real-format seasons: a 17-game schedule built fro
 ## What surprised us / what broke
 
 - The NFL publishes no worked tiebreaker examples, so the tests are hand-built: one small made-up season per step, designed so only that step can decide it.
-- Coin tosses had to stop using the random-number stream. Otherwise just *looking* at the standings mid-season would consume random numbers and change the rest of the season. A coin toss is now a fixed hash of the league seed, season, and teams.
+- Coin tosses had to stop using the random-number stream. Otherwise just _looking_ at the standings mid-season would consume random numbers and change the rest of the season. A coin toss is now a fixed hash of the league seed, season, and teams.
 - The week search was first too slow (up to 2 seconds) and too random; cutting its random moves from 2% to 0.2% made it about 15 times faster.
 - A new league now plays a 2025 season first, so the first real season has standings to build its schedule from.
 

@@ -156,6 +156,12 @@ export const STAFF: {
   { role: "STC", count: 1, age: [32, 60] },
   { role: "SCOUT", count: 2, age: [27, 62] },
 ];
+
+/** Age ranges by job, for coaches whose real age isn't known. */
+export const COACH_AGE_FALLBACK = Object.fromEntries(STAFF.map((s) => [s.role, s.age])) as Record<
+  (typeof STAFF)[number]["role"],
+  [number, number]
+>;
 export const COACH_RATING: [number, number] = [58, 12];
 /** Bonus to the rating that matters most for a role. */
 export const COACH_ROLE_BONUS = 12;

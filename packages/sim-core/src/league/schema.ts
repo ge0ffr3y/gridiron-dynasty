@@ -362,6 +362,8 @@ export const LeagueSchema = z.object({
     name: z.string(),
     seed: z.number().int(),
     kind: z.enum(["fictional", "real"]),
+    /** How a real league was built (sources and dates). */
+    source: z.string().optional(),
   }),
   rules: RulesSchema,
   date: IsoDate,

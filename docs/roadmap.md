@@ -66,8 +66,8 @@ Decisions that block a phase. Record the answer here when made.
 | GitHub repo name, visibility, license | Phase 0 | `ge0ffr3y/footballgm-sim`, private for now; license when public |
 | Hosting: GitHub Pages or Vercel | Phase 0 | Deferred: no hosting while private; set up when the repo goes public |
 | Working title / app name | Phase 0 (placeholder ok) | "FootballGM Sim" as placeholder (rename before going public: "Football GM" is ZenGM's game) |
-| League name, championship name, 32 team names, mascots, colors | Phase 6 | |
-| Is the generated real-league file published in the public repo, or built locally only? | Phase 6 | |
+| League name, championship name, 32 team names, mascots, colors | Phase 6 | Deferred by the owner (Phase 6 planning): placeholder names stay; the naming session happens later |
+| Is the generated real-league file published in the public repo, or built locally only? | Phase 6 | Built locally only (git-ignored), rebuilt by `npm run pipeline -- league`; revisit when the repo goes public (decided in Phase 6) |
 | Real college names for prospects, or fictional schools? | Phase 11 | |
 | Can more than one team be human-controlled? | Phase 14 | |
 | How far back imported history goes (since 1920 vs. championship era + all-time record books) | Phase 15 | |
@@ -278,27 +278,27 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** Start a league from the real NFL as it stood at the end of the 2025 season, with every person renamed.
 
 ### Steps
-- [ ] **Licensing guardrails first:** `pipeline/private/` (gitignored) holds Madden ratings and anything with restrictive terms; `docs/data-sources.md` lists every source, its license, and credits
-- [ ] Decide whether the generated real-league file is committed publicly or built locally only (Decisions log)
-- [ ] **Pipeline framework:** download → cache → transform → build, each step a script; reruns are reproducible; outputs versioned
-- [ ] **nflverse import:** end-of-2025 rosters (including practice squads and injured players), bios (age, size, college, draft info, experience), snap counts, injuries
-- [ ] **Player ID crosswalk** across sources, with an unmatched-players report; fixes go in a documented overrides file (data, not hand edits to outputs)
-- [ ] **Ratings build:** Madden end-of-2025 ratings (private input) → mapped into our own rating model → adjusted with real performance data (play-by-play, Next Gen Stats, snap counts)
+- [x] **Licensing guardrails first:** `pipeline/private/` (gitignored) holds Madden ratings and anything with restrictive terms; `docs/data-sources.md` lists every source, its license, and credits *(6a: plus a local test that no committed file contains a real 2025 player's or coach's name)*
+- [x] Decide whether the generated real-league file is committed publicly or built locally only (Decisions log) *(built locally only)*
+- [x] **Pipeline framework:** download → cache → transform → build, each step a script; reruns are reproducible; outputs versioned *(6a: `npm run pipeline -- league`; a rebuild is byte-identical, checked by a test)*
+- [ ] **nflverse import:** end-of-2025 rosters (including practice squads and injured players), bios (age, size, college, draft info, experience), snap counts, injuries *(6a: rosters, bios and snap counts done; injury history in 6b)*
+- [x] **Player ID crosswalk** across sources, with an unmatched-players report; fixes go in a documented overrides file (data, not hand edits to outputs) *(6a: Madden matched by last name and birth date, then nickname-aware full name; 1,830 of 1,880 Madden players matched)*
+- [ ] **Ratings build:** Madden end-of-2025 ratings (private input) → mapped into our own rating model → adjusted with real performance data (play-by-play, Next Gen Stats, snap counts) *(6a: Madden 26 Week 1 ratings (no end-of-season file found) mapped onto our scale; 2025 performance adjustment in 6b)*
 - [ ] **Hidden traits** generated from age, draft pedigree, and injury history
 - [ ] **Sanity-check sheet:** top 10 at every position reviewed by hand
 - [ ] **Career stats** imported so careers continue from their real numbers
 - [ ] **Naming session:** league name, championship name, 32 team names, mascots, colors, simple generated logos/monograms
-- [ ] **Fictional names** for every real person, one consistent mapping kept only inside the pipeline; automated check that no real name survives into any output
-- [ ] **Coaching staffs** as of the end of the 2025 regular season (basic attributes; full traits in Phase 10)
-- [ ] Stadiums and cities
-- [ ] **League build:** outputs a starting league file (people, ratings, teams; contracts arrive in Phase 7)
-- [ ] **UI:** New League offers "Real league (2026)" or "Fictional league"
+- [x] **Fictional names** for every real person, one consistent mapping kept only inside the pipeline; automated check that no real name survives into any output *(names come from a hash of each person's id, so no lookup table is stored at all; colleges map to fictional schools)*
+- [x] **Coaching staffs** as of the end of the 2025 regular season (basic attributes; full traits in Phase 10) *(head coaches and coordinators from end-of-2025 team staff pages, interim coaches where teams had them; one job without a real holder is generated)*
+- [x] Stadiums and cities *(roof, surface and elevation per team from Phase 5b; real cities)*
+- [x] **League build:** outputs a starting league file (people, ratings, teams; contracts arrive in Phase 7) *(6a: the real 2025 season runs through our standings, tiebreakers and draft order and matches reality; all 272 real 2026 opponents match, though 88 games have home and away swapped)*
+- [x] **UI:** New League offers "Real league (2026)" or "Fictional league"
 
 ### Done when
-- [ ] The real league loads, and each team's roster is recognizable in shape (you can spot each team's real star by position, age, and stats, even renamed)
-- [ ] Unmatched-player report is at or near zero
-- [ ] The real-name check finds zero real names in any build output
-- [ ] Rebuilding from scratch produces an identical league file
+- [ ] The real league loads, and each team's roster is recognizable in shape (you can spot each team's real star by position, age, and stats, even renamed) *(6a: loads and plays; spot-checked one team; full review with the 6b sanity sheet)*
+- [x] Unmatched-player report is at or near zero *(5 roster rows lack an id or birth date; 4 regular starters signed after the Madden update get ratings from public data)*
+- [x] The real-name check finds zero real names in any build output *(every build, plus a local test against all of nflverse's players)*
+- [x] Rebuilding from scratch produces an identical league file *(local test)*
 - [ ] A sim'd season with the real rosters still passes the calibration scorecard
 
 > [!example]- Kickoff prompt

@@ -13,3 +13,6 @@ pipeline/cache/
 
 # Local tooling
 .claude/
+
+# The real league file copied for the dev server (built locally, never committed).
+apps/web/public/private/

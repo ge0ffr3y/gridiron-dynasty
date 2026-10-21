@@ -44,7 +44,10 @@ export interface SimApi {
     sample: number[];
   };
   listLeagues(params: Record<string, never>): SavedLeague[];
-  createLeague(params: { name: string; seed: number }): SavedLeague;
+  /** A fictional league from a seed, or the real league (built locally by the pipeline) with a seed. */
+  createLeague(params: { name: string; seed: number; kind?: "fictional" | "real" }): SavedLeague;
+  /** Whether the real league file has been built on this machine. */
+  realLeagueAvailable(params: Record<string, never>): boolean;
   openLeague(params: { id: string }): SavedLeague;
   deleteLeague(params: { id: string }): void;
   exportLeague(params: { id: string }): { fileName: string; bytes: Uint8Array };

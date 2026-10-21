@@ -30,6 +30,7 @@ import {
   moveOnDepthChart,
   resetDepthChart,
   playGameNow as playOneGame,
+  startRealLeague,
   type SimHooks,
 } from "@fgm/sim-core";
 import type { Play } from "@fgm/game-engine";
@@ -98,6 +99,24 @@ async function saveWithPlays(league: League, logs: PlayLog[]): Promise<void> {
     .delete();
 }
 
+/**
+ * The real league's starting file. The pipeline builds it on this machine
+ * (`npm run pipeline -- league`) and copies it where the dev server serves it;
+ * it's never committed.
+ */
+async function realLeagueText(): Promise<string> {
+  const url = new URL(
+    `${import.meta.env.BASE_URL}private/real-league-2026.json`,
+    self.location.origin,
+  );
+  const response = await fetch(url);
+  const text = response.ok ? await response.text() : "";
+  // A missing file comes back as the app's own page, so check it's a league.
+  if (!text.startsWith("{"))
+    throw new Error("The real league hasn't been built yet. Run: npm run pipeline -- league");
+  return text;
+}
+
 type Handlers = {
   [M in Method]: (
     params: Parameters<SimApi[M]>[0],
@@ -114,12 +133,25 @@ const handlers: Handlers = {
     };
   },
 
+  async realLeagueAvailable() {
+    try {
+      await realLeagueText();
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
   async listLeagues() {
     return db.leagues.orderBy("lastOpenedAt").reverse().toArray();
   },
 
-  async createLeague({ name, seed }) {
-    const league = createLeague({ name: name.trim() || `League ${seed}`, seed });
+  async createLeague({ name, seed, kind }) {
+    const leagueName = name.trim() || `League ${seed}`;
+    const league =
+      kind === "real"
+        ? startRealLeague(parseLeague(await realLeagueText()), { name: leagueName, seed })
+        : createLeague({ name: leagueName, seed });
     const saved = await save(league);
     open = { saved, league };
     return saved;

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input, Label } from "@/components/ui/input";
 import { formatLeagueDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/session";
 import { call, useSim } from "@/sim/client";
 import type { SavedLeague } from "@/sim/protocol";
@@ -217,6 +218,8 @@ function NewLeagueDialog({
 }) {
   const [name, setName] = useState("My League");
   const [seed, setSeed] = useState(() => String(randomSeed()));
+  const [kind, setKind] = useState<"fictional" | "real">("fictional");
+  const realAvailable = useSim("realLeagueAvailable", {}, String(open)).data ?? false;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -230,7 +233,7 @@ function NewLeagueDialog({
     setBusy(true);
     setError(null);
     try {
-      const saved = await call("createLeague", { name, seed: seedNumber });
+      const saved = await call("createLeague", { name, seed: seedNumber, kind });
       onOpenChange(false);
       onCreated(saved);
     } catch (e) {
@@ -245,12 +248,47 @@ function NewLeagueDialog({
       <DialogContent>
         <form onSubmit={(e) => void submit(e)} className="grid gap-4">
           <DialogHeader>
-            <DialogTitle>New fictional league</DialogTitle>
+            <DialogTitle>New league</DialogTitle>
             <DialogDescription>
-              The same seed always builds exactly the same league. Team names are placeholders for
-              now.
+              The same seed always plays out the same way. Team names are placeholders for now.
             </DialogDescription>
           </DialogHeader>
+          <div className="grid gap-2" role="radiogroup" aria-label="Kind of league">
+            {(
+              [
+                {
+                  value: "fictional",
+                  title: "Fictional league",
+                  text: "32 generated teams, built from the seed.",
+                  disabled: false,
+                },
+                {
+                  value: "real",
+                  title: "Real league (2026)",
+                  text: realAvailable
+                    ? "The real league as it stood after the 2025 season, every name fictional."
+                    : "Not built on this computer yet. Build it with: npm run pipeline -- league",
+                  disabled: !realAvailable,
+                },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={kind === option.value}
+                disabled={option.disabled}
+                onClick={() => setKind(option.value)}
+                className={cn(
+                  "rounded-lg border p-3 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                  kind === option.value ? "border-primary bg-primary/10" : "hover:bg-accent",
+                )}
+              >
+                <div className="font-medium">{option.title}</div>
+                <div className="text-xs text-muted-foreground">{option.text}</div>
+              </button>
+            ))}
+          </div>
           <div className="grid gap-2">
             <Label htmlFor="league-name">League name</Label>
             <Input

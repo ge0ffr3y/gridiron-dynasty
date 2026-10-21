@@ -48,7 +48,7 @@ export function tierFor(position: Position, slot: number, count: number): Tier {
   return slot < starters * 2 + Math.ceil(rest / 2) ? "depth" : "camp";
 }
 
-function generateRatings(rng: Rng, position: Position, targetOverall: number): Ratings {
+export function generateRatings(rng: Rng, position: Position, targetOverall: number): Ratings {
   const base = baseProfile(position);
   const delta = targetOverall - STARTER_OVERALL;
   const ratings = {} as Ratings;

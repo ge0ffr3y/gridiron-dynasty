@@ -305,6 +305,12 @@ export function playoffExits(league: League): Map<string, PlayoffExit> {
 }
 
 /** Wraps up a finished season: history entry and the next draft's order. */
+/** Closes a season whose games were all played elsewhere (the real league's 2025 season). */
+export function completeSeasonFromResults(league: League): void {
+  if (league.games.some((g) => !g.result)) throw new Error("every game needs a result");
+  completeSeason(league);
+}
+
 function completeSeason(league: League): void {
   const standings = currentStandings(league);
   const exits = playoffExits(league);

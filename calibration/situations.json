@@ -1,0 +1,239 @@
+{
+  "source": "nflverse play-by-play (2022, 2023, 2024, 2025), github.com/nflverse/nflverse-data, CC-BY-4.0. Regular seasons. Built by `npm run pipeline -- situations`.",
+  "winProbability": {
+    "note": "Logistic model of the chance the team with the ball wins (regulation snaps, ties left out). Features in this order; 'late' ones are scaled by 1 / sqrt(minutes left + 1). Expected points use the table in matchups.json.",
+    "features": [
+      "margin",
+      "marginLate",
+      "expectedPoints",
+      "expectedPointsLate",
+      "timeoutEdge",
+      "timeoutEdgeLate",
+      "home",
+      "receivesSecondHalf"
+    ],
+    "weights": [0.036874, 0.625549, 0.034714, 0.530683, 0.034683, -0.074745, 0.132483, 0.156206],
+    "check": {
+      "note": "Snaps grouped by predicted chance: how often the team actually won. Log loss per snap for this model and for nflverse's own win probability on the same snaps.",
+      "bins": [
+        {
+          "snaps": 16012,
+          "predicted": 0.036,
+          "actual": 0.038
+        },
+        {
+          "snaps": 10101,
+          "predicted": 0.151,
+          "actual": 0.141
+        },
+        {
+          "snaps": 10782,
+          "predicted": 0.251,
+          "actual": 0.256
+        },
+        {
+          "snaps": 13871,
+          "predicted": 0.351,
+          "actual": 0.363
+        },
+        {
+          "snaps": 18372,
+          "predicted": 0.452,
+          "actual": 0.443
+        },
+        {
+          "snaps": 21673,
+          "predicted": 0.548,
+          "actual": 0.549
+        },
+        {
+          "snaps": 15836,
+          "predicted": 0.646,
+          "actual": 0.642
+        },
+        {
+          "snaps": 12251,
+          "predicted": 0.749,
+          "actual": 0.731
+        },
+        {
+          "snaps": 10562,
+          "predicted": 0.85,
+          "actual": 0.864
+        },
+        {
+          "snaps": 15618,
+          "predicted": 0.962,
+          "actual": 0.963
+        }
+      ],
+      "logLoss": 0.5021,
+      "nflverseLogLoss": 0.5031
+    }
+  },
+  "conversion": {
+    "note": "Share of 3rd- and 4th-down runs and passes that gained a first down or scored, by yards to go. redZone: 3rd and 4th downs inside the 20, pooled.",
+    "third": {
+      "1": 0.6848,
+      "2": 0.57,
+      "3": 0.4998,
+      "4": 0.4777,
+      "5": 0.4311,
+      "6": 0.4138,
+      "7": 0.3583,
+      "8": 0.3337,
+      "9": 0.305,
+      "10": 0.2779,
+      "11-15": 0.1972,
+      "16+": 0.0838
+    },
+    "fourth": {
+      "1": 0.6772,
+      "2": 0.5802,
+      "3": 0.5294,
+      "4": 0.5167,
+      "5": 0.4972,
+      "6": 0.3578,
+      "7": 0.3871,
+      "8": 0.2716,
+      "9": 0.2195,
+      "10": 0.3083,
+      "11-15": 0.2313,
+      "16+": 0.0918
+    },
+    "redZone": {
+      "1": 0.6325,
+      "2": 0.533,
+      "3": 0.4705,
+      "4": 0.4168,
+      "5": 0.395,
+      "6": 0.349,
+      "7": 0.2774,
+      "8": 0.2911,
+      "9": 0.2645,
+      "10": 0.2347,
+      "11-15": 0.1613,
+      "16+": 0.0822
+    }
+  },
+  "puntResult": {
+    "note": "After a punt from each 5-yard band of the punting team's yards to goal (index = floor((yards to goal - 1) / 5)): the receiving team's average yards to goal on its first snap.",
+    "byBand": {
+      "7": 88.1,
+      "8": 88.3,
+      "9": 87.2,
+      "10": 85.7,
+      "11": 83.8,
+      "12": 80.6,
+      "13": 76.5,
+      "14": 71.6,
+      "15": 66.7,
+      "16": 62.1,
+      "17": 55.9,
+      "18": 52.4,
+      "19": 46.9
+    }
+  },
+  "runYardsByDistance": {
+    "1": [-3, -3, -1, 0, 0, 1, 1, 2, 2, 3, 4, 7, 11, 17, 27, 37],
+    "note": "Designed runs (no scrambles or kneels): yards gained at each quantile, by yards to go.",
+    "points": [
+      0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98, 0.99, 0.995
+    ],
+    "2-3": [-4, -3, -2, -1, 1, 1, 2, 2, 3, 4, 6, 9, 13, 19, 26, 34],
+    "4-6": [-4, -3, -2, -1, 1, 2, 2, 3, 4, 5, 6, 9, 13, 21, 27, 39],
+    "7-10": [-4, -3, -2, 0, 1, 2, 3, 3, 4, 5, 7, 10, 14, 21, 30, 41],
+    "11+": [-4, -3, -2, 0, 1, 2, 3, 4, 5, 6, 8, 11, 14, 18, 24, 30]
+  },
+  "targetsNote": "Each range is the real seasons' lowest to highest, widened where needed to two standard errors of one season's sampling noise.",
+  "targets": {
+    "timeoutsPerTeamGame": {
+      "real": 3.8432,
+      "range": [3.675, 4.0114]
+    },
+    "endOfHalfPointsPerTeamGame": {
+      "real": 3.5685,
+      "range": [3.329, 3.7305]
+    },
+    "twoPointTriesPerTouchdown": {
+      "real": 0.0943,
+      "range": [0.0784, 0.1102]
+    },
+    "challengesPerGame": {
+      "real": 0.5179,
+      "range": [0.4306, 0.6052]
+    },
+    "challengeReversalRate": {
+      "real": 0.4552,
+      "range": [0.3717, 0.5387]
+    },
+    "boothReviewsPerGame": {
+      "real": 0.6467,
+      "range": [0.5492, 0.7441]
+    },
+    "boothReversalRate": {
+      "real": 0.7279,
+      "range": [0.6611, 0.7948]
+    },
+    "falseStartsHomeOffense": {
+      "real": 1.1655,
+      "range": [1.0346, 1.2964]
+    },
+    "falseStartsRoadOffense": {
+      "real": 1.1628,
+      "range": [1.032, 1.2935]
+    },
+    "passRate 1st down": {
+      "real": 0.5003,
+      "range": [0.492, 0.5122]
+    },
+    "passRate 2nd & short": {
+      "real": 0.3743,
+      "range": [0.3474, 0.3971]
+    },
+    "passRate 2nd & medium": {
+      "real": 0.5243,
+      "range": [0.5048, 0.5437]
+    },
+    "passRate 2nd & long": {
+      "real": 0.7189,
+      "range": [0.7059, 0.7309]
+    },
+    "passRate 3rd & short": {
+      "real": 0.5027,
+      "range": [0.476, 0.5304]
+    },
+    "passRate 3rd & medium": {
+      "real": 0.9072,
+      "range": [0.8932, 0.9213]
+    },
+    "passRate 3rd & long": {
+      "real": 0.9239,
+      "range": [0.9145, 0.9333]
+    },
+    "fourthDownGoRate own-deep": {
+      "real": 0.0833,
+      "range": [0.069, 0.0976]
+    },
+    "fourthDownGoRate midfield": {
+      "real": 0.2499,
+      "range": [0.2133, 0.2951]
+    },
+    "fourthDownGoRate plus-territory": {
+      "real": 0.3007,
+      "range": [0.2677, 0.3338]
+    },
+    "fourthDownFieldGoalRate plus-territory": {
+      "real": 0.6492,
+      "range": [0.6148, 0.6835]
+    },
+    "fourthDownGoRate red-zone": {
+      "real": 0.2941,
+      "range": [0.2591, 0.3478]
+    },
+    "fourthDownFieldGoalRate red-zone": {
+      "real": 0.7059,
+      "range": [0.6522, 0.7409]
+    }
+  }
+}

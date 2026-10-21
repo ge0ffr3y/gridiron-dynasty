@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import { Link } from "wouter";
+import { DriveChart, ScoringSummary, WinProbabilityChart } from "@/components/GameCharts";
 import { StatTables } from "@/components/StatTables";
 import { ErrorNote, Loading, TeamChip } from "@/components/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -181,6 +182,44 @@ export function GamePage({ gameId }: { gameId: number }) {
             </Card>
           ))}
         </div>
+      )}
+
+      {played && g.charts && g.plays && (
+        <>
+          <Card className="gap-2 py-3">
+            <CardHeader className="px-4">
+              <CardTitle className="text-sm">Win probability</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4">
+              <WinProbabilityChart
+                charts={g.charts}
+                plays={g.plays}
+                home={g.home.abbreviation}
+                away={g.away.abbreviation}
+              />
+            </CardContent>
+          </Card>
+          <Card className="gap-2 py-3">
+            <CardHeader className="px-4">
+              <CardTitle className="text-sm">Scoring summary</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4">
+              <ScoringSummary
+                plays={g.plays}
+                home={g.home.abbreviation}
+                away={g.away.abbreviation}
+              />
+            </CardContent>
+          </Card>
+          <Card className="gap-2 py-3">
+            <CardHeader className="px-4">
+              <CardTitle className="text-sm">Drives</CardTitle>
+            </CardHeader>
+            <CardContent className="px-2">
+              <DriveChart charts={g.charts} home={g.home.abbreviation} away={g.away.abbreviation} />
+            </CardContent>
+          </Card>
+        </>
       )}
 
       {played && (

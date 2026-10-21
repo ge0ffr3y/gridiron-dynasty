@@ -66,7 +66,9 @@ function ratesFor(
       out.push({
         type,
         rule,
-        chance: (perGame * TUNING.penalties.generationScale) / PER_TEAM_GAME[op],
+        // Pre-snap fouls are never declined, so they need no allowance for declines.
+        chance:
+          (perGame * (op === "pre" ? 1 : TUNING.penalties.generationScale)) / PER_TEAM_GAME[op],
       });
   }
   return out;

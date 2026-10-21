@@ -116,6 +116,11 @@ export interface TeamInput {
   depth: DepthChart;
   /** How this team's defense likes to play (coaches set this from Phase 10). */
   defenseStyle?: { extraBlitz?: number };
+  /**
+   * How this team's coach manages games (coaches set this from Phase 10).
+   * Each is 0 (cautious) to 1 (bold); 0.5 is a typical coach.
+   */
+  gameStyle?: { aggressiveness?: number; twoPointAggressiveness?: number; adaptability?: number };
 }
 
 export interface GameInput {
@@ -215,6 +220,16 @@ export interface Play {
   penalty?: { type: string; team: Side; player?: number; yards: number; accepted: boolean };
   /** The play was wiped out by an accepted penalty (its stats don't count). */
   noPlay?: boolean;
+  /** A replay review of the play: a coach's challenge or the replay official (booth). */
+  review?: {
+    by: "challenge" | "booth";
+    team?: Side;
+    /** What was reviewed, e.g. "catch", "fumble", "spot". */
+    ruling: string;
+    reversed: boolean;
+  };
+  /** The home team's chance of winning before the snap (Phase 5a). */
+  wp?: number;
   /** Players hurt on the play. */
   injured?: number[];
   /** Expected points added by the offense (Phase 4b; scrimmage plays only). */

@@ -5,6 +5,7 @@
  */
 import type { Rng } from "@fgm/foundation";
 import { REAL, TUNING } from "./config";
+import { decideFourthDown, type Evaluator, type FourthDownChoice } from "./decisions";
 import type { Side } from "./types";
 
 export interface Situation {
@@ -24,6 +25,10 @@ export interface Situation {
   fieldGoalRange: number;
   /** Punting would lose the game (trailing on the second overtime possession). */
   mustScore: boolean;
+  /** Win-probability look-ahead and the coach's style, for 4th-down calls. */
+  evaluator: Evaluator;
+  /** Halftime adjustment to the pass rate (leaning toward what worked). */
+  passRateAdjustment: number;
 }
 
 export type Call =
@@ -33,6 +38,13 @@ export type Call =
   | { kind: "fieldGoal"; note?: string }
   | { kind: "kneel"; note?: string }
   | { kind: "spike"; note?: string };
+
+/** Situation groups for pass-rate tuning (and the scorecard). */
+export function passGroup(down: number, toGo: number): string {
+  if (down === 1) return "1st down";
+  if (down === 2) return toGo <= 3 ? "2nd & short" : toGo >= 7 ? "2nd & long" : "2nd & medium";
+  return toGo <= 3 ? "3rd & short" : toGo >= 7 ? "3rd & long" : "3rd & medium";
+}
 
 export function distanceBucket(toGo: number): string {
   return toGo <= 1 ? "1" : toGo <= 3 ? "2-3" : toGo <= 6 ? "4-6" : toGo <= 10 ? "7-10" : "11+";
@@ -48,6 +60,7 @@ export function fieldZone(yardsToGoal: number): string {
         : "red-zone";
 }
 
+const TWO_MINUTES = 120;
 const late = (s: Situation) => s.quarter >= 4 || s.overtime;
 const kickDistance = (s: Situation) => s.yardsToGoal + TUNING.fieldGoal.snapYards;
 const inRange = (s: Situation) => kickDistance(s) <= s.fieldGoalRange;
@@ -71,13 +84,14 @@ export function passRate(s: Situation): number {
   const table = REAL.tendencies.passRateByDownDistance as Record<string, number>;
   let rate =
     (table[`${Math.min(3, s.down)}:${distanceBucket(s.toGo)}`] ?? 0.6) +
-    TUNING.baseline.passRateShift;
+    (TUNING.baseline.passRateShift[passGroup(s.down, s.toGo)] ?? 0);
   const a = TUNING.scoreAdjustment;
   if (s.quarter >= 3 || s.overtime) {
     const weight = late(s) ? a.fourthQuarterBoost : 1;
     if (s.margin < 0) rate += Math.min(a.maxShift, -s.margin * a.trailingPerPoint) * weight;
     if (s.margin > 0) rate -= Math.min(a.maxShift, s.margin * a.leadingPerPoint) * weight;
   }
+  rate += s.passRateAdjustment;
   if (twoMinuteDrill(s)) rate = Math.max(rate, TUNING.twoMinuteDrillPassRate);
   return Math.min(0.97, Math.max(0.05, rate));
 }
@@ -97,47 +111,52 @@ function scrimmageCall(rng: Rng, s: Situation, note?: string): Call {
   return { kind: "run", inside: rng.chance(TUNING.insideRunShare), ...(note ? { note } : {}) };
 }
 
-function fourthDown(rng: Rng, s: Situation): Call {
-  const key = `${fieldZone(s.yardsToGoal)}:${distanceBucket(s.toGo)}`;
-  let go = (REAL.tendencies.fourthDownGoRate as Record<string, number>)[key] ?? 0.1;
-  const fg = (REAL.tendencies.fourthDownFieldGoalRate as Record<string, number>)[key] ?? 0;
+const pct = (p: number) => `${Math.round(p * 100)}%`;
+const OPTION_NAMES: Record<FourthDownChoice, string> = {
+  go: "going for it",
+  punt: "punting",
+  fieldGoal: "a field goal",
+};
 
+function fourthDown(rng: Rng, s: Situation): Call {
   if (s.mustScore) {
     if (s.margin >= -3 && inRange(s))
       return { kind: "fieldGoal", note: "A field goal keeps the game going" };
     return scrimmageCall(rng, s, "Must score to stay alive, so they go for it");
   }
-  if (late(s)) {
-    if (s.margin < 0 && s.clock <= 300) {
-      // Trailing late: kick if a field goal ties or wins, otherwise go for it.
-      if (s.margin >= -3 && inRange(s))
-        return { kind: "fieldGoal", note: "A field goal ties or wins it" };
-      // Under two minutes there may be no next possession; otherwise only short or plus-territory tries.
-      if (
-        s.clock <= 120 ||
-        (s.toGo <= 3 && s.yardsToGoal <= 65) ||
-        (s.margin < -8 && s.yardsToGoal <= 50)
-      ) {
-        return scrimmageCall(rng, s, "Trailing late, so they go for it");
-      }
-      go = Math.min(0.9, go * 1.5);
-    } else if (s.margin > 0 && s.clock <= 300) go *= 0.4;
-  }
   if (s.quarter === 2 && s.clock <= 30 && inRange(s))
     return { kind: "fieldGoal", note: "Field goal to end the half" };
 
-  const r = rng.next();
-  if (r < go) return scrimmageCall(rng, s, `4th & ${s.toGo}: going for it`);
-  if (r < go + fg && inRange(s)) return { kind: "fieldGoal" };
-  if (inRange(s) && s.yardsToGoal <= 30) return { kind: "fieldGoal" };
-  return { kind: "punt" };
+  // Win probability of each option, then the coach's call.
+  const { choice, options } = decideFourthDown(rng, s, s.evaluator);
+  const ranked = (Object.entries(options) as [FourthDownChoice, number | null][])
+    .filter((o): o is [FourthDownChoice, number] => o[1] !== null)
+    .sort((a, b) => b[1] - a[1]);
+  const chosen = options[choice] as number;
+  const best = ranked[0]!;
+  const followed = best[0] === choice;
+  // "going for it (win chance 54% vs. 51% punting)" or "punting, though going for it rated higher (41% vs. 40%)".
+  const detail = followed
+    ? ` (win chance ${pct(chosen)}${ranked[1] ? ` vs. ${pct(ranked[1][1])} ${OPTION_NAMES[ranked[1][0]]}` : ""})`
+    : `, though ${OPTION_NAMES[best[0]]} rated higher (${pct(best[1])} vs. ${pct(chosen)})`;
+  if (choice === "go") return scrimmageCall(rng, s, `4th & ${s.toGo}: going for it${detail}`);
+  // Ordinary kicks only get a note when the coach went against the numbers.
+  const note = followed ? undefined : `4th & ${s.toGo}: ${OPTION_NAMES[choice]}${detail}`;
+  return choice === "fieldGoal"
+    ? { kind: "fieldGoal", ...(note ? { note } : {}) }
+    : { kind: "punt", ...(note ? { note } : {}) };
 }
 
 export function callPlay(rng: Rng, s: Situation): Call {
   if (late(s) && s.margin > 0 && canKneelOut(s))
     return { kind: "kneel", note: "Kneeling to run out the clock" };
-  if (s.quarter === 2 && s.clock <= 25 && s.yardsToGoal >= 70)
-    return { kind: "kneel", note: "Kneeling to end the half" };
+  // Deep in their own end with little time before halftime, most teams run out the clock.
+  const C = TUNING.clock;
+  if (s.quarter === 2 && s.yardsToGoal >= C.runOutHalfYardsToGoal) {
+    if (s.clock <= C.kneelHalfSeconds) return { kind: "kneel", note: "Kneeling to end the half" };
+    if (s.clock <= C.runOutHalfSeconds && s.down < 4)
+      return { kind: "run", inside: true, note: "Running out the clock before halftime" };
+  }
   // Last-second kicks.
   if (
     s.clock <= 8 &&
@@ -164,21 +183,6 @@ export function callPlay(rng: Rng, s: Situation): Call {
   return scrimmageCall(rng, s);
 }
 
-/** Go for two after a touchdown? `margin` is the scoring team's lead after the touchdown. */
-export function goForTwo(
-  rng: Rng,
-  quarter: number,
-  clock: number,
-  margin: number,
-): { go: boolean; note?: string } {
-  const lateGame = quarter >= 4 || (quarter === 3 && clock <= 300);
-  if (lateGame && TUNING.twoPoint.lateChart.includes(margin)) {
-    const where = margin > 0 ? `Up ${margin}` : margin < 0 ? `Down ${-margin}` : "Tied";
-    return { go: true, note: `${where} after the score, so they go for two` };
-  }
-  return { go: rng.chance(TUNING.twoPoint.baseRate) };
-}
-
 /** Seconds that run off before the next snap while the clock is running. */
 export function tempo(s: Pick<Situation, "quarter" | "clock" | "margin" | "overtime">): number {
   if (twoMinuteDrill(s) || ((s.quarter >= 4 || s.overtime) && s.margin < -8 && s.clock <= 360))
@@ -201,3 +205,16 @@ export function wantsTimeout(
 }
 
 export const otherSide = (side: Side): Side => (side === "home" ? "away" : "home");
+
+/** A timeout early in a half, to beat the play clock or regroup (only with timeouts to spare). */
+export function regroupTimeout(
+  rng: Rng,
+  s: Pick<Situation, "quarter" | "clock" | "overtime">,
+  timeoutsLeft: number,
+): boolean {
+  const C = TUNING.clock;
+  if (s.overtime || timeoutsLeft < C.regroupKeepAtLeast) return false;
+  // The last two minutes of each half belong to clock management.
+  if ((s.quarter === 2 || s.quarter === 4) && s.clock <= TWO_MINUTES) return false;
+  return rng.chance(s.quarter <= 2 ? C.regroupPerSnap.firstHalf : C.regroupPerSnap.secondHalf);
+}

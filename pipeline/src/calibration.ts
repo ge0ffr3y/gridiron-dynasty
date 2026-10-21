@@ -49,14 +49,14 @@ const num = (v: string | undefined) =>
   v === undefined || v === "" || v === "NA" ? NaN : Number(v);
 const flag = (v: string | undefined) => v === "1" || v === "1.0" || v === "TRUE";
 
-function quantiles(values: number[], points: number[]): number[] {
+export function quantiles(values: number[], points: number[]): number[] {
   const sorted = [...values].sort((a, b) => a - b);
   return points.map((p) => {
     const i = Math.min(sorted.length - 1, Math.max(0, Math.round(p * (sorted.length - 1))));
     return sorted[i] as number;
   });
 }
-const QUANTILE_POINTS = [
+export const QUANTILE_POINTS = [
   0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98, 0.99, 0.995,
 ];
 const mean = (values: number[]) => values.reduce((a, b) => a + b, 0) / Math.max(1, values.length);

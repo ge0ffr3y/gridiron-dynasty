@@ -8,6 +8,7 @@ export * from "./serialize";
 export * from "./views";
 export * from "./season/views";
 export * from "./season/gameView";
+export type { Drive, DriveResult, WinPoint } from "./season/gameCharts";
 export * from "./peopleViews";
 export { availableActions, runAction, type SimAction, type SimActionId } from "./season/actions";
 export { advance, advanceUntil, currentStandings, type SimHooks } from "./season/flow";

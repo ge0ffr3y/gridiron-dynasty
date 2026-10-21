@@ -8,12 +8,16 @@
 import { dmath, type Rng } from "@fgm/foundation";
 import { buildBoxScore } from "./boxscore";
 import { AVERAGE_RATING, CALIBRATION_TARGETS, PEOPLE, REAL, TUNING } from "./config";
+import { decideTwoPoint, type Evaluator, type NextState } from "./decisions";
+import { closeCall, reverse, rulingFavors } from "./review";
+import { winProbability } from "./winprob";
 import { addExpectedPoints } from "./epa";
 import {
   callPlay,
-  goForTwo,
   otherSide,
+  regroupTimeout,
   tempo,
+  twoMinuteDrill,
   wantsTimeout,
   type Call,
   type Situation,
@@ -52,6 +56,22 @@ const Q = REAL.quantilePoints;
 const SACK_PER_DROPBACK =
   CALIBRATION_TARGETS.sackRate.real * (1 - REAL.pass.scrambleShareOfDropbacks);
 const MAX_PLAYS = 400;
+/** A typical coach's style (0 cautious - 1 bold). */
+const TYPICAL_STYLE = 0.5;
+/** Plays that show a win chance on the chart. */
+const WIN_CHANCE_KINDS = new Set([
+  "run",
+  "pass",
+  "sack",
+  "scramble",
+  "punt",
+  "fieldGoal",
+  "kneel",
+  "spike",
+  "penalty",
+]);
+/** Only explain a 2-point try when it clearly helps (win-probability points, as a share). */
+const TWO_POINT_NOTE_GAIN = 0.005;
 
 type Depth = "short" | "medium" | "deep";
 
@@ -147,6 +167,137 @@ class Game {
       // On the second overtime possession, a trailing team can't give the ball back.
       mustScore:
         this.overtime.active && this.overtime.phase === "second" && this.margin(this.offense) < 0,
+      evaluator: this.evaluator(this.offense),
+      passRateAdjustment: this.adjust[this.offense].passRate,
+    };
+  }
+
+  // --- In-game adjustments ------------------------------------------------------------
+
+  /** Second-half adjustments, set at halftime. Defensive shifts apply to the other team's plays. */
+  private readonly adjust: Record<
+    Side,
+    { passRate: number; againstRuns: number; againstPasses: number }
+  > = {
+    home: { passRate: 0, againstRuns: 0, againstPasses: 0 },
+    away: { passRate: 0, againstRuns: 0, againstPasses: 0 },
+  };
+  /** Momentum: who has it, and for how many more snaps. */
+  private momentum: { side: Side; snaps: number } | null = null;
+
+  /** Halftime: each offense leans toward what worked; each defense tightens against what hurt it. */
+  private halftimeAdjustments(): void {
+    const A = TUNING.adjustments;
+    addExpectedPoints(this.plays);
+    const blank = () => ({ run: { epa: 0, plays: 0 }, pass: { epa: 0, plays: 0 } });
+    const totals = { home: blank(), away: blank() };
+    for (const p of this.plays) {
+      if (p.noPlay || p.epa === undefined) continue;
+      const kind =
+        p.kind === "run"
+          ? "run"
+          : p.kind === "pass" || p.kind === "sack" || p.kind === "scramble"
+            ? "pass"
+            : null;
+      if (!kind) continue;
+      const t = totals[p.offense][kind];
+      t.epa += p.epa;
+      t.plays += 1;
+    }
+    const clamp = (v: number, max: number) => Math.max(-max, Math.min(max, v));
+    for (const side of ["home", "away"] as Side[]) {
+      const { run, pass } = totals[side];
+      if (run.plays < A.minPlays || pass.plays < A.minPlays) continue;
+      const runEpa = run.epa / run.plays;
+      const passEpa = pass.epa / pass.plays;
+      const own = (this.input[side].gameStyle?.adaptability ?? TYPICAL_STYLE) / TYPICAL_STYLE;
+      const theirs =
+        (this.input[otherSide(side)].gameStyle?.adaptability ?? TYPICAL_STYLE) / TYPICAL_STYLE;
+      this.adjust[side].passRate =
+        clamp((passEpa - runEpa) * A.passRatePerEpa, A.maxPassRateShift) * own;
+      // The other defense focuses on whichever of this offense's play types did damage.
+      const def = this.adjust[otherSide(side)];
+      def.againstRuns =
+        Math.min(A.maxDefenseShift, Math.max(0, runEpa) * A.defenseShiftPerEpa) * theirs;
+      def.againstPasses =
+        Math.min(A.maxDefenseShift, Math.max(0, passEpa) * A.defenseShiftPerEpa) * theirs;
+    }
+  }
+
+  /** Extra shifts for the offense's next play: the defense's adjustments and momentum. */
+  private playShifts(offense: Side): { runShift: number; passShift: number } {
+    const def = this.adjust[otherSide(offense)];
+    const M = TUNING.momentum;
+    const boost =
+      this.momentum && this.momentum.snaps > 0
+        ? this.momentum.side === offense
+          ? M.strength
+          : -M.strength
+        : 0;
+    return { runShift: boost - def.againstRuns, passShift: boost - def.againstPasses };
+  }
+
+  /** After a big swing play, the team it favored gets momentum for a few snaps. */
+  private updateMomentum(result: ScrimmageResult, offense: Side): void {
+    const M = TUNING.momentum;
+    if (M.strength === 0) return;
+    if (this.momentum) this.momentum.snaps -= 1;
+    const swing = result.turnover
+      ? otherSide(offense)
+      : result.gain >= this.ytg || result.gain >= M.swing * 10
+        ? offense
+        : null;
+    if (swing) this.momentum = { side: swing, snaps: M.plays };
+  }
+
+  // --- Win probability ---------------------------------------------------------------
+
+  private minutesLeft(): number {
+    if (this.overtime.active) return this.clock / 60;
+    return ((4 - this.quarter) * this.input.rules.quarterMinutes * 60 + this.clock) / 60;
+  }
+
+  /** The chance `side` wins from a state (its own ball or the other team's). */
+  private winChance(side: Side, next: NextState): number {
+    const offense = next.ourBall ? side : otherSide(side);
+    const p = winProbability({
+      margin: next.ourBall ? next.margin : -next.margin,
+      minutesLeft: Math.max(0, this.minutesLeft() - next.secondsUsed / 60),
+      down: next.down,
+      toGo: next.toGo,
+      yardsToGoal: next.yardsToGoal,
+      timeoutEdge: this.timeouts[offense] - this.timeouts[otherSide(offense)],
+      home: this.input.neutral ? 0 : offense === "home" ? 1 : -1,
+      // The team that received the opening kickoff kicks off the second half.
+      receivesSecondHalf:
+        this.quarter <= 2 && !this.overtime.active
+          ? offense === this.openingReceiver
+            ? -1
+            : 1
+          : 0,
+    });
+    return next.ourBall ? p : 1 - p;
+  }
+
+  /** The home team's chance of winning right now, with the current offense on the ball. */
+  private homeWinChance(): number {
+    return this.winChance("home", {
+      ourBall: this.offense === "home",
+      margin: this.margin("home"),
+      down: this.down,
+      toGo: this.toGo,
+      yardsToGoal: this.ytg,
+      secondsUsed: 0,
+    });
+  }
+
+  private evaluator(side: Side): Evaluator {
+    const style = this.input[side].gameStyle ?? {};
+    return {
+      winChance: (next) => this.winChance(side, next),
+      makeChance: (distance) => this.fieldGoalChance(side, distance),
+      aggressiveness: style.aggressiveness ?? TYPICAL_STYLE,
+      twoPointAggressiveness: style.twoPointAggressiveness ?? TYPICAL_STYLE,
     };
   }
 
@@ -181,6 +332,9 @@ class Game {
       ...play,
       score: [this.score.home, this.score.away],
     };
+    // Snaps carry the home team's win chance before the snap (for the chart).
+    if (this.snapWinChance !== undefined && WIN_CHANCE_KINDS.has(full.kind))
+      full.wp = Math.round(this.snapWinChance * 1000) / 1000;
     this.plays.push(full);
     if (this.plays.length > MAX_PLAYS) throw new GameError("game ran too long");
     return full;
@@ -209,6 +363,11 @@ class Game {
     if (this.warningApplies() && before > 120 && this.clock <= 120) this.pendingWarning = true;
   }
   private pendingWarning = false;
+  private snapWinChance: number | undefined;
+  private readonly challenges: Record<Side, { left: number; won: number }> = {
+    home: { left: TUNING.review.challenges, won: 0 },
+    away: { left: TUNING.review.challenges, won: 0 },
+  };
 
   private flushWarning(): void {
     if (!this.pendingWarning) return;
@@ -389,7 +548,14 @@ class Game {
     this.overtimeScoreCheck(side, byDefense);
     if (this.over) return;
     const margin = this.margin(side);
-    const decision = goForTwo(this.rng, this.quarter, this.clock, margin);
+    const choice = decideTwoPoint(this.rng, margin, this.evaluator(side));
+    const decision = {
+      go: choice.go,
+      note:
+        choice.go && choice.gain > TWO_POINT_NOTE_GAIN
+          ? `Going for two (it raises their win chance by ${Math.round(choice.gain * 1000) / 10} points)`
+          : undefined,
+    };
     const units = this.units[side];
     const at = { clock: this.clock, offense: side, down: 0, toGo: 0 };
     if (decision.go) {
@@ -545,16 +711,28 @@ class Game {
         this.callTimeout(defense);
       }
     }
+    // Timeouts to regroup or beat the play clock, earlier in each half.
+    for (const side of [this.offense, this.defense]) {
+      if (regroupTimeout(this.rng, this.situation(), this.timeouts[side])) {
+        this.callTimeout(
+          side,
+          side === this.offense ? "Timeout to beat the play clock" : "Timeout to regroup",
+        );
+        break;
+      }
+    }
     if (this.clockRunning) {
       const seconds = this.restartsOnSpot ? TUNING.tempo.afterOutOfBounds : tempo(this.situation());
       if (!this.runOff(seconds, this.offense)) return; // the period ended before the snap
     }
+    this.snapWinChance = this.homeWinChance();
     const call = callPlay(this.rng, this.situation());
     this.resolve(call);
+    this.snapWinChance = undefined;
     this.flushWarning();
   }
 
-  private callTimeout(side: Side): void {
+  private callTimeout(side: Side, reason?: string): void {
     this.timeouts[side] -= 1;
     this.clockRunning = false;
     this.record(
@@ -562,7 +740,8 @@ class Game {
         kind: "timeout",
         yards: 0,
         team: side,
-        note: side === this.offense ? "Offense stops the clock" : "Defense stops the clock",
+        note:
+          reason ?? (side === this.offense ? "Offense stops the clock" : "Defense stops the clock"),
       },
       { clock: this.clock },
     );
@@ -662,7 +841,7 @@ class Game {
   private scrimmage(call: Extract<Call, { kind: "run" | "pass" }>): void {
     const offense = this.offense;
     const defense = this.defense;
-    let isPass = call.kind === "pass";
+    const isPass = call.kind === "pass";
     const sneak = !isPass && this.down >= 3 && this.toGo <= 1 && this.rng.chance(PASS_STYLE.sneak);
     const huddle = chooseHuddle(
       this.rng,
@@ -672,12 +851,14 @@ class Game {
       this.lineupOf(defense),
       this.input[defense].defenseStyle ?? {},
     );
-    // Run-pass option: against a stacked box the quarterback pulls it and throws quick.
-    let rpo = false;
-    if (!isPass && !sneak && huddle.box >= 7 && this.rng.chance(PASS_STYLE.rpo * 2)) {
-      isPass = true;
-      rpo = true;
-    }
+    // Run-pass option: some quick throws against a stacked box come off a run fake.
+    // (The real pass rates already count RPO throws as passes, so a called run stays a run.)
+    const rpo =
+      isPass &&
+      call.kind === "pass" &&
+      call.depth === "short" &&
+      huddle.box >= 7 &&
+      this.rng.chance(TUNING.pass.rpoOfQuickThrowsVsStackedBox);
     const at = { clock: this.clock };
 
     const pre = preSnapFoul(this.rng, this.input.rules, huddle);
@@ -693,6 +874,8 @@ class Game {
       down: this.down,
       toGo: this.toGo,
       homeEdge: this.homeEdgeFor(offense),
+      prevent: twoMinuteDrill(this.situation()),
+      ...this.playShifts(offense),
       ...(call.note ? { note: call.note } : {}),
     };
     const playAction =
@@ -703,6 +886,7 @@ class Game {
       ? resolvePass(ctx, { depth, playAction, screen })
       : resolveRun(ctx, sneak);
     if (rpo) result.details.rpo = true;
+    this.updateMomentum(result, offense);
     this.afterSnap(huddle, result.details);
     if (!isPass)
       Object.assign(result.details, { personnel: huddle.personnel, formation: huddle.formation });
@@ -710,10 +894,51 @@ class Game {
 
     const foul = liveFoul(this.rng, this.input.rules, huddle, isPass ? "pass" : "run", result);
     if (!foul) {
-      this.commit(result, at);
+      this.commit(this.review(result), at);
       return;
     }
     this.decidePenalty(foul, result, at);
+  }
+
+  /** Replay: the booth or a coach's challenge may overturn a close call. */
+  private review(result: ScrimmageResult): ScrimmageResult {
+    const at = { down: this.down, toGo: this.toGo, ytg: this.ytg };
+    const ruling = closeCall(this.rng, result, at);
+    if (!ruling) return result;
+    const late =
+      this.overtime.active || ((this.quarter === 2 || this.quarter === 4) && this.clock <= 120);
+    const booth =
+      late || ruling === "touchdown" || ruling === "interception" || ruling === "fumble";
+    let team: Side | undefined;
+    if (!booth) {
+      team = rulingFavors(ruling, result, at) === "offense" ? this.defense : this.offense;
+      const flags = this.challenges[team];
+      if (
+        flags.left <= 0 ||
+        this.timeouts[team] <= 0 ||
+        !this.rng.chance(TUNING.review.challengeWillingness)
+      )
+        return result;
+    }
+    const targets = CALIBRATION_TARGETS;
+    const reversed = this.rng.chance(
+      booth ? targets.boothReversalRate.real : targets.challengeReversalRate.real,
+    );
+    if (team) {
+      // A lost challenge costs a timeout; winning the first two earns a third challenge.
+      const flags = this.challenges[team];
+      flags.left -= 1;
+      if (reversed) {
+        flags.won += 1;
+        if (flags.won === TUNING.review.challenges) flags.left += 1;
+      } else this.timeouts[team] -= 1;
+    }
+    const out = reversed ? reverse(result, ruling, at) : result;
+    out.details = {
+      ...out.details,
+      review: { by: booth ? "booth" : "challenge", ...(team ? { team } : {}), ruling, reversed },
+    };
+    return out;
   }
 
   /** After a snap: the players on the field tire, and someone may get hurt. */
@@ -1136,8 +1361,9 @@ class Game {
     this.periodPoints.home.push(0);
     this.periodPoints.away.push(0);
     if (this.quarter === 3) {
-      // Halftime: new timeouts, and the team that received first kicks off.
+      // Halftime: new timeouts, adjustments, and the team that received first kicks off.
       this.timeouts = { home: rules.timeoutsPerHalf, away: rules.timeoutsPerHalf };
+      this.halftimeAdjustments();
       this.kickoff(this.openingReceiver);
     }
   }

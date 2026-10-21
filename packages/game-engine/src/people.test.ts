@@ -81,7 +81,11 @@ describe("in-game injuries", () => {
     let checked = 0;
     for (const g of GAMES) {
       for (const injury of g.injuries.filter((i) => !i.returned)) {
-        const at = g.plays.findIndex((p) => p.injured?.includes(injury.playerId));
+        // A player can be hurt more than once (back from a knock, then out): check from the last time.
+        let at = -1;
+        g.plays.forEach((p, i) => {
+          if (p.injured?.includes(injury.playerId)) at = i;
+        });
         expect(at).toBeGreaterThanOrEqual(0);
         for (const p of g.plays.slice(at + 1)) expect(involved(p)).not.toContain(injury.playerId);
         checked++;

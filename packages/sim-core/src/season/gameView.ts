@@ -3,8 +3,9 @@
  * play-by-play as readable text ("2nd & 7 at SEA 34: J. Hammond pass short
  * right to D. Marsh for 12 yards").
  */
-import type { BoxScore, Play, Side, StatLine } from "@fgm/game-engine";
+import { RULING_NAMES, type BoxScore, type Play, type Side, type StatLine } from "@fgm/game-engine";
 import type { Game, League } from "../league/schema";
+import { drives, elapsedAt, winProbabilitySeries, type Drive, type WinPoint } from "./gameCharts";
 import { type TeamTag } from "./views";
 
 export interface PlayLine {
@@ -46,6 +47,14 @@ export interface GameView {
   players: Record<Side, PlayerRow[]>;
   /** Null when the play-by-play wasn't kept (older or imported games). */
   plays: PlayLine[] | null;
+  /** Win probability and drives (null without the play-by-play). */
+  charts: {
+    winProbability: WinPoint[];
+    drives: Drive[];
+    /** Game time in seconds: the length of a quarter and of the whole game. */
+    quarterSeconds: number;
+    totalSeconds: number;
+  } | null;
 }
 
 function tag(league: League, id: string): TeamTag {
@@ -101,7 +110,10 @@ export function describePlay(
     ? `${p.injured.map((id) => name(id)).join(" and ")} ${p.injured.length > 1 ? "were" : "was"} hurt on the play.`
     : "";
   if (p.kind === "penalty") return penalty.trim();
-  const text = `${p.noPlay ? "(No play) " : ""}${describeAction(p, name, abbr)}${penalty}`;
+  const review = p.review
+    ? ` ${p.review.by === "challenge" && p.review.team ? `${abbr[p.review.team]} challenged` : "The replay official reviewed"} the ${RULING_NAMES[p.review.ruling as keyof typeof RULING_NAMES] ?? p.review.ruling} ruling, and the play was ${p.review.reversed ? "REVERSED" : "upheld"}.`
+    : "";
+  const text = `${p.noPlay ? "(No play) " : ""}${describeAction(p, name, abbr)}${penalty}${review}`;
   return hurt ? `${text.endsWith(".") ? text : `${text}.`} ${hurt}` : text;
 }
 
@@ -329,5 +341,24 @@ export function gameView(league: League, gameId: number, plays: Play[] | null): 
           };
         })
       : null,
+    charts: plays ? gameCharts(league, g, plays) : null,
+  };
+}
+
+function gameCharts(league: League, g: Game, plays: Play[]): GameView["charts"] {
+  const ot =
+    g.round === "regular"
+      ? league.rules.game.overtime.regularSeason
+      : league.rules.game.overtime.playoffs;
+  const time = {
+    quarterSeconds: league.rules.game.quarterMinutes * 60,
+    overtimeSeconds: ot.periodMinutes * 60,
+  };
+  const last = plays.at(-1);
+  return {
+    winProbability: winProbabilitySeries(plays, time),
+    drives: drives(plays, time),
+    quarterSeconds: time.quarterSeconds,
+    totalSeconds: last ? elapsedAt(time, last.quarter, 0) : 4 * time.quarterSeconds,
   };
 }

@@ -4,6 +4,7 @@
  */
 import type { Position } from "@fgm/foundation";
 import { CALIBRATION_TARGETS, PEOPLE } from "./config";
+import { passGroup as situationGroup } from "./playcall";
 import { GROUP_OF } from "./sideline";
 import type { GameOutput, Play, StatKey } from "./types";
 
@@ -38,7 +39,11 @@ export function measureSeason(games: MeasuredGame[]): Record<string, number> {
     teamPoints.set(g.homeId, [...(teamPoints.get(g.homeId) ?? []), o.homeScore]);
     teamPoints.set(g.awayId, [...(teamPoints.get(g.awayId) ?? []), o.awayScore]);
     add("drives", o.box.home.drives + o.box.away.drives);
-    for (const p of o.plays) measurePlay(p, add);
+    let before: [number, number] = [0, 0];
+    for (const p of o.plays) {
+      measurePlay(p, add, before);
+      before = p.score;
+    }
   }
   let injuries = 0;
   let epa = 0;
@@ -88,21 +93,69 @@ export function measureSeason(games: MeasuredGame[]): Record<string, number> {
     shotgunShare: v("shotgun") / v("personnelPlays"),
     manCoverageShare: v("manCoverage") / v("coverageKnown"),
     injuriesPerTeamGame: injuries / teamGames,
+    // Situations (Phase 5a).
+    timeoutsPerTeamGame: v("timeouts") / teamGames,
+    endOfHalfPointsPerTeamGame: v("endOfHalfPoints") / teamGames,
+    twoPointTriesPerTouchdown: v("twoPointTries") / v("touchdowns"),
+    challengesPerGame: v("challenges") / games.length,
+    challengeReversalRate: v("challengeReversed") / v("challenges"),
+    boothReviewsPerGame: v("booths") / games.length,
+    boothReversalRate: v("boothReversed") / v("booths"),
+    falseStartsHomeOffense: v("falseStarts:home") / games.length,
+    falseStartsRoadOffense: v("falseStarts:away") / games.length,
     epaPerPlay: epa / epaPlays,
     successRate: successes / epaPlays,
   };
   for (const band of ["18-29", "30-39", "40-49", "50-59"])
     values[`fieldGoalPct ${band}`] = v(`fgm:${band}`) / v(`fga:${band}`);
+  for (const g of PASS_GROUPS) values[`passRate ${g}`] = v(`passes|${g}`) / v(`plays|${g}`);
+  for (const z of ["own-deep", "midfield", "plus-territory", "red-zone"]) {
+    values[`fourthDownGoRate ${z}`] = v(`fourthGo|${z}`) / v(`fourth|${z}`);
+    if (z === "plus-territory" || z === "red-zone")
+      values[`fourthDownFieldGoalRate ${z}`] = v(`fourthFg|${z}`) / v(`fourth|${z}`);
+  }
   return values;
 }
 
 const MAN = new Set(["cover0", "cover1", "2man"]);
+const TWO_MINUTES = 120;
+const PASS_GROUPS = [
+  "1st down",
+  "2nd & short",
+  "2nd & medium",
+  "2nd & long",
+  "3rd & short",
+  "3rd & medium",
+  "3rd & long",
+];
+function passGroup(down: number, toGo: number): string | null {
+  return down >= 1 && down <= 3 ? situationGroup(down, toGo) : null;
+}
+const zoneOf = (ytg: number) =>
+  ytg > 60 ? "own-deep" : ytg > 40 ? "midfield" : ytg > 20 ? "plus-territory" : "red-zone";
 
-function measurePlay(p: Play, add: (key: string, n?: number) => void): void {
+function measurePlay(
+  p: Play,
+  add: (key: string, n?: number) => void,
+  pointsBefore: [number, number],
+): void {
   if (p.penalty?.accepted) {
     add("penalties");
     add("penaltyYards", p.penalty.yards);
+    if (p.penalty.type === "False Start") add(`falseStarts:${p.penalty.team}`);
   }
+  if (p.kind === "timeout" && p.team) add("timeouts");
+  if (p.review) {
+    const kind = p.review.by === "challenge" ? "challenge" : "booth";
+    add(`${kind}s`);
+    if (p.review.reversed) add(`${kind}Reversed`);
+  }
+  // Points in the last two minutes of each half (regulation).
+  if ((p.quarter === 2 || p.quarter === 4) && p.clock <= TWO_MINUTES) {
+    const points = p.score[0] + p.score[1] - pointsBefore[0] - pointsBefore[1];
+    if (points > 0) add("endOfHalfPoints", points);
+  }
+  if (p.touchdown) add("touchdowns");
   // Plays wiped out by penalties don't count (the real data skips them too).
   if (p.noPlay) {
     // ...except that a third down converted by a defensive penalty counts as converted (as in the real data).
@@ -171,6 +224,17 @@ function measurePlay(p: Play, add: (key: string, n?: number) => void): void {
   }
   if (p.kind === "twoPoint") add("twoPointTries");
   const play = p.kind === "run" || p.kind === "pass" || p.kind === "sack" || p.kind === "scramble";
+  const group = passGroup(p.down, p.toGo);
+  if ((p.kind === "run" || dropback) && group) {
+    add(`plays|${group}`);
+    if (dropback) add(`passes|${group}`);
+  }
+  if (p.down === 4 && (play || p.kind === "punt" || p.kind === "fieldGoal")) {
+    const z = zoneOf(p.yardsToGoal);
+    add(`fourth|${z}`);
+    if (play) add(`fourthGo|${z}`);
+    if (p.kind === "fieldGoal") add(`fourthFg|${z}`);
+  }
   if (p.down === 3 && play) {
     add("thirdAtt");
     if (p.firstDown) add("thirdConv");

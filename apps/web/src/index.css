@@ -21,6 +21,9 @@
   --accent: oklch(0.94 0.02 150);
   --accent-foreground: oklch(0.22 0.01 145);
   --destructive: oklch(0.577 0.245 27.325);
+  /* Chart series (validated for color-vision deficiency on these surfaces): home, away. */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
   --border: oklch(0.9 0.01 145);
   --input: oklch(0.9 0.01 145);
   --ring: oklch(0.6 0.08 150);
@@ -45,6 +48,8 @@
   --accent: oklch(0.28 0.02 150);
   --accent-foreground: oklch(0.95 0.005 145);
   --destructive: oklch(0.704 0.191 22.216);
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.55 0.08 150);
@@ -73,6 +78,8 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

@@ -12,7 +12,15 @@
  * happened, so penalties can be weighed before the play is applied.
  */
 import { baseProfile, dmath, type Ratings, type Rng } from "@fgm/foundation";
-import { AVERAGE_RATING, CALIBRATION_TARGETS, CHARTING, MATCHUPS, REAL, TUNING } from "./config";
+import {
+  AVERAGE_RATING,
+  CALIBRATION_TARGETS,
+  CHARTING,
+  MATCHUPS,
+  REAL,
+  SITUATIONS,
+  TUNING,
+} from "./config";
 import { COVERAGE_NAMES, pickShare, type Coverage, type Huddle } from "./onfield";
 import { adjustProbability, fromQuantiles, shiftedUniform, weightedPick } from "./sample";
 import type { LineupPlayer, Play } from "./types";
@@ -49,6 +57,11 @@ export interface ScrimmageContext {
   toGo: number;
   /** Home-field edge for the offense in rating points (negative if the defense is at home). */
   homeEdge: number;
+  /** The offense is in a two-minute drill, so the defense plays deep ("prevent"). */
+  prevent?: boolean;
+  /** In-game adjustments and momentum: extra quantile shift on runs, extra completion log-odds on passes. */
+  runShift?: number;
+  passShift?: number;
   note?: string;
 }
 
@@ -203,6 +216,24 @@ const elusiveness = (p: LineupPlayer) => runnerSkill(p.ratings) - REF.runner;
 const afterCatch = (p: LineupPlayer) => catchRunSkill(p.ratings) - REF.catchRun;
 const tackling = (p: LineupPlayer) => p.ratings.tackling - REF.tackling;
 
+/**
+ * Real run gains for this distance to go: short-yardage runs face stacked
+ * fronts but usually get their yard or two; on long yardage the defense is
+ * waiting for a pass and gives up more.
+ */
+function runTable(toGo: number): readonly number[] {
+  const t = SITUATIONS.runYardsByDistance;
+  return toGo <= 1
+    ? t["1"]
+    : toGo <= 3
+      ? t["2-3"]
+      : toGo <= 6
+        ? t["4-6"]
+        : toGo <= 10
+          ? t["7-10"]
+          : t["11+"];
+}
+
 export function resolveRun(ctx: ScrimmageContext, sneak: boolean): ScrimmageResult {
   const { rng, huddle: h } = ctx;
   const rusher = sneak ? h.offense.qb : pickBallCarrier(rng, h);
@@ -251,7 +282,8 @@ export function resolveRun(ctx: ScrimmageContext, sneak: boolean): ScrimmageResu
       (T.run.boxShift[boxKey as keyof typeof T.run.boxShift] ?? 0) +
       (T.run.gapShift[gap as keyof typeof T.run.gapShift] ?? 0) +
       T.baseline.runQuantileShift +
-      ctx.homeEdge * T.matchup.runQuantileShift;
+      ctx.homeEdge * T.matchup.runQuantileShift +
+      (ctx.runShift ?? 0);
     // Broken tackle: the first defender misses and the run goes on.
     const breakChance = adjustProbability(
       T.run.brokenTackle,
@@ -262,7 +294,7 @@ export function resolveRun(ctx: ScrimmageContext, sneak: boolean): ScrimmageResu
       shift += T.run.brokenTackleShift;
     }
     gain = Math.round(
-      fromQuantiles(Q, REAL.run.yardQuantiles, shiftedUniform(rng, shift), T.tails.run),
+      fromQuantiles(Q, runTable(ctx.toGo), shiftedUniform(rng, shift), T.tails.run),
     );
     tackler = runTackler(rng, h, defenders, gain);
   }
@@ -636,7 +668,8 @@ export function resolvePass(ctx: ScrimmageContext, opts: PassOptions): Scrimmage
     (underPressure ? PRESSURE_COMPLETION.yes : PRESSURE_COMPLETION.no) * T.pass.pressureWeight +
     cov.completion +
     (opts.playAction ? T.pass.playActionCompletionLogit : 0) +
-    ctx.homeEdge * T.matchup.completionLogit;
+    ctx.homeEdge * T.matchup.completionLogit +
+    (ctx.passShift ?? 0);
   const baseComplete = opts.screen ? T.pass.screenCompletion : REAL.pass.completionByDepth[depth];
   const pComplete = adjustProbability(baseComplete, completionShift);
   const intShift =
@@ -676,7 +709,8 @@ export function resolvePass(ctx: ScrimmageContext, opts: PassOptions): Scrimmage
     const distanceShift =
       cov.distance +
       (opts.playAction ? T.pass.playActionDistanceShift : 0) +
-      extraRushers * T.pass.distancePerBlitzer;
+      extraRushers * T.pass.distancePerBlitzer +
+      (ctx.prevent ? T.clock.preventDistanceShift : 0);
     const air = opts.screen
       ? -rng.intBetween(1, 5)
       : Math.min(

@@ -97,8 +97,12 @@ export function describePlay(
               .join(", ") || "enforced"
       }.`
     : "";
+  const hurt = p.injured?.length
+    ? `${p.injured.map((id) => name(id)).join(" and ")} ${p.injured.length > 1 ? "were" : "was"} hurt on the play.`
+    : "";
   if (p.kind === "penalty") return penalty.trim();
-  return `${p.noPlay ? "(No play) " : ""}${describeAction(p, name, abbr)}${penalty}`;
+  const text = `${p.noPlay ? "(No play) " : ""}${describeAction(p, name, abbr)}${penalty}`;
+  return hurt ? `${text.endsWith(".") ? text : `${text}.`} ${hurt}` : text;
 }
 
 const COVERAGES: Record<string, string> = {
@@ -258,6 +262,16 @@ function teamStatRows(box: BoxScore): GameView["teamStats"] {
     row("Punts", (s) => String(s.punts)),
     row("Penalties (yards)", (s) => `${s.penalties} (${s.penaltyYards})`),
     row("Time of possession", (s) => top(s.possessionSeconds)),
+    // Advanced (games from before Phase 4b have none).
+    ...(box.home.epaPlays + box.away.epaPlays > 0
+      ? [
+          row("EPA per play", (s) => (s.epaPlays ? (s.epa / s.epaPlays).toFixed(2) : "0.00")),
+          row("Success rate", (s) =>
+            s.epaPlays ? `${Math.round((100 * s.successPlays) / s.epaPlays)}%` : "-",
+          ),
+          row("Dropbacks under pressure", (s) => `${s.pressured} of ${s.dropbacks}`),
+        ]
+      : []),
   ];
 }
 

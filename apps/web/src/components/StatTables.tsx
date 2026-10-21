@@ -25,6 +25,8 @@ export interface StatRow {
 
 const n = (line: StatLine, key: keyof StatLine) => line[key] ?? 0;
 const avg = (a: number, b: number) => (b > 0 ? (a / b).toFixed(1) : "-");
+const rate = (a: number, b: number) => (b > 0 ? (a / b).toFixed(2) : "-");
+const pct = (a: number, b: number) => (b > 0 ? `${Math.round((100 * a) / b)}%` : "-");
 
 /** The NFL passer rating formula. */
 export function passerRating(line: StatLine): string {
@@ -89,6 +91,30 @@ const GROUPS: { title: string; has: (keyof StatLine)[]; columns: Column[] }[] = 
       ["INT YDS", (l) => n(l, "intYds")],
       ["FR", (l) => n(l, "fumRec")],
       ["TD", (l) => n(l, "defTd")],
+    ],
+  },
+  {
+    title: "Advanced offense",
+    has: ["offSnaps"],
+    columns: [
+      ["SNAPS", (l) => n(l, "offSnaps")],
+      ["EPA/DB", (l) => rate(n(l, "passEpa"), n(l, "dropbacks"))],
+      ["DB SUCC", (l) => pct(n(l, "passSucc"), n(l, "dropbacks"))],
+      ["EPA/RUSH", (l) => rate(n(l, "rushEpa"), n(l, "rushAtt"))],
+      ["RUSH SUCC", (l) => pct(n(l, "rushSucc"), n(l, "rushAtt"))],
+      ["AIR YDS", (l) => n(l, "airYds")],
+      ["YAC", (l) => n(l, "yac")],
+      ["DROPS", (l) => n(l, "drops")],
+    ],
+  },
+  {
+    title: "Advanced defense",
+    has: ["defSnaps"],
+    columns: [
+      ["SNAPS", (l) => n(l, "defSnaps")],
+      ["PRESSURES", (l) => n(l, "pressures")],
+      ["PASSES DEF", (l) => n(l, "passDef")],
+      ["MISSED TKL", (l) => n(l, "missedTkl")],
     ],
   },
   {

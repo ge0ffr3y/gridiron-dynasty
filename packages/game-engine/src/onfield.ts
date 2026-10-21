@@ -170,7 +170,11 @@ export function chooseHuddle(
   const backfield: LineupPlayer[] = [];
   if (backs >= 1 && offense.rb[0]) backfield.push(offense.rb[0]);
   if (backs >= 2) backfield.push(offense.fb ?? offense.rb[1] ?? offense.rb[0]!);
-  const counts = PACKAGES[pkg];
+  // In nickel and dime, the extra defensive back is sometimes a third safety (at the real rate).
+  const threeSafeties =
+    (pkg === "nickel" || pkg === "dime") && rng.chance(MATCHUPS.threeSafetyShare[pkg]);
+  const base = PACKAGES[pkg];
+  const counts = threeSafeties ? { ...base, cb: base.cb - 1, s: base.s + 1 } : base;
   const dl = defense.dl.slice(0, 4);
   const lb = defense.lb.slice(0, counts.lb);
   const cb = defense.cb.slice(0, counts.cb);

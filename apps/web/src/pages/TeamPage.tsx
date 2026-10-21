@@ -1,5 +1,7 @@
 import { Fragment, useState } from "react";
 import { Link } from "wouter";
+import type { TeamView } from "@fgm/sim-core";
+import { DepthChartEditor } from "@/components/DepthChartEditor";
 import { RosterTable } from "@/components/RosterTable";
 import {
   ErrorNote,
@@ -23,7 +25,7 @@ import { ordinal } from "@/lib/format";
 import { useLeagueKey } from "@/lib/session";
 import { useSim } from "@/sim/client";
 
-type Tab = "roster" | "stats" | "staff" | "picks";
+type Tab = "roster" | "depth" | "stats" | "staff" | "picks";
 
 export function TeamPage({ teamId }: { teamId: string }) {
   const view = useSim("teamView", { teamId }, useLeagueKey(String(teamId)));
@@ -63,6 +65,7 @@ export function TeamPage({ teamId }: { teamId: string }) {
         {(
           [
             ["roster", "Roster"],
+            ["depth", "Depth chart"],
             ["staff", "Staff"],
             ["picks", "Draft picks"],
             ["stats", "Stats"],
@@ -85,6 +88,8 @@ export function TeamPage({ teamId }: { teamId: string }) {
       </div>
 
       {tab === "roster" && <RosterTable rows={roster} />}
+
+      {tab === "depth" && <DepthChartEditor teamId={teamId} />}
 
       {tab === "stats" && (
         <div className="grid gap-4 md:grid-cols-2">
@@ -119,6 +124,7 @@ export function TeamPage({ teamId }: { teamId: string }) {
                     ],
                     ["Turnovers", view.data.season.turnovers],
                     ["Takeaways", view.data.season.takeaways],
+                    ...advancedFacts(view.data.season.advanced),
                   ]}
                 />
               )}
@@ -208,4 +214,22 @@ export function TeamPage({ teamId }: { teamId: string }) {
       )}
     </div>
   );
+}
+
+const signed = (v: number) => `${v >= 0 ? "+" : ""}${v.toFixed(2)}`;
+const percent = (v: number) => `${Math.round(v * 100)}%`;
+
+/** EPA, success rate and pressure (shown once games with advanced stats have been played). */
+function advancedFacts(a: TeamView["season"]["advanced"]): [string, string][] {
+  if (!a) return [];
+  return [
+    ["Offense EPA per play", signed(a.offenseEpaPerPlay)],
+    ["Offense success rate", percent(a.offenseSuccessRate)],
+    ["Defense EPA per play allowed", signed(a.defenseEpaPerPlay)],
+    ["Defense success rate allowed", percent(a.defenseSuccessRate)],
+    [
+      "Pressure rate allowed / forced",
+      `${percent(a.pressureRateAllowed)} / ${percent(a.pressureRateForced)}`,
+    ],
+  ];
 }

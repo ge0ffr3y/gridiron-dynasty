@@ -7,6 +7,7 @@ import {
   Handshake,
   Home,
   ListOrdered,
+  Medal,
   Moon,
   Shield,
   Sun,
@@ -28,6 +29,7 @@ import { GamePage } from "@/pages/GamePage";
 import { HistoryPage } from "@/pages/HistoryPage";
 import { HomePage } from "@/pages/HomePage";
 import { LeaguePage } from "@/pages/LeaguePage";
+import { LeadersPage } from "@/pages/LeadersPage";
 import { PlayerPage } from "@/pages/PlayerPage";
 import { PlayersPage } from "@/pages/PlayersPage";
 import { PlayoffsPage } from "@/pages/PlayoffsPage";
@@ -53,6 +55,7 @@ const NAV: NavItem[] = [
   { label: "Players", icon: Users, href: "/players", needsLeague: true },
   { label: "Schedule", icon: CalendarDays, href: "/schedule", needsLeague: true },
   { label: "Standings", icon: ListOrdered, href: "/standings", needsLeague: true },
+  { label: "Leaders", icon: Medal, href: "/leaders", needsLeague: true },
   { label: "Playoffs", icon: Trophy, href: "/playoffs", needsLeague: true },
   { label: "History", icon: BookOpen, href: "/history", needsLeague: true },
   { label: "Draft", icon: ClipboardList, phase: 11 },
@@ -145,6 +148,11 @@ function Shell() {
             <Route path="/standings">
               <NeedsLeague>
                 <StandingsPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/leaders">
+              <NeedsLeague>
+                <LeadersPage />
               </NeedsLeague>
             </Route>
             <Route path="/playoffs">

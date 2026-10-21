@@ -4,6 +4,9 @@
  */
 import type {
   CalendarView,
+  DepthChartView,
+  DepthSlot,
+  LeadersView,
   CoachView,
   GameView,
   HistoryView,
@@ -59,6 +62,16 @@ export interface SimApi {
   playoffsView(params: Record<string, never>): PlayoffsView;
   historyView(params: Record<string, never>): HistoryView;
   gameView(params: { gameId: number }): GameView;
+  depthChartView(params: { teamId: string }): DepthChartView;
+  /** Moves a player at one spot on a team's depth chart (the chart becomes a custom one). */
+  moveOnDepthChart(params: {
+    teamId: string;
+    slot: DepthSlot;
+    playerId: number;
+    toIndex: number;
+  }): DepthChartView;
+  resetDepthChart(params: { teamId: string }): DepthChartView;
+  leadersView(params: { season?: number }): LeadersView;
 }
 
 export type Method = keyof SimApi;

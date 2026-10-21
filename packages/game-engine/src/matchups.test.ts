@@ -5,8 +5,8 @@
 import { overallAt, Rng, type Ratings } from "@fgm/foundation";
 import { describe, expect, it } from "vitest";
 import { simulateGame } from "./engine";
-import { makeLineup, TEST_RULES } from "./testLineups";
-import type { GameOutput, Lineup, LineupPlayer, Play, Side, TeamInput } from "./types";
+import { makeDepth, TEST_RULES } from "./testLineups";
+import type { DepthChart, GameOutput, LineupPlayer, Play, Side, TeamInput } from "./types";
 
 const GAMES = 300;
 
@@ -59,20 +59,20 @@ function offense(games: GameOutput[], side: Side) {
   };
 }
 
-const team = (id: string, lineup: Lineup, extra: Partial<TeamInput> = {}): TeamInput => ({
+const team = (id: string, depth: DepthChart, extra: Partial<TeamInput> = {}): TeamInput => ({
   id,
-  lineup,
+  depth,
   ...extra,
 });
 
 describe("matchups", () => {
   it("an elite quarterback raises a weak team's scoring", () => {
-    const opponent = () => team("OPP", makeLineup(0, 100));
-    const weak = () => team("WEAK", makeLineup(-8, 1));
+    const opponent = () => team("OPP", makeDepth(0, 100));
+    const weak = () => team("WEAK", makeDepth(-8, 1));
     const withStar = () => {
-      const lineup = makeLineup(-8, 1);
-      lineup.qb = boosted(
-        lineup.qb,
+      const lineup = makeDepth(-8, 1);
+      lineup.QB[0] = boosted(
+        lineup.QB[0]!,
         [
           "throwAccuracyShort",
           "throwAccuracyDeep",
@@ -92,9 +92,9 @@ describe("matchups", () => {
   });
 
   it("a blitz-heavy defense gets more sacks and gives up more big plays", () => {
-    const offenseTeam = () => team("OFF", makeLineup(0, 1));
-    const normal = () => team("DEF", makeLineup(0, 100));
-    const blitzing = () => team("DEF", makeLineup(0, 100), { defenseStyle: { extraBlitz: 1 } });
+    const offenseTeam = () => team("OFF", makeDepth(0, 1));
+    const normal = () => team("DEF", makeDepth(0, 100));
+    const blitzing = () => team("DEF", makeDepth(0, 100), { defenseStyle: { extraBlitz: 1 } });
     const vsNormal = offense(series(offenseTeam, normal), "home");
     const vsBlitz = offense(series(offenseTeam, blitzing), "home");
     // Real NFL: sacks rise ~20% per extra rusher; this defense blitzes about two snaps in three.
@@ -103,14 +103,14 @@ describe("matchups", () => {
   });
 
   it("better coverage lowers completion percentage", () => {
-    const offenseTeam = () => team("OFF", makeLineup(0, 1));
-    const normal = () => team("DEF", makeLineup(0, 100));
+    const offenseTeam = () => team("OFF", makeDepth(0, 1));
+    const normal = () => team("DEF", makeDepth(0, 100));
     const coverage = () => {
-      const lineup = makeLineup(0, 100);
+      const lineup = makeDepth(0, 100);
       const keys: (keyof Ratings)[] = ["manCoverage", "zoneCoverage", "ballSkills", "speed"];
-      lineup.cb = lineup.cb.map((p) => boosted(p, keys, 15));
-      lineup.s = lineup.s.map((p) => boosted(p, keys, 15));
-      lineup.lb = lineup.lb.map((p) => boosted(p, keys, 15));
+      lineup.CB = lineup.CB.map((p) => boosted(p, keys, 15));
+      lineup.S = lineup.S.map((p) => boosted(p, keys, 15));
+      lineup.LB = lineup.LB.map((p) => boosted(p, keys, 15));
       return team("DEF", lineup);
     };
     const vsNormal = offense(series(offenseTeam, normal), "home");
@@ -121,7 +121,7 @@ describe("matchups", () => {
 
 describe("penalties", () => {
   const games = Array.from({ length: 200 }, (_, i) =>
-    play(team("HOME", makeLineup(0, 1)), team("AWAY", makeLineup(0, 100)), 9000 + i),
+    play(team("HOME", makeDepth(0, 1)), team("AWAY", makeDepth(0, 100)), 9000 + i),
   );
   const fouls = games.flatMap((g) =>
     g.plays.map((p, i) => ({ p, next: g.plays.slice(i + 1).find((n) => n.kind !== "timeout") })),

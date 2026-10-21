@@ -25,6 +25,10 @@ import {
   teamView,
   type League,
   type Viewer,
+  depthChartView,
+  leadersView,
+  moveOnDepthChart,
+  resetDepthChart,
 } from "@fgm/sim-core";
 import type { Play } from "@fgm/game-engine";
 import { db, PLAY_LOG_SEASONS_KEPT, type PlayLog } from "./db";
@@ -196,6 +200,28 @@ const handlers: Handlers = {
 
   historyView() {
     return historyView(requireLeague());
+  },
+
+  depthChartView({ teamId }) {
+    return depthChartView(requireLeague(), teamId, VIEWER);
+  },
+
+  async moveOnDepthChart({ teamId, slot, playerId, toIndex }) {
+    const league = requireLeague();
+    moveOnDepthChart(league, teamId, slot, playerId, toIndex);
+    open = { saved: await save(league, open!.saved), league };
+    return depthChartView(league, teamId, VIEWER);
+  },
+
+  async resetDepthChart({ teamId }) {
+    const league = requireLeague();
+    resetDepthChart(league, teamId);
+    open = { saved: await save(league, open!.saved), league };
+    return depthChartView(league, teamId, VIEWER);
+  },
+
+  leadersView({ season }) {
+    return leadersView(requireLeague(), season);
   },
 };
 

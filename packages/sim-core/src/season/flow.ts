@@ -21,7 +21,8 @@ import {
   type GameOutput,
   type StatKey,
 } from "@fgm/game-engine";
-import { teamLineup } from "./lineups";
+import { gameDepthChart } from "./depthChart";
+import { applyInjuries } from "./injuries";
 import { rulesFor } from "../rules";
 import { generateDraftPicks } from "../generate/players";
 import { seasonDates } from "./calendar";
@@ -135,13 +136,14 @@ function recordStats(
 }
 
 function playGames(league: League, games: Game[], hooks: SimHooks): void {
-  const lineups = new Map(league.teams.map((t) => [t.id, teamLineup(league, t.id)]));
+  // Depth charts are set before the week's games, so this week's injuries count from next week.
+  const depth = new Map(league.teams.map((t) => [t.id, gameDepthChart(league, t.id)]));
   const players = new Map(league.players.map((p) => [p.id, p]));
   for (const g of games) {
     const output = simulateGame(
       {
-        home: { id: g.homeId, lineup: lineups.get(g.homeId)! },
-        away: { id: g.awayId, lineup: lineups.get(g.awayId)! },
+        home: { id: g.homeId, depth: depth.get(g.homeId)! },
+        away: { id: g.awayId, depth: depth.get(g.awayId)! },
         neutral: g.neutral,
         playoff: g.round !== "regular",
         rules: league.rules.game,
@@ -158,6 +160,7 @@ function playGames(league: League, games: Game[], hooks: SimHooks): void {
     g.boxScore = output.box;
     // Season totals are regular-season stats, as in real record books; playoff box scores stay on the games.
     if (g.round === "regular") recordStats(league, g, output.box, players);
+    applyInjuries(league, g, output.injuries, players);
     hooks.onGame?.(g, output);
   }
 }
@@ -331,6 +334,8 @@ export function startNextSeason(league: League, options: { agePlayers: boolean }
   const championship = seasonDates(league.rules, league.season).playoffs.championship;
   league.season += 1;
   league.rules = rulesFor(league.season);
+  // Everyone heals over the offseason (the full injury model arrives in Phase 9).
+  for (const p of league.players) p.injury = null;
   league.date = addDays(championship, 1);
   league.calendar = { stage: "offseason", week: 1 };
   if (options.agePlayers) for (const p of league.players) if (p.teamId !== null) p.experience += 1;

@@ -8,6 +8,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@fgm/game-engine": "*",
     "@fgm/sim-core": "*",
     "csv-parse": "^7.0.3"
   }

@@ -2,7 +2,7 @@
  * Box score: team stats and every player's stat line, computed from the
  * plays. Because it's built from the play list, the two always agree.
  */
-import type { BoxScore, Lineup, Play, Side, StatKey, StatLine, TeamGameStats } from "./types";
+import type { BoxScore, LineupPlayer, Play, Side, StatKey, StatLine, TeamGameStats } from "./types";
 
 const SCRIMMAGE = new Set(["run", "pass", "sack", "scramble", "kneel", "spike"]);
 
@@ -29,41 +29,35 @@ function emptyTeam(): TeamGameStats {
     possessionSeconds: 0,
     penalties: 0,
     penaltyYards: 0,
+    epa: 0,
+    epaPlays: 0,
+    successPlays: 0,
+    dropbacks: 0,
+    pressured: 0,
   };
 }
 
 export function buildBoxScore(
   plays: Play[],
-  lineups: Record<Side, Lineup>,
+  /** Everyone who dressed for each team. */
+  rosters: Record<Side, LineupPlayer[]>,
   extra: {
+    /** Scrimmage snaps each player was on the field for. */
+    snaps: Map<number, { off: number; def: number }>;
     periods: Record<Side, number[]>;
     possessionSeconds: Record<Side, number>;
     drives: Record<Side, number>;
   },
 ): BoxScore {
   const lines = new Map<number, { side: Side; line: StatLine }>();
-  const sideOf = new Map<number, Side>();
   for (const side of ["home", "away"] as Side[]) {
-    const l = lineups[side];
-    const everyone = [
-      l.qb,
-      ...l.rb,
-      ...(l.fb ? [l.fb] : []),
-      ...l.wr,
-      ...l.te,
-      ...l.ol,
-      ...l.dl,
-      ...l.lb,
-      ...l.cb,
-      ...l.s,
-      l.k,
-      l.p,
-      l.returner,
-    ];
-    for (const p of everyone) {
+    for (const p of rosters[side]) {
       if (lines.has(p.id)) continue;
-      lines.set(p.id, { side, line: { gp: 1 } });
-      sideOf.set(p.id, side);
+      const snaps = extra.snaps.get(p.id);
+      const line: StatLine = {};
+      if (snaps?.off) line.offSnaps = snaps.off;
+      if (snaps?.def) line.defSnaps = snaps.def;
+      lines.set(p.id, { side, line });
     }
   }
   const add = (id: number | undefined, key: StatKey, n = 1) => {
@@ -97,6 +91,28 @@ export function buildBoxScore(
     const off = team[p.offense];
     const td = p.touchdown !== undefined;
     const offenseTd = p.touchdown === p.offense;
+    // Advanced: expected points added, success (a play that added expected points), pressure.
+    const dropback = p.kind === "pass" || p.kind === "sack" || p.kind === "scramble";
+    if (p.epa !== undefined && (dropback || p.kind === "run")) {
+      off.epa += p.epa;
+      off.epaPlays += 1;
+      if (p.epa > 0) off.successPlays += 1;
+      const qb = p.kind === "scramble" ? p.rusher : p.passer;
+      if (dropback) {
+        add(qb, "passEpa", p.epa);
+        if (p.epa > 0) add(qb, "passSucc");
+      } else {
+        add(p.rusher, "rushEpa", p.epa);
+        if (p.epa > 0) add(p.rusher, "rushSucc");
+      }
+    }
+    if (dropback) {
+      off.dropbacks += 1;
+      add(p.kind === "scramble" ? p.rusher : p.passer, "dropbacks");
+      if (p.pressure !== undefined) off.pressured += 1;
+    }
+    add(p.pressure, "pressures");
+    for (const m of p.missedTackles ?? []) add(m, "missedTkl");
     if (SCRIMMAGE.has(p.kind)) {
       off.plays += 1;
       if (p.firstDown) off.firstDowns += 1;
@@ -126,7 +142,11 @@ export function buildBoxScore(
         off.passAtt += 1;
         if (p.kind === "spike") break;
         add(p.receiver, "targets");
+        if (p.airYards !== undefined && !p.throwAway) add(p.passer, "airYds", p.airYards);
+        if (p.drop) add(p.receiver, "drops");
+        if (p.breakup || p.intercepted) add(p.defender, "passDef");
         if (p.complete) {
+          add(p.receiver, "yac", p.yards - (p.airYards ?? 0));
           add(p.passer, "passCmp");
           add(p.passer, "passYds", p.yards);
           longest(p.passer, "passLong", p.yards);
@@ -206,6 +226,7 @@ export function buildBoxScore(
 
   for (const side of ["home", "away"] as Side[]) {
     const t = team[side];
+    t.epa = Math.round(t.epa * 100) / 100;
     t.points = extra.periods[side].reduce((a, b) => a + b, 0);
     t.totalYards = t.passYards + t.rushYards;
     t.drives = extra.drives[side];
@@ -216,6 +237,13 @@ export function buildBoxScore(
     periods: { home: extra.periods.home, away: extra.periods.away },
     home: team.home,
     away: team.away,
-    players: [...lines.entries()].map(([id, { side, line }]) => ({ id, side, line })),
+    // A player who took a snap or did anything on a play appeared in the game.
+    players: [...lines.entries()]
+      .filter(([, { line }]) => Object.keys(line).length > 0)
+      .map(([id, { side, line }]) => {
+        for (const key of ["passEpa", "rushEpa"] as StatKey[])
+          if (line[key] !== undefined) line[key] = Math.round(line[key] * 100) / 100;
+        return { id, side, line: { gp: 1, ...line } };
+      }),
   };
 }

@@ -53,6 +53,7 @@ export function createLeague(options: NewLeagueOptions): League {
           divisionId: division.id,
           colors: { primary: identity.colors[0], secondary: identity.colors[1] },
           controller: "ai",
+          depthChart: { auto: true, slots: {} },
         });
       }
     }

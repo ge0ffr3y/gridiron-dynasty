@@ -50,14 +50,36 @@ describe("game stats in the league", () => {
   it("upgrades a save from the previous format", () => {
     const old = JSON.parse(serializeLeague(createLeague({ seed: 3, name: "Old" })));
     old.formatVersion = 2;
-    for (const p of old.players) delete p.stats;
+    for (const p of old.players) {
+      delete p.stats;
+      delete p.injury;
+    }
+    for (const t of old.teams) delete t.depthChart;
     for (const g of old.games) delete g.boxScore;
     delete old.rules.game;
     const upgraded = parseLeague(JSON.stringify(old));
-    expect(upgraded.formatVersion).toBe(4);
+    expect(upgraded.formatVersion).toBe(5);
+    expect(upgraded.teams.every((t) => t.depthChart.auto)).toBe(true);
+    expect(upgraded.players.every((p) => p.injury === null)).toBe(true);
     expect(upgraded.players.every((p) => p.stats.length === 0)).toBe(true);
     expect(upgraded.games.every((g) => g.boxScore === null)).toBe(true);
     expect(upgraded.rules.game.quarterMinutes).toBe(15);
     expect(Object.keys(upgraded.rules.game.penalties.types).length).toBeGreaterThan(10);
+  });
+
+  it("upgrades a format-4 save with played games", () => {
+    const old = JSON.parse(serializeLeague(league));
+    old.formatVersion = 4;
+    for (const t of old.teams) delete t.depthChart;
+    for (const p of old.players) delete p.injury;
+    for (const g of old.games) {
+      if (!g.boxScore) continue;
+      for (const side of ["home", "away"])
+        for (const key of ["epa", "epaPlays", "successPlays", "dropbacks", "pressured"])
+          delete g.boxScore[side][key];
+    }
+    const upgraded = parseLeague(JSON.stringify(old));
+    expect(upgraded.formatVersion).toBe(5);
+    expect(upgraded.games.some((g) => g.boxScore !== null)).toBe(true);
   });
 });

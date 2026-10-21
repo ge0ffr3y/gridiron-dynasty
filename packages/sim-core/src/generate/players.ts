@@ -200,6 +200,7 @@ export function generatePlayer(
         ctx.season + rng.intBetween(CONTRACT_YEARS_LEFT[0], CONTRACT_YEARS_LEFT[1]),
     },
     stats: [],
+    injury: null,
   };
 }
 

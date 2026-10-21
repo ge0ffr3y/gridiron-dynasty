@@ -18,17 +18,17 @@ import { join } from "node:path";
 import { createGunzip } from "node:zlib";
 import { parse } from "csv-parse";
 
-const ROOT = join(import.meta.dirname, "..", "..");
-const CACHE = join(ROOT, "pipeline", "cache", "nflverse");
+export const ROOT = join(import.meta.dirname, "..", "..");
+export const CACHE = join(ROOT, "pipeline", "cache", "nflverse");
 const PBP_SEASONS = [2022, 2023, 2024, 2025];
 /** Participation data is complete from 2023 on. */
 const PARTICIPATION_SEASONS = [2023, 2024, 2025];
 const CHARTING_SEASONS = [2022, 2023, 2024, 2025];
 
-type Row = Record<string, string>;
-const RELEASE = "https://github.com/nflverse/nflverse-data/releases/download";
+export type Row = Record<string, string>;
+export const RELEASE = "https://github.com/nflverse/nflverse-data/releases/download";
 
-async function ensure(file: string, url: string): Promise<string> {
+export async function ensure(file: string, url: string): Promise<string> {
   const path = join(CACHE, file);
   if (existsSync(path)) return path;
   mkdirSync(CACHE, { recursive: true });
@@ -39,18 +39,19 @@ async function ensure(file: string, url: string): Promise<string> {
   return path;
 }
 
-async function readCsv(path: string, onRow: (row: Row) => void): Promise<void> {
+export async function readCsv(path: string, onRow: (row: Row) => void): Promise<void> {
   let stream: NodeJS.ReadableStream = createReadStream(path);
   if (path.endsWith(".gz")) stream = stream.pipe(createGunzip());
   for await (const row of stream.pipe(parse({ columns: true, relax_column_count: true })))
     onRow(row as Row);
 }
 
-const num = (v: string | undefined) =>
+export const num = (v: string | undefined) =>
   v === undefined || v === "" || v === "NA" ? NaN : Number(v);
-const flag = (v: string | undefined) => v === "1" || v === "1.0" || v === "TRUE" || v === "true";
-const round = (v: number, d = 4) => Math.round(v * 10 ** d) / 10 ** d;
-const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / Math.max(1, a.length);
+export const flag = (v: string | undefined) =>
+  v === "1" || v === "1.0" || v === "TRUE" || v === "true";
+export const round = (v: number, d = 4) => Math.round(v * 10 ** d) / 10 ** d;
+export const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / Math.max(1, a.length);
 const QUANTILES = [0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95];
 function quantiles(values: number[]): number[] {
   const s = [...values].sort((a, b) => a - b);
@@ -88,6 +89,17 @@ function offensePersonnel(text: string): string | null {
     if (pos === "TE") ends += n;
   }
   return `${backs}${ends}`;
+}
+
+/** Safeties on the field (null if unknown). */
+function safetyCount(text: string): number | null {
+  if (!text) return null;
+  let n = 0;
+  for (const part of text.split(",")) {
+    const [count, pos] = part.trim().split(/\s+/);
+    if (["S", "FS", "SS"].includes(pos ?? "")) n += Number(count);
+  }
+  return n;
 }
 
 /** Defensive personnel by number of defensive backs. */
@@ -143,6 +155,7 @@ interface Participation {
   formation: string;
   personnel: string | null;
   defense: string | null;
+  safeties: number | null;
   box: number;
   rushers: number;
   pressure: boolean;
@@ -175,6 +188,7 @@ export async function matchups(): Promise<void> {
           formation: r["offense_formation"] ?? "",
           personnel: offensePersonnel(r["offense_personnel"] ?? ""),
           defense: defensePersonnel(r["defense_personnel"] ?? ""),
+          safeties: safetyCount(r["defense_personnel"] ?? ""),
           box: num(r["defenders_in_box"]),
           rushers: num(r["number_of_pass_rushers"]),
           pressure: flag(r["was_pressure"]),
@@ -241,10 +255,15 @@ export async function matchups(): Promise<void> {
       if (type === "punt") s.add("punts");
       if (type === "kickoff") s.add("kickoffs");
 
-      // Expected points by down, distance and field position.
+      // Expected points by down, distance and field position: every play with a down,
+      // including punts and field goals (otherwise 4th-and-long states would be missing).
       const epValue = num(r["ep"]);
-      if (scrimmage && down >= 1 && !Number.isNaN(epValue)) {
-        const k = `${down}|${Math.min(togo, 20) <= 3 ? "1-3" : togo <= 6 ? "4-6" : togo <= 10 ? "7-10" : "11+"}|${Math.min(19, Math.floor((ytg - 1) / 5))}`;
+      const hasDown =
+        scrimmage || ["punt", "field_goal", "no_play", "qb_kneel", "qb_spike"].includes(type);
+      if (hasDown && down >= 1 && !Number.isNaN(epValue)) {
+        // Distance to go: every yard up to 10, then 11-14 and 15+ (the engine uses the same groups).
+        const togoGroup = togo <= 10 ? String(Math.max(1, togo)) : togo <= 14 ? "11-14" : "15+";
+        const k = `${down}|${togoGroup}|${Math.min(19, Math.floor((ytg - 1) / 5))}`;
         const list = ep.get(k) ?? [];
         list.push(epValue);
         ep.set(k, list);
@@ -270,6 +289,11 @@ export async function matchups(): Promise<void> {
         t.add(`pers|${call}|${sit}|${p.personnel}`);
         if (p.formation) t.add(`form|${call}|${p.personnel}|${p.formation}`);
         if (p.defense) t.add(`def|${p.personnel}|${p.defense}`);
+        // Sub packages: is the extra defensive back a third safety instead of a third corner?
+        if ((p.defense === "nickel" || p.defense === "dime") && p.safeties !== null) {
+          t.add(`sub|${p.defense}`);
+          if (p.safeties >= 3) t.add(`sub|${p.defense}|threeSafeties`);
+        }
         if (!Number.isNaN(p.box))
           t.add(`box|${call}|${p.personnel}|${Math.max(4, Math.min(9, p.box))}`);
         s.add(`personnelPlays`);
@@ -494,6 +518,11 @@ export async function matchups(): Promise<void> {
         ]),
       ),
     ),
+    threeSafetyShare: {
+      note: "Share of nickel (5 DB) and dime (6 DB) snaps where three or more of the defensive backs are safeties.",
+      nickel: round(t.get("sub|nickel|threeSafeties") / Math.max(1, t.get("sub|nickel"))),
+      dime: round(t.get("sub|dime|threeSafeties") / Math.max(1, t.get("sub|dime"))),
+    },
     defenseByPersonnel: Object.fromEntries(
       ["11", "12", "21", "13", "22", "10", "20"].map((pers) => [
         pers,
@@ -564,7 +593,7 @@ export async function matchups(): Promise<void> {
     ),
     penalties,
     expectedPoints: {
-      note: "Mean nflverse expected points by down | distance bucket | yards-to-goal band (index = floor((yards to goal - 1) / 5)).",
+      note: "Mean nflverse expected points by down | distance to go (1-10, 11-14, 15+) | yards-to-goal band (index = floor((yards to goal - 1) / 5)).",
       table: epTable,
     },
   };

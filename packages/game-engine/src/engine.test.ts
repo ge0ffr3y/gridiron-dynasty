@@ -1,7 +1,7 @@
 import { Rng } from "@fgm/foundation";
 import { describe, expect, it } from "vitest";
 import { simulateGame } from "./engine";
-import { makeLineup, TEST_RULES } from "./testLineups";
+import { makeDepth, TEST_RULES } from "./testLineups";
 import type { GameInput, GameOutput, Play, Side } from "./types";
 
 function game(
@@ -9,8 +9,8 @@ function game(
   opts: { playoff?: boolean; homeLevel?: number; awayLevel?: number } = {},
 ): GameOutput {
   const input: GameInput = {
-    home: { id: "HOME", lineup: makeLineup(opts.homeLevel ?? 0, 1) },
-    away: { id: "AWAY", lineup: makeLineup(opts.awayLevel ?? 0, 100) },
+    home: { id: "HOME", depth: makeDepth(opts.homeLevel ?? 0, 1) },
+    away: { id: "AWAY", depth: makeDepth(opts.awayLevel ?? 0, 100) },
     neutral: false,
     playoff: opts.playoff ?? false,
     rules: TEST_RULES,

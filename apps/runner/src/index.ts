@@ -8,7 +8,14 @@
  *   npm run sim -- --calibrate [--leagues 4 --seasons 2 --seed 42]   compare simulated seasons with real NFL ranges
  */
 import { writeFileSync } from "node:fs";
-import { GAME_ENGINE_VERSION, measureSeason, scorecard, type MeasuredGame } from "@fgm/game-engine";
+import {
+  GAME_ENGINE_VERSION,
+  measurePlayers,
+  measureSeason,
+  playerScorecard,
+  scorecard,
+  type MeasuredGame,
+} from "@fgm/game-engine";
 import {
   POSITIONS,
   SIM_CORE_VERSION,
@@ -164,6 +171,7 @@ function runSeasons(seed: number, count: number): void {
 function runCalibration(seed: number, leagues: number, seasonsPerLeague: number): void {
   const started = process.hrtime.bigint();
   const perSeason: Record<string, number>[] = [];
+  const perSeasonPlayers: Record<string, number>[] = [];
   let gameCount = 0;
   for (let l = 0; l < leagues; l++) {
     const league = createLeague({ seed: seed + l, name: `League ${seed + l}` });
@@ -174,28 +182,44 @@ function runCalibration(seed: number, leagues: number, seasonsPerLeague: number)
         onGame: (g, output) => games.push({ homeId: g.homeId, awayId: g.awayId, output }),
       });
       perSeason.push(measureSeason(games));
+      const positions = new Map(league.players.map((p) => [p.id, p.position]));
+      perSeasonPlayers.push(measurePlayers(games, (id) => positions.get(id)));
       gameCount += games.length;
       advanceUntil(league, (x) => x.calendar.stage === "complete");
       advance(league);
     }
   }
-  const averaged: Record<string, number> = {};
-  for (const key of Object.keys(perSeason[0]!)) {
-    averaged[key] = perSeason.reduce((sum, v) => sum + (v[key] ?? 0), 0) / perSeason.length;
-  }
-  const lines = scorecard(averaged);
+  const average = (list: Record<string, number>[]) => {
+    const out: Record<string, number> = {};
+    for (const key of Object.keys(list[0]!))
+      out[key] = list.reduce((sum, v) => sum + (v[key] ?? 0), 0) / list.length;
+    return out;
+  };
+  const lines = scorecard(average(perSeason));
+  const playerLines = playerScorecard(average(perSeasonPlayers));
   console.log(
     `\nCalibration: ${perSeason.length} simulated regular seasons (${leagues} league${leagues === 1 ? "" : "s"} from seed ${seed}, ${gameCount} games) vs. real NFL 2022-2025\n`,
   );
   console.log("stat                          simulated        real     real range          ");
   const fmt = (v: number) => (Math.abs(v) < 1.5 ? v.toFixed(3) : v.toFixed(2));
-  for (const line of lines) {
-    console.log(
-      `${line.key.padEnd(28)} ${fmt(line.sim).padStart(10)}  ${fmt(line.real).padStart(10)}   ${`${fmt(line.range[0])} to ${fmt(line.range[1])}`.padEnd(18)}  ${line.pending ? "later" : line.pass ? "ok" : "MISS"}`,
-    );
-  }
+  const print = (list: typeof lines) => {
+    for (const line of list) {
+      console.log(
+        `${line.key.padEnd(28)} ${fmt(line.sim).padStart(10)}  ${fmt(line.real).padStart(10)}   ${`${fmt(line.range[0])} to ${fmt(line.range[1])}`.padEnd(18)}  ${line.pending ? "later" : line.pass ? "ok" : "MISS"}`,
+      );
+    }
+  };
+  print(lines);
   const passed = lines.filter((x) => x.pass && !x.pending).length;
   const counted = lines.filter((x) => !x.pending).length;
+  console.log(`\n${passed} of ${counted} league stats inside the real range.`);
+  console.log(
+    "\nPlayer level (leaderboard values at each rank; snap shares within 6 points of real)\n",
+  );
+  print(playerLines);
+  const playersPassed = playerLines.filter((x) => x.pass).length;
   const total = Number(process.hrtime.bigint() - started) / 1e9;
-  console.log(`\n${passed} of ${counted} inside the real range (${total.toFixed(1)} s).`);
+  console.log(
+    `\n${playersPassed} of ${playerLines.length} player-level stats inside the real range (${total.toFixed(1)} s).`,
+  );
 }

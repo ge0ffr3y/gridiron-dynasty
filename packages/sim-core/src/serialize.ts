@@ -50,6 +50,27 @@ function upgrade(data: Record<string, unknown>): void {
       rules.game["penalties"] = rulesFor(Number(data["season"])).game.penalties;
     data["formatVersion"] = 4;
   }
+  // Version 4 -> 5: automatic depth charts, no injuries, and advanced box score totals (zero for old games).
+  if (data["formatVersion"] === 4) {
+    for (const t of (data["teams"] as Record<string, unknown>[]) ?? [])
+      t["depthChart"] = { auto: true, slots: {} };
+    for (const p of (data["players"] as Record<string, unknown>[]) ?? []) p["injury"] = null;
+    for (const g of (data["games"] as Record<string, unknown>[]) ?? []) {
+      const box = g["boxScore"] as Record<string, Record<string, unknown>> | null;
+      if (!box) continue;
+      for (const side of ["home", "away"]) {
+        if (box[side])
+          Object.assign(box[side]!, {
+            epa: 0,
+            epaPlays: 0,
+            successPlays: 0,
+            dropbacks: 0,
+            pressured: 0,
+          });
+      }
+    }
+    data["formatVersion"] = 5;
+  }
 }
 
 /** Reads a league file (upgrading older saves), checking its format and every field. */

@@ -7,7 +7,8 @@
  */
 import { dmath, type Rng } from "@fgm/foundation";
 import { buildBoxScore } from "./boxscore";
-import { AVERAGE_RATING, CALIBRATION_TARGETS, REAL, TUNING } from "./config";
+import { AVERAGE_RATING, CALIBRATION_TARGETS, PEOPLE, REAL, TUNING } from "./config";
+import { addExpectedPoints } from "./epa";
 import {
   callPlay,
   goForTwo,
@@ -17,7 +18,8 @@ import {
   type Call,
   type Situation,
 } from "./playcall";
-import { chooseHuddle } from "./onfield";
+import { chooseHuddle, type Huddle } from "./onfield";
+import { Sideline } from "./sideline";
 import {
   expectedPoints,
   liveFoul,
@@ -35,6 +37,7 @@ import {
 } from "./sample";
 import { PASS_STYLE, resolvePass, resolveRun, type ScrimmageResult } from "./scrimmage";
 import type {
+  GameInjury,
   GameInput,
   GameOutput,
   Lineup,
@@ -58,7 +61,8 @@ type OvertimePhase = "first" | "second" | "sudden";
 export class GameError extends Error {}
 
 class Game {
-  private readonly lineup: Record<Side, Lineup>;
+  private readonly sideline: Record<Side, Sideline>;
+  readonly injuries: GameInjury[] = [];
   private readonly units: Record<Side, Units>;
   readonly plays: Play[] = [];
 
@@ -92,8 +96,12 @@ class Game {
     private readonly input: GameInput,
     private readonly rng: Rng,
   ) {
-    this.lineup = { home: input.home.lineup, away: input.away.lineup };
-    this.units = { home: unitsOf(input.home.lineup), away: unitsOf(input.away.lineup) };
+    this.sideline = { home: new Sideline(input.home.depth), away: new Sideline(input.away.depth) };
+    // Unit strengths come from the starters.
+    this.units = {
+      home: unitsOf(this.sideline.home.lineup()),
+      away: unitsOf(this.sideline.away.lineup()),
+    };
     if (!input.neutral) {
       // Home-field advantage: the home team plays a little above its ratings.
       const h = this.units.home;
@@ -106,6 +114,11 @@ class Game {
   }
 
   // --- Helpers -------------------------------------------------------------------
+
+  /** Who is first in line at every spot right now (tired and injured players skipped). */
+  private lineupOf(side: Side): Lineup {
+    return this.sideline[side].lineup();
+  }
 
   get defense(): Side {
     return otherSide(this.offense);
@@ -252,10 +265,15 @@ class Game {
   // --- Kicks and scores --------------------------------------------------------------
 
   private kickoff(kicking: Side, fromSafety = false): void {
+    this.kickoffPlay(kicking, fromSafety);
+    this.kickInjury();
+  }
+
+  private kickoffPlay(kicking: Side, fromSafety: boolean): void {
     const receiving = otherSide(kicking);
     const rules = this.input.rules.kickoff;
-    const kicker = this.lineup[kicking].k;
-    const returner = this.lineup[receiving].returner;
+    const kicker = this.lineupOf(kicking).k;
+    const returner = this.lineupOf(receiving).returner;
     const k = REAL.kicking;
     const at = {
       clock: this.clock,
@@ -341,7 +359,7 @@ class Game {
     receiving: Side,
     ownYardLine: number,
   ): { penalty: NonNullable<Play["penalty"]>; yards: number } | null {
-    const l = this.lineup[receiving];
+    const l = this.lineupOf(receiving);
     const foul = returnFoul(this.rng, this.input.rules, kick, [
       ...l.lb,
       ...l.s,
@@ -375,7 +393,7 @@ class Game {
     const units = this.units[side];
     const at = { clock: this.clock, offense: side, down: 0, toGo: 0 };
     if (decision.go) {
-      const lineup = this.lineup[side];
+      const lineup = this.lineupOf(side);
       const edge =
         (units.passer + units.rusher) / 2 -
         (this.units[otherSide(side)].coverage + this.units[otherSide(side)].runDefense) / 2;
@@ -413,7 +431,7 @@ class Game {
           kind: "extraPoint",
           yards: 0,
           good,
-          kicker: this.lineup[side].k.id,
+          kicker: this.lineupOf(side).k.id,
           kickDistance: ytg + TUNING.fieldGoal.snapYards,
         },
         { ...at, ytg },
@@ -452,7 +470,7 @@ class Game {
   // --- Choosing players ----------------------------------------------------------------
 
   private pickRusher(side: Side): LineupPlayer {
-    const l = this.lineup[side];
+    const l = this.lineupOf(side);
     const s = TUNING.rusherShare;
     const options: [LineupPlayer | undefined, number][] = [
       [l.rb[0], s.rb1],
@@ -466,7 +484,7 @@ class Game {
   }
 
   private pickTarget(side: Side): LineupPlayer {
-    const l = this.lineup[side];
+    const l = this.lineupOf(side);
     const s = TUNING.targetShare;
     const options: [LineupPlayer | undefined, number][] = [
       [l.wr[0], s.wr1],
@@ -484,7 +502,7 @@ class Game {
   }
 
   private tackler(defense: Side, kind: "run" | "pass"): LineupPlayer {
-    const l = this.lineup[defense];
+    const l = this.lineupOf(defense);
     const share = TUNING.tackleShare[kind];
     const pool: [LineupPlayer, number][] = [
       ...l.dl.map((p) => [p, share.dl / Math.max(1, l.dl.length)] as [LineupPlayer, number]),
@@ -496,7 +514,7 @@ class Game {
   }
 
   private passRusher(defense: Side): LineupPlayer {
-    const l = this.lineup[defense];
+    const l = this.lineupOf(defense);
     return weightedPick(
       this.rng,
       [...l.dl, ...l.lb],
@@ -505,7 +523,7 @@ class Game {
   }
 
   private ballHawk(defense: Side): LineupPlayer {
-    const l = this.lineup[defense];
+    const l = this.lineupOf(defense);
     return weightedPick(
       this.rng,
       [...l.cb, ...l.s, ...l.lb],
@@ -650,8 +668,8 @@ class Game {
       this.rng,
       isPass ? "pass" : "run",
       { down: this.down, toGo: this.toGo, yardsToGoal: this.ytg },
-      this.lineup[offense],
-      this.lineup[defense],
+      this.lineupOf(offense),
+      this.lineupOf(defense),
       this.input[defense].defenseStyle ?? {},
     );
     // Run-pass option: against a stacked box the quarterback pulls it and throws quick.
@@ -685,6 +703,7 @@ class Game {
       ? resolvePass(ctx, { depth, playAction, screen })
       : resolveRun(ctx, sneak);
     if (rpo) result.details.rpo = true;
+    this.afterSnap(huddle, result.details);
     if (!isPass)
       Object.assign(result.details, { personnel: huddle.personnel, formation: huddle.formation });
     this.playTime(result.seconds, offense);
@@ -695,6 +714,51 @@ class Game {
       return;
     }
     this.decidePenalty(foul, result, at);
+  }
+
+  /** After a snap: the players on the field tire, and someone may get hurt. */
+  private afterSnap(huddle: Huddle, details: { injured?: number[] }): void {
+    const offense = this.offense;
+    const defense = this.defense;
+    const o = huddle.offense;
+    const d = huddle.defense;
+    const onOffense = [o.qb, ...o.ol, ...o.backs, ...o.tightEnds, ...o.receivers];
+    const onDefense = [...d.dl, ...d.lb, ...d.cb, ...d.s];
+    for (const side of ["home", "away"] as Side[]) this.sideline[side].tick();
+    this.sideline[offense].afterSnap(onOffense, "off");
+    this.sideline[defense].afterSnap(onDefense, "def");
+    const chance =
+      this.sideline[offense].injuryChance(onOffense) +
+      this.sideline[defense].injuryChance(onDefense);
+    if (!this.rng.chance(chance)) return;
+    const offenseChance = this.sideline[offense].injuryChance(onOffense);
+    const side = this.rng.chance(offenseChance / chance) ? offense : defense;
+    const victim = this.sideline[side].pickInjured(
+      this.rng,
+      side === offense ? onOffense : onDefense,
+    );
+    this.hurt(side, victim.id);
+    details.injured = [victim.id];
+  }
+
+  /** A player is hurt: some come back later in the game, the rest are done for the day. */
+  private hurt(side: Side, playerId: number): void {
+    const returned = this.rng.chance(PEOPLE.injuries.returnSameGameRate);
+    const [shortest, longest] = TUNING.injuries.returnAfterSnaps as [number, number];
+    this.sideline[side].injure(playerId, returned ? this.rng.intBetween(shortest, longest) : null);
+    this.injuries.push({ playerId, side, quarter: this.quarter, returned });
+  }
+
+  /** Someone on the kicking or receiving team may get hurt on a kick. */
+  private kickInjury(): void {
+    if (!this.rng.chance(TUNING.injuries.perKick)) return;
+    const side: Side = this.rng.chance(0.5) ? "home" : "away";
+    const unit = this.sideline[side].kickUnit();
+    if (unit.length === 0) return;
+    const victim = unit[this.rng.int(unit.length)]!;
+    this.hurt(side, victim.id);
+    const last = this.plays[this.plays.length - 1];
+    if (last) last.injured = [...(last.injured ?? []), victim.id];
   }
 
   /** The offense's expected points if the play stands. */
@@ -893,11 +957,16 @@ class Game {
   }
 
   private punt(note?: string): void {
+    this.puntPlay(note);
+    this.kickInjury();
+  }
+
+  private puntPlay(note?: string): void {
     const at = { clock: this.clock };
     const k = REAL.kicking;
-    const punter = this.lineup[this.offense].p;
+    const punter = this.lineupOf(this.offense).p;
     const receiving = this.defense;
-    const returner = this.lineup[receiving].returner;
+    const returner = this.lineupOf(receiving).returner;
     this.playTime(TUNING.playSeconds.punt, this.offense);
     const base = { kind: "punt" as const, kicker: punter.id, ...(note ? { note } : {}) };
     if (this.rng.chance(k.puntBlockedRate)) {
@@ -979,7 +1048,7 @@ class Game {
   private fieldGoal(note?: string): void {
     const at = { clock: this.clock };
     const distance = this.ytg + TUNING.fieldGoal.snapYards;
-    const kicker = this.lineup[this.offense].k;
+    const kicker = this.lineupOf(this.offense).k;
     const good = this.rng.chance(this.fieldGoalChance(this.offense, distance));
     this.playTime(TUNING.playSeconds.fieldGoal, this.offense);
     // Points go on the board before the play is recorded, so its score is the score after it.
@@ -1011,7 +1080,7 @@ class Game {
     this.playTime(TUNING.playSeconds.kneel, this.offense);
     this.advance(
       -1,
-      { kind: "kneel", rusher: this.lineup[this.offense].qb.id, ...(note ? { note } : {}) },
+      { kind: "kneel", rusher: this.lineupOf(this.offense).qb.id, ...(note ? { note } : {}) },
       at,
       false,
     );
@@ -1022,7 +1091,7 @@ class Game {
     this.playTime(TUNING.playSeconds.spike, this.offense);
     this.advance(
       0,
-      { kind: "spike", passer: this.lineup[this.offense].qb.id, ...(note ? { note } : {}) },
+      { kind: "spike", passer: this.lineupOf(this.offense).qb.id, ...(note ? { note } : {}) },
       at,
       true,
     );
@@ -1103,11 +1172,17 @@ class Game {
   }
 
   output(): GameOutput {
-    const box = buildBoxScore(this.plays, this.lineup, {
-      periods: this.periodPoints,
-      possessionSeconds: this.possessionSeconds,
-      drives: this.drives,
-    });
+    addExpectedPoints(this.plays);
+    const box = buildBoxScore(
+      this.plays,
+      { home: this.sideline.home.roster, away: this.sideline.away.roster },
+      {
+        snaps: new Map([...this.sideline.home.snaps(), ...this.sideline.away.snaps()]),
+        periods: this.periodPoints,
+        possessionSeconds: this.possessionSeconds,
+        drives: this.drives,
+      },
+    );
     return {
       homeScore: this.score.home,
       awayScore: this.score.away,
@@ -1116,6 +1191,7 @@ class Game {
       overtime: this.overtime.active,
       plays: this.plays,
       box,
+      injuries: this.injuries,
     };
   }
 }

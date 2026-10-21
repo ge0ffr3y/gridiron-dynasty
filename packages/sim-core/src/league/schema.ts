@@ -5,11 +5,11 @@
  */
 import { z } from "zod";
 import { ATTRIBUTE_KEYS, POSITIONS, type AttributeKey } from "@fgm/foundation";
-import { STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-engine";
+import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-engine";
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 4;
+export const LEAGUE_FORMAT_VERSION = 5;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -85,6 +85,11 @@ const TeamGameStatsSchema = z.object({
   possessionSeconds: z.number().int(),
   penalties: z.number().int(),
   penaltyYards: z.number().int(),
+  epa: z.number(),
+  epaPlays: z.number().int(),
+  successPlays: z.number().int(),
+  dropbacks: z.number().int(),
+  pressured: z.number().int(),
 });
 
 export const BoxScoreSchema = z.object({
@@ -126,6 +131,14 @@ export const PlayerSchema = z.object({
   contract: ContractStubSchema.nullable(),
   /** Season-by-season stats, oldest first. Career totals are the sum. */
   stats: z.array(SeasonStatsSchema),
+  /** A current injury: he sits out until his team has played this many more games. */
+  injury: z
+    .object({
+      description: z.string(),
+      gamesRemaining: z.number().int().positive(),
+      since: IsoDate,
+    })
+    .nullable(),
 });
 
 export const COACH_ROLES = ["HC", "OC", "DC", "STC", "SCOUT"] as const;
@@ -179,6 +192,14 @@ export const TeamSchema = z.object({
   colors: z.object({ primary: z.string(), secondary: z.string() }),
   /** Who makes this team's decisions: the AI, or the person playing. */
   controller: z.enum(["ai", "human"]),
+  /**
+   * The depth chart: automatic (rebuilt from the roster whenever needed) or
+   * a custom order per spot, best first.
+   */
+  depthChart: z.object({
+    auto: z.boolean(),
+    slots: z.partialRecord(z.enum(DEPTH_SLOTS), z.array(z.number().int())),
+  }),
 });
 
 export const DraftPickSchema = z.object({

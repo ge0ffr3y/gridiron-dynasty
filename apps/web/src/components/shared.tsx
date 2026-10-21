@@ -62,6 +62,24 @@ export function OverallBadge({ value, className }: { value: number; className?: 
   );
 }
 
+/** A small "Out" tag for an injured player; hovering shows when and how long. */
+export function InjuryTag({
+  injury,
+}: {
+  injury: { description: string; gamesRemaining: number } | null;
+}) {
+  if (!injury) return null;
+  const games = `${injury.gamesRemaining} game${injury.gamesRemaining === 1 ? "" : "s"}`;
+  return (
+    <span
+      title={`${injury.description}. Out ${injury.gamesRemaining} more game${injury.gamesRemaining === 1 ? "" : "s"}.`}
+      className="ml-2 inline-flex items-center rounded border border-destructive/40 px-1.5 text-[11px] font-medium text-destructive"
+    >
+      Out {games}
+    </span>
+  );
+}
+
 /** A 0-100 value as a labeled bar. */
 export function RatingBar({ label, value }: { label: string; value: number }) {
   return (

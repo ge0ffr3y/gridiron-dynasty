@@ -64,6 +64,17 @@ export function PlayerPage({ playerId }: { playerId: number }) {
                   ? `${p.contract.team}, through ${p.contract.expiresAfterSeason}`
                   : "None",
               ],
+              [
+                "Health",
+                p.injury ? (
+                  <span className="text-destructive">
+                    Injured: {p.injury.description.toLowerCase()}, out {p.injury.gamesRemaining}{" "}
+                    more game{p.injury.gamesRemaining === 1 ? "" : "s"}
+                  </span>
+                ) : (
+                  "Healthy"
+                ),
+              ],
             ]}
           />
         </CardContent>

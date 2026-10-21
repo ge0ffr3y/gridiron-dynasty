@@ -63,7 +63,8 @@ describe("schedule", () => {
         advance(league); // next league year
       }
     }
-  }, 60_000);
+    // 40 full seasons of snap-by-snap games: about a minute here, longer on CI.
+  }, 240_000);
 
   it("the validator catches a broken schedule", () => {
     const league = createLeague({ seed: 3, name: "Broken" });

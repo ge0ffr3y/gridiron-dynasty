@@ -51,10 +51,46 @@ export interface LineupPlayer {
   ratings: Ratings;
   /** Overall at the spot he's playing. */
   overall: number;
+  /** How injury-prone he is compared with a typical player (1 = typical). */
+  injuryRisk?: number;
 }
 
+/** Spots on a depth chart. LT, LG, C, RG, RT are the five offensive line spots; KR and PR return kicks. */
+export const DEPTH_SLOTS = [
+  "QB",
+  "RB",
+  "FB",
+  "WR",
+  "TE",
+  "LT",
+  "LG",
+  "C",
+  "RG",
+  "RT",
+  "EDGE",
+  "DT",
+  "LB",
+  "CB",
+  "S",
+  "K",
+  "P",
+  "KR",
+  "PR",
+] as const;
+export type DepthSlot = (typeof DEPTH_SLOTS)[number];
+
 /**
- * Who is available to play, by spot, best first. Offensive line order: left
+ * A team's depth chart for one game: the players at each spot, first string
+ * first. Players already injured before the game are left off. A player may
+ * be listed at more than one spot (a backup tackle on both sides, a receiver
+ * who also returns kicks).
+ */
+export type DepthChart = Record<DepthSlot, LineupPlayer[]>;
+
+/**
+ * Who is on the field (or first in line) for one snap, by spot, best first.
+ * The engine builds this from the depth chart before every snap, skipping
+ * tired and injured players. Offensive line order: left
  * tackle, right tackle, left guard, right guard, center. Defensive line:
  * edge, edge, tackle, tackle.
  */
@@ -77,7 +113,7 @@ export interface Lineup {
 
 export interface TeamInput {
   id: string;
-  lineup: Lineup;
+  depth: DepthChart;
   /** How this team's defense likes to play (coaches set this from Phase 10). */
   defenseStyle?: { extraBlitz?: number };
 }
@@ -179,6 +215,10 @@ export interface Play {
   penalty?: { type: string; team: Side; player?: number; yards: number; accepted: boolean };
   /** The play was wiped out by an accepted penalty (its stats don't count). */
   noPlay?: boolean;
+  /** Players hurt on the play. */
+  injured?: number[];
+  /** Expected points added by the offense (Phase 4b; scrimmage plays only). */
+  epa?: number;
 }
 
 export const STAT_KEYS = [
@@ -224,6 +264,20 @@ export const STAT_KEYS = [
   "twoPt",
   "penalties",
   "penaltyYds",
+  // Expanded and advanced stats (Phase 4b).
+  "offSnaps",
+  "defSnaps",
+  "dropbacks",
+  "airYds",
+  "passEpa",
+  "passSucc",
+  "rushEpa",
+  "rushSucc",
+  "yac",
+  "drops",
+  "pressures",
+  "passDef",
+  "missedTkl",
 ] as const;
 
 export type StatKey = (typeof STAT_KEYS)[number];
@@ -256,6 +310,13 @@ export interface TeamGameStats {
   possessionSeconds: number;
   penalties: number;
   penaltyYards: number;
+  /** Advanced (Phase 4b): offense's expected points added on runs and dropbacks, how many of those plays, how many gained expected points. */
+  epa: number;
+  epaPlays: number;
+  successPlays: number;
+  dropbacks: number;
+  /** Dropbacks with the quarterback under pressure. */
+  pressured: number;
 }
 
 export interface BoxScore {
@@ -266,6 +327,15 @@ export interface BoxScore {
   players: { id: number; side: Side; line: StatLine }[];
 }
 
+/** A player hurt during a game. */
+export interface GameInjury {
+  playerId: number;
+  side: Side;
+  quarter: number;
+  /** He came back later in the same game. */
+  returned: boolean;
+}
+
 export interface GameOutput {
   homeScore: number;
   awayScore: number;
@@ -274,4 +344,5 @@ export interface GameOutput {
   overtime: boolean;
   plays: Play[];
   box: BoxScore;
+  injuries: GameInjury[];
 }

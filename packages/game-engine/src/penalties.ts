@@ -204,24 +204,47 @@ export function returnFoul(
 
 const EP = MATCHUPS.expectedPoints.table as Record<string, number>;
 
+/** Distance-to-go groups in the table: every yard up to 10, then 11-14 and 15+ (as in the pipeline). */
 function bucket(toGo: number): string {
-  return toGo <= 3 ? "1-3" : toGo <= 6 ? "4-6" : toGo <= 10 ? "7-10" : "11+";
+  return toGo <= 10 ? String(Math.max(1, toGo)) : toGo <= 14 ? "11-14" : "15+";
 }
+/** A typical distance for each group (for finding the nearest measured cell). */
+const BUCKET_YARDS = (b: string) => (b === "11-14" ? 12.5 : b === "15+" ? 17 : Number(b));
+/** Yards of distance-to-go that count as much as one 5-yard field-position band when a cell is missing. */
+const TOGO_PER_BAND = 2;
+
+/** The measured cells for each down, for falling back to the nearest one. */
+const CELLS = new Map<number, { toGo: number; band: number; value: number }[]>();
+for (const [key, value] of Object.entries(EP)) {
+  const [d, b, band] = key.split("|");
+  const list = CELLS.get(Number(d)) ?? [];
+  list.push({ toGo: BUCKET_YARDS(b!), band: Number(band), value });
+  CELLS.set(Number(d), list);
+}
+const lookups = new Map<string, number>();
 
 /** Expected points for the offense with the ball at `ytg` yards to goal. */
 export function expectedPoints(down: number, toGo: number, ytg: number): number {
   const d = Math.min(4, Math.max(1, down));
-  for (
-    let band = Math.min(19, Math.floor((Math.max(1, ytg) - 1) / 5)), step = 0;
-    step < 20;
-    step++
-  ) {
-    for (const b of [band - step, band + step]) {
-      const v = EP[`${d}|${bucket(toGo)}|${b}`];
-      if (v !== undefined) return v;
+  const band = Math.min(19, Math.floor((Math.max(1, ytg) - 1) / 5));
+  const key = `${d}|${bucket(toGo)}|${band}`;
+  const exact = EP[key];
+  if (exact !== undefined) return exact;
+  // A combination too rare to measure: use the nearest measured one.
+  const cached = lookups.get(key);
+  if (cached !== undefined) return cached;
+  const want = BUCKET_YARDS(bucket(toGo));
+  let best = 0;
+  let bestDistance = Infinity;
+  for (const cell of CELLS.get(d) ?? []) {
+    const distance = Math.abs(cell.band - band) + Math.abs(cell.toGo - want) / TOGO_PER_BAND;
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      best = cell.value;
     }
   }
-  return 0;
+  lookups.set(key, best);
+  return best;
 }
 
 /** Value of a touchdown for the scoring team (seven points, less what the kickoff gives back). */

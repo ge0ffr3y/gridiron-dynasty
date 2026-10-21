@@ -72,6 +72,7 @@ Decisions that block a phase. Record the answer here when made.
 | Can more than one team be human-controlled? | Phase 14 | |
 | How far back imported history goes (since 1920 vs. championship era + all-time record books) | Phase 15 | |
 | Fully fictional league as an alternative start? | Phase 1 | *Effectively yes: it's how we build Phases 1–5* (built in Phase 1) |
+| Release v0.1 timing | Phase 4 | When the repo goes public: README with screenshots, GitHub Pages deploy and the v0.1 tag together (decided after Phase 4b) |
 | Data licensing approach for the public release | Phase 18 (guardrails from Phase 6) | |
 
 ---
@@ -223,20 +224,20 @@ Decisions that block a phase. Record the answer here when made.
 - [x] **After the throw:** catch probability, contested catches, drops, yards after catch, broken and missed tackles *(contested catches are folded into catch vs. breakup odds)*
 - [x] **Turnovers** driven by decisions, accuracy, coverage, ball security, and hit power
 - [x] **Penalties:** pre-snap and during the play, accept/decline logic, realistic rates *(21 types; 5.8–5.9 accepted per team-game vs. 6.02 real)*
-- [ ] **In-game injuries** (simple severity for now; full model in Phase 9)
-- [ ] **Fatigue & substitution:** snap shares, defensive line rotations, running back committees
-- [ ] **Depth chart:** auto-built from ratings, editable by the user; position flexibility covers injuries
-- [ ] **Expanded stats:** targets, air yards, pressures, pass breakups, missed tackles, snap counts
-- [ ] **Advanced stats:** expected points model built from nflverse data; EPA, success rate, pressure rate, yards after contact
-- [ ] **Calibration v2:** position-level distributions (passing / rushing / receiving / sack leaders, passer rating spread, team point-differential spread)
-- [ ] **UI:** depth chart editor, league leaders, team and player advanced stats
-- [ ] **🚀 Release v0.1:** deploy, README with screenshots, tag
+- [x] **In-game injuries** (simple severity for now; full model in Phase 9) *(real per-snap rates by position; real games-missed distribution; 1.5 per team-game vs. 1.66 real, in range)*
+- [x] **Fatigue & substitution:** snap shares, defensive line rotations, running back committees *(15 of 16 compared snap shares in range; the third receiver plays 66% vs. 56%)*
+- [x] **Depth chart:** auto-built from ratings, editable by the user; position flexibility covers injuries
+- [x] **Expanded stats:** targets, air yards, pressures, pass breakups, missed tackles, snap counts
+- [ ] **Advanced stats:** expected points model built from nflverse data; EPA, success rate, pressure rate, yards after contact *(4b: EP table, EPA, success rate and pressure rate done, EPA in range; success rate 1.5 points low (situational runs, Phase 5); yards after contact not yet)*
+- [ ] **Calibration v2:** position-level distributions (passing / rushing / receiving / sack leaders, passer rating spread, team point-differential spread) *(4b: player-level scorecard added, 32-40 of 48 lines in range; passing leaders too bunched until play-calling styles (Phase 10) and QB benchings (Phase 13))*
+- [x] **UI:** depth chart editor, league leaders, team and player advanced stats
+- [ ] **🚀 Release v0.1:** deploy, README with screenshots, tag *(deferred: happens when the repo goes public, per the owner)*
 
 ### Done when
 - [x] Swapping an elite QB onto a bad team noticeably raises its scoring (in a test sim) *(+4.1 points a game over 300 games)*
-- [ ] Season leaderboards look like a real NFL season (yardage leaders, sack leaders, interception leaders in real ranges)
+- [ ] Season leaderboards look like a real NFL season (yardage leaders, sack leaders, interception leaders in real ranges) *(partly: rushing, receiving, sack and interception leaders mostly in range; passing leaders too bunched)*
 - [x] A blitz-heavy defense produces more sacks *and* gives up more big plays *(test in CI)*
-- [ ] Scorecard green for core and position-level stats
+- [ ] Scorecard green for core and position-level stats *(core and all Phase 3-4a league stats green on three seed sets; success rate and some player-level lines not yet)*
 
 > [!example]- Kickoff prompt
 > "Phase 4: deepen the game engine with personnel, formations, run and pass concepts, defensive fronts/coverages/blitzes, and individual matchup resolution (line play, separation, QB decisions, catch/YAC/tackling, turnovers, penalties, fatigue). Add the depth chart, expanded and advanced stats (EPA from an nflverse-based expected points model), and position-level calibration. Keep everything tunable from config. Plan first."

@@ -42,6 +42,8 @@ export interface RosterRow {
   overall: number;
   teamId: string | null;
   teamAbbreviation: string | null;
+  /** Out injured: how many more of his team's games he'll miss. */
+  injury: { description: string; gamesRemaining: number } | null;
 }
 
 export interface StaffRow {
@@ -85,6 +87,15 @@ export interface TeamView {
     rushYards: number;
     turnovers: number;
     takeaways: number;
+    /** Advanced (EPA per play, success rate, pressure) for the offense and against the defense. */
+    advanced: {
+      offenseEpaPerPlay: number;
+      offenseSuccessRate: number;
+      defenseEpaPerPlay: number;
+      defenseSuccessRate: number;
+      pressureRateAllowed: number;
+      pressureRateForced: number;
+    } | null;
     leaders: { label: string; player: { id: number; name: string } | null; value: number }[];
   };
   roster: RosterRow[];
@@ -115,6 +126,7 @@ export interface PlayerView {
     attributes: { key: string; label: string; value: number }[];
   }[];
   contract: { team: string; expiresAfterSeason: number } | null;
+  injury: { description: string; gamesRemaining: number; since: string } | null;
   /** Season-by-season stats (one row per team played for), newest first, plus career totals. */
   stats: { season: number; team: string; line: StatLine }[];
   career: StatLine;
@@ -185,6 +197,9 @@ function rosterRow(league: League, player: Player, viewer: Viewer): RosterRow {
     overall: perceivePlayer(league, player, viewer).overall,
     teamId: player.teamId,
     teamAbbreviation: team?.abbreviation ?? null,
+    injury: player.injury
+      ? { description: player.injury.description, gamesRemaining: player.injury.gamesRemaining }
+      : null,
   };
 }
 
@@ -310,6 +325,18 @@ function teamSeason(league: League, teamId: string): TeamView["season"] {
     turnovers: 0,
     takeaways: 0,
   };
+  const adv = {
+    epa: 0,
+    plays: 0,
+    successes: 0,
+    epaAllowed: 0,
+    playsAgainst: 0,
+    successesAllowed: 0,
+    dropbacks: 0,
+    pressured: 0,
+    dropbacksAgainst: 0,
+    pressuresForced: 0,
+  };
   for (const g of league.games) {
     if (!g.boxScore || g.round !== "regular" || (g.homeId !== teamId && g.awayId !== teamId))
       continue;
@@ -324,7 +351,18 @@ function teamSeason(league: League, teamId: string): TeamView["season"] {
     totals.rushYards += us.rushYards;
     totals.turnovers += us.turnovers;
     totals.takeaways += them.turnovers;
+    adv.epa += us.epa;
+    adv.plays += us.epaPlays;
+    adv.successes += us.successPlays;
+    adv.epaAllowed += them.epa;
+    adv.playsAgainst += them.epaPlays;
+    adv.successesAllowed += them.successPlays;
+    adv.dropbacks += us.dropbacks;
+    adv.pressured += us.pressured;
+    adv.dropbacksAgainst += them.dropbacks;
+    adv.pressuresForced += them.pressured;
   }
+  const ratio = (a: number, b: number) => (b > 0 ? a / b : 0);
   const lines = league.players.flatMap((p) =>
     p.stats
       .filter((s) => s.season === league.season && s.teamId === teamId)
@@ -347,6 +385,18 @@ function teamSeason(league: League, teamId: string): TeamView["season"] {
   return {
     year: league.season,
     ...totals,
+    // Games from saves older than Phase 4b have no advanced totals.
+    advanced:
+      adv.plays === 0
+        ? null
+        : {
+            offenseEpaPerPlay: ratio(adv.epa, adv.plays),
+            offenseSuccessRate: ratio(adv.successes, adv.plays),
+            defenseEpaPerPlay: ratio(adv.epaAllowed, adv.playsAgainst),
+            defenseSuccessRate: ratio(adv.successesAllowed, adv.playsAgainst),
+            pressureRateAllowed: ratio(adv.pressured, adv.dropbacks),
+            pressureRateForced: ratio(adv.pressuresForced, adv.dropbacksAgainst),
+          },
     leaders: [
       leader("Passing yards", "passYds"),
       leader("Rushing yards", "rushYds"),
@@ -409,6 +459,7 @@ export function playerView(league: League, playerId: number, viewer: Viewer): Pl
           expiresAfterSeason: player.contract.expiresAfterSeason,
         }
       : null,
+    injury: player.injury,
     stats: [...player.stats]
       .sort((a, b) => b.season - a.season)
       .map((s) => ({ season: s.season, team: s.teamId, line: s.line })),

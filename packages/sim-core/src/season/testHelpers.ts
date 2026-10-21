@@ -17,6 +17,7 @@ export function rulesTeams(rules: Rules = RULES): Team[] {
         divisionId: d.id,
         colors: { primary: "#000000", secondary: "#ffffff" },
         controller: "ai" as const,
+        depthChart: { auto: true, slots: {} },
       })),
     ),
   );

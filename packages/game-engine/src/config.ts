@@ -7,6 +7,7 @@
  */
 import charting from "../../../calibration/charting.json";
 import matchups from "../../../calibration/matchups.json";
+import people from "../../../calibration/people.json";
 import calibration from "../../../calibration/targets.json";
 
 /** Real-NFL shapes the engine draws from. */
@@ -18,6 +19,9 @@ export const MATCHUPS = matchups.reference;
 /** Real play-action, screen, drop and sneak rates (FTN charting, CC-BY-SA-4.0). */
 export const CHARTING = charting;
 
+/** Real snap shares by depth, in-game injury rates, and season leaderboards (Phase 4b). */
+export const PEOPLE = people;
+
 /** Real-NFL season averages (what the scorecard compares against). */
 export const CALIBRATION_TARGETS = { ...calibration.targets, ...matchups.targets };
 
@@ -25,6 +29,41 @@ export const CALIBRATION_TARGETS = { ...calibration.targets, ...matchups.targets
 export const AVERAGE_RATING = 75;
 
 export const TUNING = {
+  /**
+   * Fatigue: each snap on the field drains a player's energy (more for a
+   * low-stamina player); every snap on the sideline restores some. A player
+   * whose energy drops below `tired` comes out for the next man on the depth
+   * chart and goes back in once he's back up to `ready`. The drains are tuned
+   * so playing time splits like real snap counts (calibration/people.json).
+   */
+  fatigue: {
+    drain: {
+      QB: 0,
+      RB: 0.062,
+      FB: 0.02,
+      WR: 0.045,
+      TE: 0.05,
+      OL: 0.001,
+      EDGE: 0.044,
+      DT: 0.059,
+      LB: 0.003,
+      CB: 0.03,
+      S: 0.03,
+    },
+    recoveryPerSnap: 0.03,
+    tired: 0.55,
+    ready: 0.9,
+    /** Per stamina point above or below a typical player at his position: drain shrinks or grows by this share. */
+    staminaEffect: 0.015,
+  },
+  /** In-game injuries: real per-snap rates by position (calibration/people.json), scaled by these. */
+  injuries: {
+    scrimmageScale: 1,
+    /** Chance someone is hurt on a kickoff or punt. */
+    perKick: 0.026,
+    /** Snaps an injured player who returns to the same game sits out (shortest, longest). */
+    returnAfterSnaps: [4, 30],
+  },
   /** Seconds that run off between plays while the clock runs. */
   tempo: { normal: 37, hurry: 13, milk: 40, afterOutOfBounds: 28 },
   /** Seconds a play takes from snap to whistle. */
@@ -43,7 +82,7 @@ export const TUNING = {
   /** Chance a play ends out of bounds. */
   outOfBounds: { insideRun: 0.05, outsideRun: 0.3, completion: 0.22, scramble: 0.45 },
   /** Exponential tail (mean extra yards) beyond the last measured quantile. */
-  tails: { run: 12, yac: 10, return: 15 },
+  tails: { run: 7, yac: 6, return: 15 },
   /**
    * How strongly a unit-strength edge (in rating points) moves outcomes.
    * Quantile shifts move a draw along the distribution; logit shifts move
@@ -77,11 +116,11 @@ export const TUNING = {
    * pressure that doesn't become a sack). Each is a nudge, not a rewrite.
    */
   baseline: {
-    runQuantileShift: -0.04,
-    yacQuantileShift: 0.045,
-    completionLogit: -0.22,
+    runQuantileShift: -0.035,
+    yacQuantileShift: 0.03,
+    completionLogit: 0.05,
     sackRateScale: 0.76,
-    interceptionRateScale: 1.2,
+    interceptionRateScale: 1.08,
     passRateShift: -0.055,
     /** Defenses tighten up on third down. */
     thirdDownCompletionLogit: -0.35,
@@ -148,7 +187,7 @@ export const TUNING = {
     opennessPerBlitzer: 4,
     opennessNoise: 8,
     /** How strongly the quarterback favors the open man (scaled up by decision making). */
-    readSharpness: 0.06,
+    readSharpness: 0.03,
     pressureWeight: 1,
     playActionCompletionLogit: 0.15,
     playActionDistanceShift: 0.05,
@@ -199,14 +238,14 @@ export const TUNING = {
   rusherShare: { rb1: 0.6, rb2: 0.26, qb: 0.07, wr: 0.03, fb: 0.04 },
   /** Who is targeted on throws (by depth chart slot). */
   targetShare: {
-    wr1: 0.24,
-    wr2: 0.19,
-    wr3: 0.13,
-    wr4: 0.03,
-    te1: 0.17,
-    te2: 0.05,
-    rb1: 0.13,
-    rb2: 0.06,
+    wr1: 0.1,
+    wr2: 0.1,
+    wr3: 0.1,
+    wr4: 0.05,
+    te1: 0.13,
+    te2: 0.06,
+    rb1: 0.14,
+    rb2: 0.07,
   },
   /** Who makes the tackle, by position group. */
   tackleShare: {

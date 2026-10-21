@@ -1,0 +1,291 @@
+{
+  "source": "nflverse play-by-play (2022-2025) and participation (2023-2025) data, github.com/nflverse/nflverse-data, CC-BY-4.0. Regular seasons. Built by `npm run pipeline -- people`.",
+  "snapShares": {
+    "note": "Average share of a team's scrimmage snaps by depth rank (most snaps first) at each position group. EDGE = DE + OLB, DT = DT + NT.",
+    "QB": [0.964, 0.04],
+    "RB": [0.651, 0.289, 0.064, 0.002],
+    "FB": [0.083],
+    "WR": [0.874, 0.763, 0.562, 0.245, 0.095, 0.009],
+    "TE": [0.742, 0.403, 0.162, 0.013],
+    "OL": [1, 1, 0.992, 0.977, 0.886, 0.141, 0.032],
+    "EDGE": [0.809, 0.697, 0.523, 0.372, 0.234],
+    "DT": [0.675, 0.504, 0.316, 0.172, 0.042],
+    "LB": [0.923, 0.571, 0.117, 0.018],
+    "CB": [0.971, 0.882, 0.561, 0.154, 0.031],
+    "S": [0.98, 0.887, 0.302, 0.06]
+  },
+  "injuries": {
+    "note": "In-game injuries ('was injured during the play'). perSnap = injuries per player-snap on scrimmage plays by position group.",
+    "scrimmagePerTeamGame": 1.546,
+    "specialTeamsPerTeamGame": 0.123,
+    "unmatched": 2,
+    "perSnap": {
+      "QB": 0.001178,
+      "RB": 0.001167,
+      "FB": 0.00034,
+      "WR": 0.001015,
+      "TE": 0.000643,
+      "OL": 0.000747,
+      "EDGE": 0.001048,
+      "DT": 0.001133,
+      "LB": 0.001251,
+      "CB": 0.001667,
+      "S": 0.001183
+    },
+    "returnSameGameRate": 0.585,
+    "gamesMissed": {
+      "note": "Players who left the game and didn't return to it: regular-season games missed afterwards (injuries with at least 9 games left).",
+      "injuries": 494,
+      "shares": {
+        "0": 0.298,
+        "1": 0.158,
+        "2": 0.081,
+        "3": 0.069,
+        "4-5": 0.101,
+        "6-8": 0.034,
+        "9+": 0.259
+      }
+    }
+  },
+  "advanced": {
+    "note": "Runs and dropbacks (no penalties wiped out, no 2-point tries): average EPA per play and success rate (share of plays with EPA > 0), per season. EPA here uses the same expected-points table as the sim (calibration/matchups.json), not nflverse's own model, so the two are measured alike.",
+    "epaPerPlay": [0.0081, -0.0166, 0.0242, 0.0193],
+    "successRate": [0.4503, 0.4406, 0.4507, 0.4491]
+  },
+  "leaderboards": {
+    "note": "Season totals at each leaderboard rank (1 = the leader), averaged over 2022-2025 with the lowest and highest season.",
+    "passYds": {
+      "1": {
+        "real": 4874.8,
+        "range": [4624, 5250]
+      },
+      "2": {
+        "real": 4626.8,
+        "range": [4564, 4739]
+      },
+      "3": {
+        "real": 4565.5,
+        "range": [4500, 4694]
+      },
+      "5": {
+        "real": 4280.5,
+        "range": [4048, 4475]
+      },
+      "10": {
+        "real": 3818.5,
+        "range": [3693, 4016]
+      },
+      "20": {
+        "real": 2916.3,
+        "range": [2860, 3025]
+      },
+      "32": {
+        "real": 1773.3,
+        "range": [1695, 1844]
+      }
+    },
+    "passTd": {
+      "1": {
+        "real": 41.5,
+        "range": [36, 46]
+      },
+      "2": {
+        "real": 35.5,
+        "range": [32, 41]
+      },
+      "3": {
+        "real": 34.5,
+        "range": [31, 41]
+      },
+      "5": {
+        "real": 30.5,
+        "range": [29, 35]
+      },
+      "10": {
+        "real": 25,
+        "range": [25, 25]
+      },
+      "20": {
+        "real": 17.5,
+        "range": [16, 20]
+      },
+      "32": {
+        "real": 9.3,
+        "range": [8, 10]
+      }
+    },
+    "rushYds": {
+      "1": {
+        "real": 1684.5,
+        "range": [1459, 2005]
+      },
+      "2": {
+        "real": 1555.3,
+        "range": [1167, 1921]
+      },
+      "3": {
+        "real": 1427.5,
+        "range": [1144, 1585]
+      },
+      "5": {
+        "real": 1270,
+        "range": [1049, 1412]
+      },
+      "10": {
+        "real": 1098.8,
+        "range": [1012, 1140]
+      },
+      "20": {
+        "real": 913.8,
+        "range": [897, 929]
+      },
+      "32": {
+        "real": 693.5,
+        "range": [643, 782]
+      }
+    },
+    "recYds": {
+      "1": {
+        "real": 1777.3,
+        "range": [1708, 1809]
+      },
+      "2": {
+        "real": 1676.8,
+        "range": [1533, 1749]
+      },
+      "3": {
+        "real": 1435.5,
+        "range": [1282, 1516]
+      },
+      "5": {
+        "real": 1387.3,
+        "range": [1263, 1456]
+      },
+      "10": {
+        "real": 1176.3,
+        "range": [1109, 1250]
+      },
+      "20": {
+        "real": 1031.3,
+        "range": [1003, 1066]
+      },
+      "32": {
+        "real": 874.3,
+        "range": [820, 938]
+      }
+    },
+    "rec": {
+      "1": {
+        "real": 129.8,
+        "range": [127, 135]
+      },
+      "2": {
+        "real": 119.8,
+        "range": [115, 126]
+      },
+      "3": {
+        "real": 116.5,
+        "range": [110, 125]
+      },
+      "5": {
+        "real": 110.5,
+        "range": [107, 117]
+      },
+      "10": {
+        "real": 97.5,
+        "range": [88, 103]
+      },
+      "20": {
+        "real": 81,
+        "range": [78, 83]
+      },
+      "32": {
+        "real": 72.5,
+        "range": [70, 75]
+      }
+    },
+    "sacks": {
+      "1": {
+        "real": 19.5,
+        "range": [17.5, 23]
+      },
+      "2": {
+        "real": 16,
+        "range": [14, 17.5]
+      },
+      "3": {
+        "real": 15.5,
+        "range": [13.5, 17.5]
+      },
+      "5": {
+        "real": 14.5,
+        "range": [12, 16.5]
+      },
+      "10": {
+        "real": 12,
+        "range": [11, 12.5]
+      },
+      "20": {
+        "real": 9.4,
+        "range": [8.5, 10.5]
+      },
+      "32": {
+        "real": 8.1,
+        "range": [7.5, 9]
+      }
+    },
+    "defInt": {
+      "1": {
+        "real": 7.8,
+        "range": [6, 9]
+      },
+      "2": {
+        "real": 6.5,
+        "range": [5, 8]
+      },
+      "3": {
+        "real": 5.8,
+        "range": [5, 6]
+      },
+      "5": {
+        "real": 5.3,
+        "range": [5, 6]
+      },
+      "10": {
+        "real": 4.3,
+        "range": [4, 5]
+      },
+      "20": {
+        "real": 3.8,
+        "range": [3, 4]
+      },
+      "32": {
+        "real": 3,
+        "range": [3, 3]
+      }
+    },
+    "passerRating": {
+      "qualifier": "238 attempts",
+      "qualifiers": {
+        "real": 33.5,
+        "range": [32, 36]
+      },
+      "best": {
+        "real": 113.5,
+        "range": [105.8, 120.9]
+      },
+      "fifth": {
+        "real": 102.4,
+        "range": [101, 104]
+      },
+      "median": {
+        "real": 92.7,
+        "range": [91.1, 93.6]
+      },
+      "worst": {
+        "real": 70.3,
+        "range": [62.1, 73.8]
+      }
+    }
+  }
+}

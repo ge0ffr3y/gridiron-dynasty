@@ -1,7 +1,7 @@
 /** Synthetic lineups for engine tests (the engine doesn't know about leagues). */
 import { ATTRIBUTES, baseProfile, overallAt, type Position, type Ratings } from "@fgm/foundation";
 import rules2026 from "../../../rules/2026.json";
-import type { GameRules, Lineup, LineupPlayer } from "./types";
+import type { DepthChart, GameRules, LineupPlayer } from "./types";
 
 let nextId = 1;
 
@@ -14,27 +14,42 @@ function player(position: Position, level: number): LineupPlayer {
 }
 
 /**
- * A full lineup; `level` raises or lowers every rating (0 = a typical starter).
- * Player ids start at `firstId`, so the same call always builds the same lineup.
+ * A full depth chart; `level` raises or lowers every rating (0 = a typical
+ * starter). Player ids start at `firstId`, so the same call always builds
+ * the same team.
  */
-export function makeLineup(level = 0, firstId = 1): Lineup {
+export function makeDepth(level = 0, firstId = 1): DepthChart {
   nextId = firstId;
   const many = (position: Position, n: number) =>
     Array.from({ length: n }, () => player(position, level));
+  const [qb1, qb2] = many("QB", 2) as [LineupPlayer, LineupPlayer];
+  const rbs = many("RB", 3);
+  const fb = player("FB", level);
+  const wrs = many("WR", 6);
+  const tes = many("TE", 3);
+  const [t1, t2, t3] = many("OT", 3) as [LineupPlayer, LineupPlayer, LineupPlayer];
+  const [g1, g2, g3] = many("OG", 3) as [LineupPlayer, LineupPlayer, LineupPlayer];
+  const center = player("C", level);
   return {
-    qb: player("QB", level),
-    rb: many("RB", 2),
-    fb: player("FB", level),
-    wr: many("WR", 5),
-    te: many("TE", 3),
-    ol: [...many("OT", 2), ...many("OG", 2), player("C", level)],
-    dl: [...many("EDGE", 2), ...many("DT", 2)],
-    lb: many("LB", 3),
-    cb: many("CB", 4),
-    s: many("S", 3),
-    k: player("K", level),
-    p: player("P", level),
-    returner: player("WR", level),
+    QB: [qb1, qb2],
+    RB: rbs,
+    FB: [fb],
+    WR: wrs,
+    TE: tes,
+    LT: [t1, t3],
+    RT: [t2, t3],
+    LG: [g1, g3],
+    RG: [g2, g3],
+    C: [center, g3],
+    EDGE: many("EDGE", 4),
+    DT: many("DT", 4),
+    LB: many("LB", 4),
+    CB: many("CB", 5),
+    S: many("S", 4),
+    K: [player("K", level)],
+    P: [player("P", level)],
+    KR: [wrs[5]!, rbs[2]!],
+    PR: [wrs[5]!, wrs[4]!],
   };
 }
 

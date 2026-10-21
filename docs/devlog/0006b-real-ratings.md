@@ -66,7 +66,7 @@ The first run on real rosters scored 57–58 of 63. Three causes, each fixed at 
 
 ## Not done yet
 
-- **Your review of the sanity sheet.** That's the last "Done when" check for the roster.
+- **Your review of the sanity sheet:** done; you approved it after this entry was written.
 - **Success rate** is still a few tenths low, in real and generated leagues alike.
 - **Hosts for 88 of the 2026 games** are swapped compared with the real schedule (the opponents all match).
 - **Contracts** (Phase 7), **real traded draft picks** (draft phase), and **team names** (naming session) come later.

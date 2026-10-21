@@ -285,7 +285,7 @@ Decisions that block a phase. Record the answer here when made.
 - [x] **Player ID crosswalk** across sources, with an unmatched-players report; fixes go in a documented overrides file (data, not hand edits to outputs) *(6a: Madden matched by last name and birth date, then nickname-aware full name; 1,830 of 1,880 Madden players matched)*
 - [x] **Ratings build:** Madden end-of-2025 ratings (private input) → mapped into our own rating model → adjusted with real performance data (play-by-play, Next Gen Stats, snap counts) *(Madden 26 Week 1, since no end-of-season file turned up; 6b moves regulars toward their 2025 production and teams' regulars with real 2025 point differential)*
 - [x] **Hidden traits** generated from age, draft pedigree, and injury history
-- [ ] **Sanity-check sheet:** top 10 at every position reviewed by hand *(6b: the sheet is built with every league build (private); I reviewed it; waiting on the owner's review)*
+- [x] **Sanity-check sheet:** top 10 at every position reviewed by hand *(built with every league build (private); reviewed by Claude and approved by the owner after Phase 6b)*
 - [x] **Career stats** imported so careers continue from their real numbers *(regular seasons since 1999)*
 - [ ] **Naming session:** league name, championship name, 32 team names, mascots, colors, simple generated logos/monograms
 - [x] **Fictional names** for every real person, one consistent mapping kept only inside the pipeline; automated check that no real name survives into any output *(names come from a hash of each person's id, so no lookup table is stored at all; colleges map to fictional schools)*
@@ -295,7 +295,7 @@ Decisions that block a phase. Record the answer here when made.
 - [x] **UI:** New League offers "Real league (2026)" or "Fictional league"
 
 ### Done when
-- [ ] The real league loads, and each team's roster is recognizable in shape (you can spot each team's real star by position, age, and stats, even renamed) *(6a: loads and plays; spot-checked one team; full review with the 6b sanity sheet)*
+- [x] The real league loads, and each team's roster is recognizable in shape (you can spot each team's real star by position, age, and stats, even renamed) *(owner approved the sanity sheet after Phase 6b)*
 - [x] Unmatched-player report is at or near zero *(5 roster rows lack an id or birth date; 4 regular starters signed after the Madden update get ratings from public data)*
 - [x] The real-name check finds zero real names in any build output *(every build, plus a local test against all of nflverse's players)*
 - [x] Rebuilding from scratch produces an identical league file *(local test)*

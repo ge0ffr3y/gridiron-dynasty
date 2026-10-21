@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 8;
+export const LEAGUE_FORMAT_VERSION = 9;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -220,6 +220,16 @@ export const PlayerSchema = z.object({
   elevations: z.number().int().nonnegative(),
   /** The season after which he retired (placeholder until Phase 9); retired players stay for history. */
   retiredAfter: z.number().int().nullable(),
+  /** His overall at the end of each season he was in the league (Phase 9), oldest first. */
+  ratingHistory: z.array(
+    z.object({
+      season: z.number().int(),
+      age: z.number().int(),
+      teamId: z.string().nullable(),
+      position: PositionSchema,
+      overall: z.number().int(),
+    }),
+  ),
   /** This year's preseason: his stats and showcase grade (0-100, 50 = typical), if he played. */
   preseason: z
     .object({
@@ -500,6 +510,22 @@ export const PendingDecisionSchema = z.object({
 
 const RngStateSchema = z.tuple([z.number(), z.number(), z.number(), z.number()]).readonly();
 
+/** A development round (Phase 9): the League Year's, camp's, or the season's small weekly changes. */
+export const DevelopmentRoundSchema = z.object({
+  season: z.number().int(),
+  stage: z.enum(["league-year", "camp", "season"]),
+  date: IsoDate,
+  /** Players who changed notably, biggest change first. */
+  changes: z.array(
+    z.object({
+      playerId: z.number().int(),
+      before: z.number().int(),
+      after: z.number().int(),
+      reason: z.string(),
+    }),
+  ),
+});
+
 export const LeagueSchema = z.object({
   format: z.literal(LEAGUE_FORMAT),
   formatVersion: z.literal(LEAGUE_FORMAT_VERSION),
@@ -530,6 +556,8 @@ export const LeagueSchema = z.object({
   /** One summary per completed season, oldest first. */
   history: z.array(SeasonHistorySchema),
   transactions: z.array(TransactionSchema),
+  /** This season's development rounds (Phase 9); last season's go at the new League Year. */
+  development: z.array(DevelopmentRoundSchema),
   /**
    * Each League Year's top salaries by tag category, highest first (Phase 7):
    * franchise and transition tags and fifth-year options are set from these.

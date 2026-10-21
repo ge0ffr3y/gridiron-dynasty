@@ -6,19 +6,20 @@
  *   practice squads formed, and the in-season cap;
  * - each week: injured reserve, returns, keeping 53 and a full practice squad;
  * - season's end: practice-squad futures deals, reserve lists cleared, and
- *   placeholder retirement (Phase 9 brings the real model).
+ *   retirement (the model is in lifecycle/retirement.ts).
  * Every move records why.
  */
-import { ageOn, type Position } from "@fgm/foundation";
+import { Rng, streamSeed, type Position } from "@fgm/foundation";
 import { capHit, remainingGuarantees, remainingProration } from "../contracts/contract";
-import { batch, recordTransaction, releasePlayer } from "../contracts/operations";
+import { batch, recordTransaction } from "../contracts/operations";
 import { capSheet } from "../contracts/team";
 import { minimumSalary } from "../contracts/cap";
 import { getUnderCap } from "../contracts/upkeep";
-import { DEFAULT_MAX_AGE, MAX_AGE, ROSTER_MIX, STARTERS } from "../generate/config";
+import { ROSTER_MIX, STARTERS } from "../generate/config";
 import type { League, Player } from "../league/schema";
+import { decideRetirement } from "../lifecycle/retirement";
 import { seasonDates } from "../season/calendar";
-import { ROSTER_AI, RETIREMENT } from "./config";
+import { ROSTER_AI } from "./config";
 import { inSeasonRosters, isPracticeSquadVeteran, onTeam, openSpots } from "./lists";
 import {
   activate,
@@ -496,41 +497,18 @@ export function seasonEnds(league: League): void {
   });
 }
 
-/** Seasons in a row, up to this one, without a regular-season game (a prospect who never played: all of his). */
-function seasonsWithoutPlaying(p: Player, season: number): number {
-  let n = 0;
-  for (let s = season; s > season - 5; s--) {
-    if (p.stats.some((st) => st.season === s)) break;
-    n += 1;
-    // A rookie prospect didn't exist before his draft year.
-    if (p.experience === 0 && p.drafted === null) return RETIREMENT.unsignedSeasons;
-  }
-  return n;
-}
-
 /**
- * Placeholder retirement (Phase 9 brings the real model), at the start of the offseason for the
- * season just ended: players past their position's age limit, and free agents out of the league
- * too long. A retiring player gives up the salary still to come; the bonus money left on his deal
- * speeds up onto his team's cap for the new League Year.
+ * Retirement (Phase 9's model, lifecycle/retirement.ts), at the start of the offseason for the
+ * season just ended. A retiring player gives up the salary still to come; the bonus money left
+ * on his deal speeds up onto his team's cap for the new League Year.
  */
 export function retirePlayers(league: League, endedSeason: number): void {
-  const today = league.date;
   batch(league, () => {
     for (const p of [...league.players].sort((a, b) => a.id - b.id)) {
       if (p.retiredAfter !== null) continue;
-      const limit = MAX_AGE[p.position] ?? DEFAULT_MAX_AGE;
-      const age = ageOn(p.birthDate, today);
-      const tooOld = age >= limit;
-      // A free agent retires once he hasn't played for this many seasons (sooner if he's older).
-      const idleFor = p.teamId === null ? seasonsWithoutPlaying(p, endedSeason) : 0;
-      const idle =
-        idleFor >= RETIREMENT.unsignedSeasons ||
-        (idleFor >= 1 && age >= RETIREMENT.olderFreeAgentAge);
-      if (!tooOld && !idle) continue;
-      const reason = tooOld
-        ? `At ${age}, past the usual age for a ${p.position} (placeholder until Phase 9's retirement model).`
-        : "Out of the league too long: no team played him (placeholder until Phase 9's retirement model).";
+      const rng = new Rng(streamSeed(league.meta.seed, `retire:${endedSeason}:${p.id}`));
+      const reason = decideRetirement(league, p, endedSeason, rng);
+      if (reason === null) continue;
       const teamId = p.teamId;
       if (teamId && p.contract) {
         const leftover = remainingProration(p.contract, league.season);

@@ -53,7 +53,11 @@ export function generateClass(league: League, size: number): Player[] {
   for (let rank = 1; rank <= size; rank++) {
     const position = mix[rng.int(mix.length)]!;
     const p = generatePlayer(ctx, league.nextIds.player++, "", position, "camp", 0, new Set());
-    const target = rng.gaussian(meanOverall(rank), DRAFT_CLASS.overallSpread);
+    const specialist = position === "K" || position === "P" || position === "LS";
+    const target = rng.gaussian(
+      meanOverall(rank) + (specialist ? DRAFT_CLASS.specialistBonus : 0),
+      DRAFT_CLASS.overallSpread,
+    );
     p.ratings = generateRatings(rng, position, target);
     const age = rng.intBetween(DRAFT_CLASS.ages[0], DRAFT_CLASS.ages[1]);
     p.birthDate = addDays(`${season - age}${league.date.slice(4)}`, -rng.int(365));
@@ -61,7 +65,9 @@ export function generateClass(league: League, size: number): Player[] {
     p.drafted = null;
     p.teamId = null;
     const growth =
-      DRAFT_CLASS.growthMean + DRAFT_CLASS.growthTopExtra * Math.max(0, 1 - rank / size);
+      DRAFT_CLASS.growthMean +
+      DRAFT_CLASS.growthTopExtra * Math.max(0, 1 - rank / size) +
+      (DRAFT_CLASS.growthByPosition[position] ?? 0);
     const overall = overallAt(p.ratings, position);
     p.hidden.potential = Math.min(
       99,
@@ -75,7 +81,13 @@ export function generateClass(league: League, size: number): Player[] {
 /** A prospect's worth to any team (before need): his overall plus some of his room to grow. */
 function baseDraftValue(p: Player): number {
   const overall = overallAt(p.ratings, p.position);
-  return overall + DRAFT_CLASS.potentialWeight * (p.hidden.potential - overall);
+  // Teams don't spend early picks on kickers: a specialist's head start doesn't count here.
+  const specialist = p.position === "K" || p.position === "P" || p.position === "LS";
+  return (
+    overall +
+    DRAFT_CLASS.potentialWeight * (p.hidden.potential - overall) -
+    (specialist ? DRAFT_CLASS.specialistBonus : 0)
+  );
 }
 
 /** The team's favorite prospect left: base value, nudged toward positions it's thin at. */
@@ -151,8 +163,9 @@ export function runDraft(league: League): { drafted: number; undrafted: number }
     if (!choice) break;
     available.delete(choice.id);
     if (openSpots(league, teamId) <= 0) {
+      // Never this year's own picks: a team doesn't draft a player to cut him for the next one.
       const weakest = onTeam(league, teamId)
-        .filter((x) => x.roster === "active")
+        .filter((x) => x.roster === "active" && x.drafted?.season !== league.season)
         .sort((a, b) => playerValue(league, a) - playerValue(league, b) || b.id - a.id)[0]!;
       waivePlayer(
         league,

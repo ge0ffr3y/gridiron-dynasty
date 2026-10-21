@@ -7,6 +7,7 @@
  *   npm run sim -- --seasons 10 --seed 42                 simulate seasons, checking every schedule
  *   npm run sim -- --calibrate [--leagues 4 --seasons 2 --seed 42]   compare simulated seasons with real NFL ranges
  *   npm run sim -- --calibrate --league pipeline/private/out/real-league-2026.json   the same, from the real league
+ *   npm run sim -- --lifecycle 30 [--seed 42] [--league file] [--out file]   long run: age mix, starter quality, stars, careers
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -33,6 +34,9 @@ import {
   teamView,
   parseLeague,
   startRealLeague,
+  careerSummary,
+  lifecycleSnapshot,
+  realAgeMix,
   type League,
 } from "@fgm/sim-core";
 
@@ -45,6 +49,11 @@ function readSeed(args: string[]): number {
   const value = Number(option(args, "--seed") ?? 42);
   if (!Number.isInteger(value)) throw new Error("--seed must be a whole number");
   return value;
+}
+
+/** A path as the person typed it (npm runs the runner from apps/runner). */
+function fromCaller(path: string): string {
+  return resolve(process.env["INIT_CWD"] ?? process.cwd(), path);
 }
 
 function percentile(sorted: number[], p: number): number {
@@ -68,6 +77,17 @@ if (args.includes("--calibrate")) {
           readFileSync(resolve(process.env["INIT_CWD"] ?? process.cwd(), leagueFile), "utf8"),
         )
       : null,
+  );
+  process.exit(0);
+}
+
+const lifecycleArg = option(args, "--lifecycle");
+if (lifecycleArg !== undefined) {
+  runLifecycle(
+    readSeed(args),
+    Number(lifecycleArg),
+    option(args, "--league"),
+    option(args, "--out"),
   );
   process.exit(0);
 }
@@ -188,7 +208,18 @@ function runSeasons(seed: number, count: number): void {
  * talent, like a different real season) and prints the calibration scorecard:
  * each stat is measured per season, then averaged, as the real targets were.
  */
-/** `base`: start every league from this file (the real league) instead of generating one. */
+/**
+ * A league to measure from a file: the real league's starting file becomes a new game; any
+ * other saved league (say, one 30 seasons on) carries on from where it is, with its own seed.
+ */
+function fromFile(base: League, seed: number): League {
+  if (base.meta.kind === "real") return startRealLeague(base, { name: `League ${seed}`, seed });
+  const league = parseLeague(serializeLeague(base));
+  league.meta.seed = seed;
+  return league;
+}
+
+/** `base`: start every league from this file (the real league, or a saved league) instead of generating one. */
 function runCalibration(
   seed: number,
   leagues: number,
@@ -201,7 +232,7 @@ function runCalibration(
   let gameCount = 0;
   for (let l = 0; l < leagues; l++) {
     const league = base
-      ? startRealLeague(base, { name: `League ${seed + l}`, seed: seed + l })
+      ? fromFile(base, seed + l)
       : createLeague({ seed: seed + l, name: `League ${seed + l}` });
     for (let i = 0; i < seasonsPerLeague; i++) {
       const games: MeasuredGame[] = [];
@@ -256,4 +287,59 @@ function runCalibration(
   console.log(
     `\n${playersPassed} of ${playerLines.length} player-level stats inside the real range (${total.toFixed(1)} s).`,
   );
+}
+
+/**
+ * The long run (Phase 9): simulates many seasons and prints, after each, the league's age mix,
+ * its starters' average overall, its stars, and the player pool; at the end, career lengths
+ * by position next to the real ones.
+ */
+function runLifecycle(seed: number, count: number, file?: string, out?: string): void {
+  if (!Number.isInteger(count) || count < 1)
+    throw new Error("--lifecycle must be a whole number of seasons");
+  const started = process.hrtime.bigint();
+  const league = file
+    ? startRealLeague(parseLeague(readFileSync(fromCaller(file), "utf8")), {
+        name: "Lifecycle",
+        seed,
+      })
+    : createLeague({ seed, name: `League ${seed}` });
+  const first = league.season;
+  const real = realAgeMix();
+  console.log(
+    `\nLifecycle: ${count} seasons from seed ${seed}${file ? " (real league)" : ""}. Real age mix (2025): mean ${real.mean}, percentiles ${real.quantiles.join("/")}\n`,
+  );
+  console.log(
+    "season  age mean  age 10/25/50/75/90   starters  roster  90+  80+  on teams  free agents  retired  drafted",
+  );
+  for (let i = 0; i < count; i++) {
+    const before = league.transactions.length;
+    advanceUntil(league, (l) => l.calendar.stage === "complete");
+    const s = lifecycleSnapshot(league);
+    advance(league); // the next offseason: retirements
+    const moves = league.transactions.slice(before);
+    const n = (type: string) => moves.filter((m) => m.type === type).length;
+    console.log(
+      `${s.season}    ${s.age.mean.toFixed(2).padStart(8)}  ${s.age.quantiles.join("/").padEnd(18)}  ${s.starterOverall.toFixed(1).padStart(8)}  ${s.rosterOverall.toFixed(1).padStart(6)}  ${String(s.stars.ninety).padStart(3)}  ${String(s.stars.eighty).padStart(3)}  ${String(s.pool.onTeams).padStart(8)}  ${String(s.pool.freeAgents).padStart(11)}  ${String(n("retired")).padStart(7)}  ${String(n("drafted")).padStart(7)}`,
+    );
+  }
+  // Careers: players who entered in the first seasons of the run (long enough ago to have finished).
+  const lastEntry = first + Math.max(0, count - 12);
+  console.log(
+    `\nCareers of players who entered ${first + 1}-${lastEntry} (seasons from first to last; real: classes 2000-2012):`,
+  );
+  console.log(
+    "group  players  seasons (sim / real)  10/25/50/75/90    last-season age (sim / real)",
+  );
+  for (const c of careerSummary(league, first + 1, lastEntry))
+    console.log(
+      `${c.group.padEnd(5)}  ${String(c.players).padStart(7)}  ${c.seasonsMean.toFixed(1).padStart(7)} / ${c.real ? c.real.seasonsMean.toFixed(1) : "-"}        ${c.seasonsQuantiles.join("/").padEnd(15)}  ${c.lastSeasonAgeMean.toFixed(1)} / ${c.real ? c.real.lastSeasonAgeMean.toFixed(1) : "-"}`,
+    );
+  const seconds = Number(process.hrtime.bigint() - started) / 1e9;
+  console.log(`\n${count} seasons in ${seconds.toFixed(0)} s.`);
+  // The league as it ended, e.g. to run the scorecard on season 10: --calibrate --league <file>.
+  if (out) {
+    writeFileSync(fromCaller(out), serializeLeague(league));
+    console.log(`Wrote ${out}`);
+  }
 }

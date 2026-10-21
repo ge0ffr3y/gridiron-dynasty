@@ -6,7 +6,7 @@ import { DEPTH_SLOTS, type DepthSlot, type StatKey, type StatLine } from "@fgm/g
 import type { Position } from "@fgm/foundation";
 import type { League, Player } from "./league/schema";
 import { perceivePlayer, type Viewer } from "./perception";
-import { resolveDepthChart, SLOT_POSITION, teamRoster } from "./season/depthChart";
+import { campWinners, resolveDepthChart, SLOT_POSITION, teamRoster } from "./season/depthChart";
 import { DEPTH_CHART } from "./season/config";
 import { sumLines } from "./views";
 
@@ -43,6 +43,8 @@ export interface DepthEntry {
   /** Playing a spot that isn't his usual position. */
   outOfPosition: boolean;
   injury: { description: string; gamesRemaining: number } | null;
+  /** Why he's here when it isn't obvious (e.g. he won a close battle in camp). */
+  note: string | null;
 }
 
 export interface DepthChartView {
@@ -91,7 +93,9 @@ export function depthChartView(league: League, teamId: string, viewer: Viewer): 
   if (!team) throw new Error(`no team ${teamId}`);
   const roster = teamRoster(league, teamId);
   const byId = new Map(roster.map((p) => [p.id, p]));
-  const chart = resolveDepthChart(team, roster);
+  const chart = resolveDepthChart(team, roster, league.season);
+  // Close position battles settled in camp (automatic charts only).
+  const camp = team.depthChart.auto ? campWinners(roster, league.season) : new Map();
   return {
     teamId,
     auto: team.depthChart.auto,
@@ -115,6 +119,9 @@ export function depthChartView(league: League, teamId: string, viewer: Viewer): 
           overall: atSlot,
           outOfPosition: slot !== "KR" && slot !== "PR" && p.position !== SLOT_POSITION[slot],
           injury: injuryOf(p),
+          note: camp.get(slot)?.has(p.id)
+            ? `Won the job in camp (preseason grade ${p.preseason?.grade})`
+            : null,
         };
       }),
     })),
@@ -134,7 +141,7 @@ export function moveOnDepthChart(
 ): void {
   const team = league.teams.find((t) => t.id === teamId);
   if (!team) throw new Error(`no team ${teamId}`);
-  const chart = resolveDepthChart(team, teamRoster(league, teamId));
+  const chart = resolveDepthChart(team, teamRoster(league, teamId), league.season);
   const order = chart[slot].filter((id) => id !== playerId);
   if (order.length === chart[slot].length) throw new Error("that player isn't listed at this spot");
   order.splice(Math.max(0, Math.min(order.length, toIndex)), 0, playerId);

@@ -12,6 +12,7 @@
 import { overallWithFamiliarity, type Position } from "@fgm/foundation";
 import { DEPTH_SLOTS, type DepthChart, type DepthSlot, type LineupPlayer } from "@fgm/game-engine";
 import type { League, Player, Team } from "../league/schema";
+import { POSITION_BATTLE } from "../lifecycle/config";
 import { DEPTH_CHART, INJURY_RISK } from "./config";
 
 export type DepthSlots = Record<DepthSlot, number[]>;
@@ -50,9 +51,25 @@ export function slotOverall(player: Player, slot: DepthSlot): number | null {
   return overallWithFamiliarity(player.ratings, position, familiarity);
 }
 
-function ranked(roster: Player[], slot: DepthSlot): Player[] {
+/**
+ * Close position battles (Phase 9): this year's preseason grade is worth up to
+ * POSITION_BATTLE.maxPoints either way, so a strong camp can win a job from a player a point
+ * or two better, but a clearly better player always starts. No grade, no edge.
+ */
+export function campEdge(p: Player, season: number | undefined): number {
+  if (season === undefined || p.preseason?.season !== season) return 0;
+  const grade = p.preseason.grade;
+  if (grade === null) return 0;
+  return POSITION_BATTLE.maxPoints * Math.max(-1, Math.min(1, (grade - 50) / 50));
+}
+
+function ranked(roster: Player[], slot: DepthSlot, season?: number): Player[] {
+  const returner = slot === "KR" || slot === "PR";
   return roster
-    .map((p) => ({ p, score: slotOverall(p, slot) }))
+    .map((p) => {
+      const score = slotOverall(p, slot);
+      return { p, score: score === null || returner ? score : score + campEdge(p, season) };
+    })
     .filter((x): x is { p: Player; score: number } => x.score !== null)
     .sort((a, b) => b.score - a.score || a.p.id - b.p.id)
     .map((x) => x.p);
@@ -61,11 +78,12 @@ function ranked(roster: Player[], slot: DepthSlot): Player[] {
 /**
  * The automatic chart. Starters are picked spot by spot (most important
  * first) so nobody starts at two spots on the same side of the ball; then
- * each spot lists its best remaining backups.
+ * each spot lists its best remaining backups. With `season`, this year's preseason grades
+ * settle close battles (campEdge).
  */
-export function autoDepthChart(roster: Player[]): DepthSlots {
+export function autoDepthChart(roster: Player[], season?: number): DepthSlots {
   const chart = {} as DepthSlots;
-  const rankings = new Map(DEPTH_SLOTS.map((slot) => [slot, ranked(roster, slot)]));
+  const rankings = new Map(DEPTH_SLOTS.map((slot) => [slot, ranked(roster, slot, season)]));
   // Kickers and punters do their own job: a punter who out-kicks a weak kicker would
   // otherwise take the kicking job and leave nobody to punt.
   for (const slot of ["K", "P"] as const) {
@@ -105,9 +123,31 @@ export function autoDepthChart(roster: Player[]): DepthSlots {
   return chart;
 }
 
+/**
+ * Starters who hold their job because of camp: at each spot, the starters of the automatic
+ * chart who wouldn't start on ratings alone.
+ */
+export function campWinners(roster: Player[], season: number): Map<DepthSlot, Set<number>> {
+  const withCamp = autoDepthChart(roster, season);
+  const without = autoDepthChart(roster);
+  const byId = new Map(roster.map((p) => [p.id, p]));
+  const winners = new Map<DepthSlot, Set<number>>();
+  for (const slot of DEPTH_SLOTS) {
+    if (slot === "KR" || slot === "PR") continue;
+    const n = DEPTH_CHART.starters[slot];
+    const before = new Set(without[slot].slice(0, n));
+    // Only players whose own strong camp did it (not ones moved up as others shuffled).
+    const won = withCamp[slot]
+      .slice(0, n)
+      .filter((id) => !before.has(id) && campEdge(byId.get(id)!, season) > 0);
+    if (won.length) winners.set(slot, new Set(won));
+  }
+  return winners;
+}
+
 /** A team's chart as it stands: automatic, or the custom order cleaned up for roster changes. */
-export function resolveDepthChart(team: Team, roster: Player[]): DepthSlots {
-  const auto = autoDepthChart(roster);
+export function resolveDepthChart(team: Team, roster: Player[], season?: number): DepthSlots {
+  const auto = autoDepthChart(roster, season);
   if (team.depthChart.auto) return auto;
   const onTeam = new Map(roster.map((p) => [p.id, p]));
   const chart = {} as DepthSlots;
@@ -192,7 +232,7 @@ export function gameDepthChart(
   const extra = league.players.filter((p) => elevated.includes(p.id));
   const roster = [...teamRoster(league, teamId), ...extra];
   const byId = new Map(roster.map((p) => [p.id, p]));
-  const chart = resolveDepthChart(team, roster);
+  const chart = resolveDepthChart(team, roster, league.season);
   const dressed = new Set(
     gameDayActives(
       league,

@@ -107,6 +107,14 @@ export function DepthChartEditor({ teamId }: { teamId: string }) {
                               </span>
                             )}
                             <InjuryTag injury={p.injury} />
+                            {p.note && (
+                              <span
+                                className="ml-1 rounded bg-accent px-1 text-xs text-accent-foreground"
+                                title={p.note}
+                              >
+                                camp
+                              </span>
+                            )}
                           </span>
                           <Button
                             variant="ghost"

@@ -1,3 +1,4 @@
+import type { Position } from "@fgm/foundation";
 /**
  * Tuning for the AI's roster upkeep (Phase 8; CLAUDE.md, rule 4). These are
  * placeholders' judgment calls, not league rules (those are in rules.roster).
@@ -91,21 +92,38 @@ export const DRAFT_CLASS = {
   ] as [number, number][],
   overallSpread: 4,
   /** Potential above the current overall: mean (best prospects get the extra) and spread. */
-  growthMean: 8,
-  growthTopExtra: 6,
+  growthMean: 12,
+  growthTopExtra: 5,
   growthSpread: 4,
   ages: [21, 23] as [number, number],
+  /**
+   * Kickers, punters and long snappers arrive close to ready (their position's growth is
+   * small), so their prospects rate this much higher than others drafted at the same rank.
+   */
+  specialistBonus: 6,
+  /**
+   * Extra room to grow by position (points). Positions that wear out sooner (running backs,
+   * receivers, corners) spend less of a career at their peak, so with the same prospects their
+   * starters would settle lower than others'. This keeps every position's starters at the
+   * rating scale's level over decades (measured with npm run sim -- --lifecycle 30).
+   */
+  growthByPosition: {
+    QB: -1,
+    RB: 3.5,
+    FB: 6,
+    WR: 4.5,
+    TE: 2.5,
+    OT: -0.5,
+    OG: -0.5,
+    C: -0.5,
+    EDGE: -3,
+    DT: -1.5,
+    LB: -0.5,
+    CB: 2.5,
+  } as Partial<Record<Position, number>>,
   /** How much a team weighs a prospect's room to grow, and filling a thin position. */
   potentialWeight: 0.25,
   needBonus: 2,
   /** Undrafted deals: minimum salary for this many seasons. */
   undraftedYears: 3,
-} as const;
-
-/** Placeholder retirement (roster/upkeep.ts) until Phase 9. */
-export const RETIREMENT = {
-  /** Free agents who haven't played a regular-season game for this many seasons retire. */
-  unsignedSeasons: 2,
-  /** ...or for one season, at this age or older. */
-  olderFreeAgentAge: 30,
 } as const;

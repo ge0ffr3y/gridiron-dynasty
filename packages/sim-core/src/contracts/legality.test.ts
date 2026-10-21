@@ -3,10 +3,12 @@
  * League Years (draft, camp, preseason, final cuts, the season and playoffs)
  * with every roster and cap rule checked after every move, every rostered
  * player under contract with his own team, and every move carrying a reason.
- * Old saves upgrade with contracts.
+ * The same years check the player lifecycle (Phase 9): age mix, starter quality,
+ * stars and career arcs stay in their bands. Old saves upgrade with contracts.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import { createLeague } from "../generate/league";
+import { lifecycleSnapshot, realAgeMix, type LifecycleSnapshot } from "../lifecycle/report";
 import { LEAGUE_FORMAT_VERSION } from "../league/schema";
 import { checkLegal, rosterProblems } from "../roster/legality";
 import { onTeam } from "../roster/lists";
@@ -18,12 +20,23 @@ import { capSheet } from "./team";
 
 afterEach(() => setTransactionAudit(null));
 
+/** How far a 10-season league may drift (Phase 9's "Done when"; 30 seasons: npm run sim -- --lifecycle 30). */
+const LIFECYCLE_BANDS = {
+  /** Mean age of players who played, vs. the real league's (years). */
+  ageMean: 0.75,
+  /** Average starter overall, vs. the first season (points). */
+  starterDrift: 2.5,
+  /** Players rated 80 or better on rosters, at least. */
+  minEighties: 120,
+};
+
 describe("a league stays legal year after year", () => {
   it("10 League Years: every roster and cap rule holds after every move", () => {
     const league = createLeague({ seed: 81, name: "Legal" });
     expect(rosterProblems(league)).toEqual([]);
     setTransactionAudit(checkLegal);
     const rooms: number[] = [];
+    const snapshots: LifecycleSnapshot[] = [];
     let seasons = 0;
     for (let step = 0; step < 400 && seasons < 10; step++) {
       advance(league);
@@ -44,7 +57,10 @@ describe("a league stays legal year after year", () => {
         );
         expect(squads.length, `${league.season}`).toBeGreaterThanOrEqual(league.teams.length - 2);
       }
-      if (league.calendar.stage === "complete") seasons += 1;
+      if (league.calendar.stage === "complete") {
+        seasons += 1;
+        snapshots.push(lifecycleSnapshot(league));
+      }
       // Each new season's schedule follows every scheduling rule.
       if (league.calendar.stage === "offseason" && league.games.every((g) => !g.result)) {
         const last = league.history.at(-1)!;
@@ -68,6 +84,32 @@ describe("a league stays legal year after year", () => {
     expect(
       new Set(league.players.filter((p) => p.drafted).map((p) => p.drafted!.season)).size,
     ).toBeGreaterThanOrEqual(10);
+
+    // Phase 9: players develop, age and retire, and the league keeps its shape. The age mix
+    // stays near the real league's, starters neither inflate nor collapse, and stars remain.
+    const real = realAgeMix();
+    const first = snapshots[0]!;
+    for (const snap of snapshots) {
+      expect(Math.abs(snap.age.mean - real.mean), `${snap.season} age`).toBeLessThan(
+        LIFECYCLE_BANDS.ageMean,
+      );
+      expect(
+        Math.abs(snap.starterOverall - first.starterOverall),
+        `${snap.season} starters`,
+      ).toBeLessThan(LIFECYCLE_BANDS.starterDrift);
+      expect(snap.stars.eighty, `${snap.season} stars`).toBeGreaterThan(
+        LIFECYCLE_BANDS.minEighties,
+      );
+    }
+    // Careers have arcs: players with long careers had their best season in their prime.
+    const bestAges = league.players
+      .filter((p) => p.ratingHistory.length >= 6)
+      .map((p) => p.ratingHistory.reduce((a, b) => (b.overall > a.overall ? b : a)).age)
+      .sort((a, b) => a - b);
+    expect(bestAges.length).toBeGreaterThan(300);
+    const median = bestAges[Math.floor(bestAges.length / 2)]!;
+    expect(median).toBeGreaterThanOrEqual(25);
+    expect(median).toBeLessThanOrEqual(29);
   }, 1_200_000);
 
   it("a format-6 save loads with contracts for everyone on a roster, the same every time", () => {

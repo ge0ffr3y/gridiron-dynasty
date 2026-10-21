@@ -61,7 +61,9 @@ export {
   type SimHooks,
 } from "./season/flow";
 export { validateSchedule } from "./season/validate";
+export * from "./lifecycle/report";
+export { DEVELOPMENT } from "./lifecycle/config";
 export { seasonDates } from "./season/calendar";
 
 /** Bumped when the league save format or simulation rules change in a breaking way. */
-export const SIM_CORE_VERSION = "0.9.0";
+export const SIM_CORE_VERSION = "0.10.0";

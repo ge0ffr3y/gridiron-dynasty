@@ -8,6 +8,7 @@
  *   npm run pipeline -- elements       special teams, stadiums, weather (Phase 5b)
  *   npm run pipeline -- league         the real league, renamed, with real contracts (Phases 6, 7b)
  *   npm run pipeline -- rookies        the real rookie wage scale, as knots for the rules file (Phase 7b)
+ *   npm run pipeline -- lifecycle      aging by position, careers, the age mix (Phase 9)
  *
  * Restricted inputs (Madden ratings) and anything with real names go in
  * pipeline/private/ (git-ignored).
@@ -18,6 +19,7 @@ import { people } from "./people";
 import { situations } from "./situations";
 import { elements } from "./elements";
 import { league } from "./league";
+import { lifecycle } from "./lifecycle";
 import { rookieScale } from "./league/rookieScale";
 
 const step = process.argv[2];
@@ -28,7 +30,8 @@ else if (step === "situations") await situations();
 else if (step === "elements") await elements();
 else if (step === "league") await league();
 else if (step === "rookies") await rookieScale();
+else if (step === "lifecycle") await lifecycle();
 else
   console.log(
-    "Usage: npm run pipeline -- calibration | matchups | people | situations | elements | league | rookies",
+    "Usage: npm run pipeline -- calibration | matchups | people | situations | elements | league | rookies | lifecycle",
   );

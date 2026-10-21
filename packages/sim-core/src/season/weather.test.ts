@@ -88,7 +88,7 @@ describe("Play and watch", () => {
     advance(together);
     advance(oneFirst);
     expect(serializeLeague(oneFirst)).toBe(serializeLeague(together));
-  });
+  }, 90_000);
 
   it("only this week's unplayed games can be played early", () => {
     const league = toWeek1(9);

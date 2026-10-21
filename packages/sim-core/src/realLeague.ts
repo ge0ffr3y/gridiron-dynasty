@@ -201,6 +201,7 @@ function realPlayer(input: RealPlayerInput, id: number, date: LeagueDate, seed: 
     contract: null,
     stats: input.stats ?? [],
     injury: null,
+    ratingHistory: [],
     ...NEW_PLAYER_ROSTER,
   };
 }
@@ -336,6 +337,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     settings: { preseasonGames: true },
     history: [],
     salaryHistory: [],
+    development: [],
     transactions: [
       {
         id: 0,

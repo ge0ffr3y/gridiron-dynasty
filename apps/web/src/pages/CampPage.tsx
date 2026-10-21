@@ -36,8 +36,9 @@ export function CampPage() {
             <CardHeader>
               <CardTitle>Standouts</CardTitle>
               <CardDescription>
-                The best preseason grades. Standouts with room to grow and good work habits improved
-                a little; at final cuts a strong grade could win a spot.
+                The best preseason grades. A strong grade adds to camp development for players with
+                room to grow, can win a bubble player a spot at final cuts, and settles close
+                position battles.
               </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">
@@ -83,7 +84,7 @@ export function CampPage() {
           {c.improved.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Who improved ({c.improved.length})</CardTitle>
+                <CardTitle>Biggest gains in camp ({c.improved.length})</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-1.5 text-sm">
                 {c.improved.map((i) => (

@@ -117,6 +117,12 @@ function upgrade(data: Record<string, unknown>): void {
     if (rules) Object.assign(rules, { roster: fresh.roster, calendar: fresh.calendar });
     data["formatVersion"] = 8;
   }
+  // Version 8 -> 9: player development. No rating history or development rounds yet.
+  if (data["formatVersion"] === 8) {
+    for (const p of (data["players"] as Record<string, unknown>[]) ?? []) p["ratingHistory"] = [];
+    data["development"] = [];
+    data["formatVersion"] = 9;
+  }
 }
 
 /** Set on an upgraded save whose players still need contracts (removed before validation). */

@@ -3,20 +3,11 @@
  * spot. Starters rest, so backups and camp bodies play. Each player's
  * production per snap becomes a showcase grade (50 = typical for his position,
  * shrunk toward 50 when he barely played). At cutdown a strong grade can win a
- * bubble player a spot, and a strong showing from a player with room to grow
- * (hidden potential above his current overall) and good work habits earns a
- * modest boost: his upside shows, without anyone seeing the hidden numbers.
- * Phase 9's development model takes over later. Stats are kept apart from the
- * season's.
+ * bubble player a spot, a strong showing adds a little to camp development
+ * (Phase 9) for players with room to grow and good work habits, and it can
+ * settle a close position battle. Stats are kept apart from the season's.
  */
-import {
-  ATTRIBUTES,
-  OVERALL_WEIGHTS,
-  overallAt,
-  Rng,
-  streamSeed,
-  type Position,
-} from "@fgm/foundation";
+import { Rng, streamSeed, type Position } from "@fgm/foundation";
 import {
   DEPTH_SLOTS,
   LONGEST_STATS,
@@ -25,7 +16,6 @@ import {
   type StatKey,
   type StatLine,
 } from "@fgm/game-engine";
-import { recordTransaction } from "../contracts/operations";
 import type { Game, League, Player } from "../league/schema";
 import { seasonDates } from "../season/calendar";
 import { DEPTH_CHART } from "../season/config";
@@ -194,8 +184,9 @@ function production(position: Position, s: StatLine): { value: number; snaps: nu
 }
 
 /**
- * After the last preseason week: each player's grade against others at his position, then
- * the boosts for standouts with room to grow. Returns how many players got a boost.
+ * After the last preseason week: each player's grade against others at his position (50 =
+ * typical). Camp development (lifecycle/development.ts) then gives standouts a little extra
+ * growth, and cutdown counts the grade. Returns how many players were graded.
  */
 export function gradePreseason(league: League): number {
   const graded = league.players.filter(
@@ -209,61 +200,25 @@ export function gradePreseason(league: League): number {
     list.push({ p, ...prod });
     byPosition.set(p.position, list);
   }
-  let boosted = 0;
-  for (const [position, list] of [...byPosition].sort((a, b) => a[0].localeCompare(b[0]))) {
+  let count = 0;
+  for (const [, list] of [...byPosition].sort((a, b) => a[0].localeCompare(b[0]))) {
     const total = list.reduce((a, x) => a + x.snaps, 0);
     const mean = list.reduce((a, x) => a + x.value * x.snaps, 0) / total;
     const variance =
       list.reduce((a, x) => a + x.snaps * (x.value - mean) * (x.value - mean), 0) / total;
     const sd = Math.sqrt(variance) || 1;
-    const ranked: { p: Player; grade: number }[] = [];
     for (const x of list.sort((a, b) => a.p.id - b.p.id)) {
       const weight = x.snaps / (x.snaps + PRESEASON.gradeShrinkSnaps);
-      const grade = Math.round(
+      x.p.preseason!.grade = Math.round(
         Math.max(
           0,
           Math.min(100, 50 + weight * ((x.value - mean) / sd) * PRESEASON.gradePointsPerSd),
         ),
       );
-      x.p.preseason!.grade = grade;
-      ranked.push({ p: x.p, grade });
+      count += 1;
     }
-    ranked.sort((a, b) => b.grade - a.grade || a.p.id - b.p.id);
-    ranked.forEach(({ p, grade }, i) => {
-      if (grade < PRESEASON.standoutGrade) return;
-      const gain = boostFor(p);
-      if (gain <= 0) return;
-      const percentile = Math.max(1, Math.round(((i + 1) / ranked.length) * 100));
-      grow(p, gain);
-      boosted += 1;
-      recordTransaction(league, {
-        type: "development",
-        teamIds: [p.teamId!],
-        playerIds: [p.id],
-        text: `${p.firstName} ${p.lastName} (${position}) had a strong preseason and improved.`,
-        reason: `Strong preseason: grade ${grade}, top ${percentile}% of preseason ${position}s. Players with room to grow and good work habits build on a showing like that.`,
-      });
-    });
   }
-  return boosted;
-}
-
-/** The boost a standout earns: up to the maximum, never past his potential, scaled by work ethic. */
-function boostFor(p: Player): number {
-  const room = p.hidden.potential - overallAt(p.ratings, p.position);
-  if (room <= 0) return 0;
-  const habits = Math.min(1, p.hidden.workEthic / PRESEASON.fullBoostWorkEthic);
-  return Math.min(room, Math.round(PRESEASON.maxBoost * habits));
-}
-
-/** Raises the skills (not physical traits) that count at his position until his overall rises by `gain`. */
-function grow(p: Player, gain: number): void {
-  const target = overallAt(p.ratings, p.position) + gain;
-  const skills = ATTRIBUTES.filter(
-    (a) => a.group !== "physical" && (OVERALL_WEIGHTS[p.position][a.key] ?? 0) > 0,
-  ).map((a) => a.key);
-  for (let step = 0; step < 10 && overallAt(p.ratings, p.position) < target; step++)
-    for (const key of skills) p.ratings[key] = Math.min(99, p.ratings[key] + 1);
+  return count;
 }
 
 export function preseasonGame(league: League, id: number): Game | undefined {

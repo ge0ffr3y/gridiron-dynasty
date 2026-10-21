@@ -120,11 +120,10 @@ export function campReportView(league: League): CampReportView {
   const graded = league.players.filter(
     (p) => p.preseason?.season === season && p.preseason.grade !== null,
   );
-  const developmentIds = new Set(
-    league.transactions
-      .filter((t) => t.type === "development" && t.date.startsWith(String(season)))
-      .flatMap((t) => t.playerIds),
-  );
+  // Camp's development round (Phase 9): who improved notably in camp.
+  const camp = league.development.find((r) => r.season === season && r.stage === "camp");
+  const campGains = (camp?.changes ?? []).filter((c) => c.after > c.before);
+  const developmentIds = new Set(campGains.map((c) => c.playerId));
   const d = seasonDates(league.rules, season);
   const atCuts = league.transactions.filter(
     (t) => t.date >= d.cutdown && t.date <= d.practiceSquads,
@@ -144,17 +143,16 @@ export function campReportView(league: League): CampReportView {
         improved: developmentIds.has(p.id),
         madeTeam: cutsDone ? p.teamId !== null && p.roster === "active" : null,
       })),
-    improved: league.transactions
-      .filter((t) => t.type === "development" && t.date.startsWith(String(season)))
-      .map((t) => {
-        const p = league.players.find((x) => x.id === t.playerIds[0])!;
-        return {
-          id: p.id,
-          name: `${p.firstName} ${p.lastName}`,
-          team: t.teamIds[0] ?? "",
-          reason: t.reason,
-        };
-      }),
+    improved: campGains.map((c) => {
+      const p = league.players.find((x) => x.id === c.playerId)!;
+      return {
+        id: p.id,
+        name: `${p.firstName} ${p.lastName}`,
+        // Cut at final cuts after improving in camp: say so rather than leave the team blank.
+        team: p.teamId ?? "cut",
+        reason: c.reason,
+      };
+    }),
     claims: atCuts.filter((t) => t.type === "claimed").map((t) => ({ date: t.date, text: t.text })),
     cuts: league.teams.map((t) => ({
       team: t.id,

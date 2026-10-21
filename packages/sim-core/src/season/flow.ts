@@ -26,6 +26,13 @@ import { gameDepthChart } from "./depthChart";
 import { applyInjuries } from "./injuries";
 import { conditionsFor, drawWeather } from "./weather";
 import { closeLeagueYear, openLeagueYear } from "../contracts/upkeep";
+import {
+  campDevelopment,
+  offseasonDevelopment,
+  recordDevelopment,
+  recordRatingHistory,
+  weeklyDevelopment,
+} from "../lifecycle/development";
 import { batch } from "../contracts/operations";
 import { runDraft } from "../roster/draft";
 import { assignJerseys } from "../roster/jerseys";
@@ -252,6 +259,9 @@ function advanceOnce(league: League, hooks: SimHooks): string {
     case "offseason":
       // The new League Year: last season's deals run out, re-signings, free agency, the cap.
       league.date = dates.leagueYear;
+      // Players develop first, so contracts and free agency see who they are now.
+      league.development = [];
+      recordDevelopment(league, "league-year", offseasonDevelopment(league));
       batch(league, () => openLeagueYear(league));
       cal.stage = "free-agency";
       return "The new League Year opens: free agency";
@@ -286,6 +296,8 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       return `Preseason week ${week} played`;
     }
     case "cutdown":
+      // Camp's share of the year's development (a strong preseason helps), then final cuts.
+      recordDevelopment(league, "camp", campDevelopment(league));
       cutdownDay(league);
       // Week 1's roster moves (injured reserve, elevations) are made now too.
       weeklyRosterUpkeep(league);
@@ -299,6 +311,9 @@ function advanceOnce(league: League, hooks: SimHooks): string {
         hooks,
       );
       league.date = dates.weekSundays[week - 1] as string;
+      // Small in-season changes after the whole week is played (so every game this week saw
+      // the same ratings, whether simmed with the week or played early).
+      if (!hooks.historyOnly) recordDevelopment(league, "season", weeklyDevelopment(league, week));
       if (week >= league.rules.schedule.regularSeasonWeeks) {
         cal.stage = "wildcard";
         addPlayoffRound(league, "wildcard");
@@ -420,6 +435,7 @@ function completeSeason(league: League): void {
     tiebreakNotes: standings.notes,
   };
   league.history.push(entry);
+  recordRatingHistory(league);
 
   // Number the next draft's picks.
   const draftSeason = league.season + 1;

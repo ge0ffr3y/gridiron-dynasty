@@ -1,0 +1,21 @@
+{
+  "source": "FTN charting data via nflverse (2022, 2023, 2024, 2025), github.com/nflverse/nflverse-data. Data by FTN Data, licensed CC-BY-SA-4.0; this file of numbers derived from it is shared under the same license (CC-BY-SA-4.0). Built by `npm run pipeline -- matchups`.",
+  "license": "CC-BY-SA-4.0",
+  "playActionRate": 0.2179,
+  "screenRate": 0.0885,
+  "rpoRate": 0.0501,
+  "throwAwayRate": 0.0353,
+  "dropRate": 0.0374,
+  "catchableRate": 0.7244,
+  "contestedRate": 0.1357,
+  "interceptionWorthyRate": 0.0396,
+  "qbSneakShareOfShortYardage": 0.1931,
+  "playAction": {
+    "sackRate": 0.0592,
+    "yardsPerAttempt": 8.12
+  },
+  "noPlayAction": {
+    "sackRate": 0.0676,
+    "yardsPerAttempt": 6.78
+  }
+}

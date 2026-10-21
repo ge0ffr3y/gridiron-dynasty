@@ -7,20 +7,26 @@ import { overallAt, type Position } from "@fgm/foundation";
 import type { Lineup, LineupPlayer } from "@fgm/game-engine";
 import type { League, Player } from "../league/schema";
 
-/** How many players start (or rotate in) at each spot. */
+/**
+ * How many players dress at each spot: enough for every package (three tight
+ * ends, five receivers, a fullback; base, nickel and dime defenses). The
+ * offensive line is ordered left tackle, right tackle, left guard, right
+ * guard, center; the defensive line edge, edge, tackle, tackle.
+ */
 const SLOTS = {
   QB: 1,
   RB: 2,
-  WR: 4,
-  TE: 2,
+  FB: 1,
+  WR: 5,
+  TE: 3,
   OT: 2,
   OG: 2,
   C: 1,
   EDGE: 2,
   DT: 2,
-  LB: 2,
-  CB: 3,
-  S: 2,
+  LB: 3,
+  CB: 4,
+  S: 3,
   K: 1,
   P: 1,
 } as const;
@@ -57,6 +63,7 @@ export function buildLineup(roster: Player[]): Lineup {
   const lineup: Lineup = {
     qb: pick("QB")[0] ?? one("QB"),
     rb: pick("RB"),
+    ...(take("FB", 1)[0] ? { fb: pick("FB")[0] } : {}),
     wr: pick("WR"),
     te: pick("TE"),
     ol: [...pick("OT"), ...pick("OG"), ...pick("C")],

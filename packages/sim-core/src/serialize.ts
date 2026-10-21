@@ -36,6 +36,20 @@ function upgrade(data: Record<string, unknown>): void {
     if (rules && !rules["game"]) rules["game"] = rulesFor(Number(data["season"])).game;
     data["formatVersion"] = 3;
   }
+  // Version 3 -> 4: box scores gain team penalty totals; the rules gain penalty enforcement.
+  if (data["formatVersion"] === 3) {
+    for (const g of (data["games"] as Record<string, unknown>[]) ?? []) {
+      const box = g["boxScore"] as Record<string, Record<string, unknown>> | null;
+      if (!box) continue;
+      for (const side of ["home", "away"]) {
+        if (box[side]) Object.assign(box[side]!, { penalties: 0, penaltyYards: 0 });
+      }
+    }
+    const rules = data["rules"] as { game?: Record<string, unknown> } | undefined;
+    if (rules?.game && !rules.game["penalties"])
+      rules.game["penalties"] = rulesFor(Number(data["season"])).game.penalties;
+    data["formatVersion"] = 4;
+  }
 }
 
 /** Reads a league file (upgrading older saves), checking its format and every field. */

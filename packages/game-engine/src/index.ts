@@ -17,4 +17,4 @@ export type * from "./types";
 export { STAT_KEYS, LONGEST_STATS } from "./types";
 
 /** Bumped when the engine changes how games play out. */
-export const GAME_ENGINE_VERSION = "0.1.0";
+export const GAME_ENGINE_VERSION = "0.2.0";

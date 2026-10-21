@@ -215,14 +215,14 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** Games are decided by real football concepts and individual player matchups, so better players and smarter calls visibly matter.
 
 ### Steps
-- [ ] **Offense:** personnel groupings (11, 12, 21, 10…), formations; run schemes (inside zone, outside zone, power, counter, duo, draw), pass concepts (quick game, dropback, play-action, screens, RPOs, deep shots)
-- [ ] **Defense:** personnel (base, nickel, dime), fronts, coverage shells (Cover 0/1/2/3/4/6, man vs. zone), blitz packages
-- [ ] **Line play:** individual pass-rush vs. pass-protection wins → time to pressure, pressures, sacks; run blocking → lane quality → yards before contact
-- [ ] **Receivers vs. defenders:** separation by route and coverage for each target
-- [ ] **Quarterback:** progression reads, decision (throw, check-down, throwaway, scramble), accuracy and ball placement
-- [ ] **After the throw:** catch probability, contested catches, drops, yards after catch, broken and missed tackles
-- [ ] **Turnovers** driven by decisions, accuracy, coverage, ball security, and hit power
-- [ ] **Penalties:** pre-snap and during the play, accept/decline logic, realistic rates
+- [ ] **Offense:** personnel groupings (11, 12, 21, 10…), formations; run schemes (inside zone, outside zone, power, counter, duo, draw), pass concepts (quick game, dropback, play-action, screens, RPOs, deep shots) *(4a: personnel, formations, run gaps, play-action, screens, RPOs, sneaks and short/medium/deep throws at real rates; named run schemes not yet)*
+- [ ] **Defense:** personnel (base, nickel, dime), fronts, coverage shells (Cover 0/1/2/3/4/6, man vs. zone), blitz packages *(4a: packages, box counts, coverage shells, man/zone and 3–7 rushers; named fronts not yet)*
+- [x] **Line play:** individual pass-rush vs. pass-protection wins → time to pressure, pressures, sacks; run blocking → lane quality → yards before contact *(yards before/after contact as a stat comes with 4b's advanced stats)*
+- [x] **Receivers vs. defenders:** separation by route and coverage for each target
+- [x] **Quarterback:** progression reads, decision (throw, check-down, throwaway, scramble), accuracy and ball placement
+- [x] **After the throw:** catch probability, contested catches, drops, yards after catch, broken and missed tackles *(contested catches are folded into catch vs. breakup odds)*
+- [x] **Turnovers** driven by decisions, accuracy, coverage, ball security, and hit power
+- [x] **Penalties:** pre-snap and during the play, accept/decline logic, realistic rates *(21 types; 5.8–5.9 accepted per team-game vs. 6.02 real)*
 - [ ] **In-game injuries** (simple severity for now; full model in Phase 9)
 - [ ] **Fatigue & substitution:** snap shares, defensive line rotations, running back committees
 - [ ] **Depth chart:** auto-built from ratings, editable by the user; position flexibility covers injuries
@@ -233,9 +233,9 @@ Decisions that block a phase. Record the answer here when made.
 - [ ] **🚀 Release v0.1:** deploy, README with screenshots, tag
 
 ### Done when
-- [ ] Swapping an elite QB onto a bad team noticeably raises its scoring (in a test sim)
+- [x] Swapping an elite QB onto a bad team noticeably raises its scoring (in a test sim) *(+4.1 points a game over 300 games)*
 - [ ] Season leaderboards look like a real NFL season (yardage leaders, sack leaders, interception leaders in real ranges)
-- [ ] A blitz-heavy defense produces more sacks *and* gives up more big plays
+- [x] A blitz-heavy defense produces more sacks *and* gives up more big plays *(test in CI)*
 - [ ] Scorecard green for core and position-level stats
 
 > [!example]- Kickoff prompt

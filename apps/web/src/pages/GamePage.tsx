@@ -231,6 +231,9 @@ export function GamePage({ gameId }: { gameId: number }) {
                               {p.score[0]})
                             </span>
                           )}
+                          {p.scheme && (
+                            <span className="block text-xs text-muted-foreground">{p.scheme}</span>
+                          )}
                           {p.note && (
                             <span className="block text-xs text-muted-foreground">{p.note}</span>
                           )}

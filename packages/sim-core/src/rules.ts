@@ -35,6 +35,22 @@ export const GameRulesSchema = z.object({
   puntTouchbackSpot: z.number().int().positive(),
   safetyFreeKickFrom: z.number().int().positive(),
   overtime: z.object({ regularSeason: OvertimeSchema, playoffs: OvertimeSchema }),
+  penalties: z.object({
+    source: z.string(),
+    types: z.record(
+      z.string(),
+      z.object({
+        /** When it can happen: before the snap, on any play, only on passes, or on kick returns. */
+        phase: z.enum(["pre", "live", "pass", "return"]),
+        side: z.enum(["offense", "defense"]),
+        yards: z.number().int().nonnegative(),
+        /** Previous spot, the spot of the foul (pass interference), or the end of the play (personal fouls). */
+        from: z.enum(["previous", "spot", "end"]),
+        automaticFirstDown: z.boolean(),
+        lossOfDown: z.boolean(),
+      }),
+    ),
+  }),
 });
 export type GameRules = z.infer<typeof GameRulesSchema>;
 

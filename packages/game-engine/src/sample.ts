@@ -63,3 +63,17 @@ export function weightedPick<T>(rng: Rng, items: readonly T[], weight: (item: T)
   }
   return items[items.length - 1] as T;
 }
+
+/** Straight-line interpolation in a table (xs increasing); flat beyond either end. */
+export function interpolate(xs: readonly number[], ys: readonly number[], x: number): number {
+  if (x <= (xs[0] as number)) return ys[0] as number;
+  for (let i = 1; i < xs.length; i++) {
+    const x1 = xs[i] as number;
+    if (x <= x1) {
+      const x0 = xs[i - 1] as number;
+      const y0 = ys[i - 1] as number;
+      return y0 + ((x - x0) / (x1 - x0)) * ((ys[i] as number) - y0);
+    }
+  }
+  return ys[ys.length - 1] as number;
+}

@@ -1,5 +1,6 @@
 /** Synthetic lineups for engine tests (the engine doesn't know about leagues). */
 import { ATTRIBUTES, baseProfile, overallAt, type Position, type Ratings } from "@fgm/foundation";
+import rules2026 from "../../../rules/2026.json";
 import type { GameRules, Lineup, LineupPlayer } from "./types";
 
 let nextId = 1;
@@ -23,32 +24,19 @@ export function makeLineup(level = 0, firstId = 1): Lineup {
   return {
     qb: player("QB", level),
     rb: many("RB", 2),
-    wr: many("WR", 4),
-    te: many("TE", 2),
+    fb: player("FB", level),
+    wr: many("WR", 5),
+    te: many("TE", 3),
     ol: [...many("OT", 2), ...many("OG", 2), player("C", level)],
     dl: [...many("EDGE", 2), ...many("DT", 2)],
-    lb: many("LB", 2),
-    cb: many("CB", 3),
-    s: many("S", 2),
+    lb: many("LB", 3),
+    cb: many("CB", 4),
+    s: many("S", 3),
     k: player("K", level),
     p: player("P", level),
     returner: player("WR", level),
   };
 }
 
-export const TEST_RULES: GameRules = {
-  quarterMinutes: 15,
-  timeoutsPerHalf: 3,
-  twoMinuteWarning: true,
-  playClockSeconds: 40,
-  outOfBoundsStopsClockLastSeconds: { firstHalf: 120, secondHalf: 300 },
-  extraPointSpot: 15,
-  twoPointSpot: 2,
-  kickoff: { touchbackSpot: 35, landingZoneTouchbackSpot: 20, shortOrOutOfBoundsSpot: 40 },
-  puntTouchbackSpot: 20,
-  safetyFreeKickFrom: 20,
-  overtime: {
-    regularSeason: { periodMinutes: 10, maxPeriods: 1, timeouts: 2, bothTeamsPossess: true },
-    playoffs: { periodMinutes: 15, maxPeriods: null, timeouts: 3, bothTeamsPossess: true },
-  },
-};
+/** The real rules file's game rules (clock, kicks, overtime, penalties). */
+export const TEST_RULES: GameRules = rules2026.game as GameRules;

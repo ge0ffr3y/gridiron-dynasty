@@ -27,6 +27,8 @@ function emptyTeam(): TeamGameStats {
     punts: 0,
     drives: 0,
     possessionSeconds: 0,
+    penalties: 0,
+    penaltyYards: 0,
   };
 }
 
@@ -46,6 +48,7 @@ export function buildBoxScore(
     const everyone = [
       l.qb,
       ...l.rb,
+      ...(l.fb ? [l.fb] : []),
       ...l.wr,
       ...l.te,
       ...l.ol,
@@ -78,6 +81,19 @@ export function buildBoxScore(
   const team: Record<Side, TeamGameStats> = { home: emptyTeam(), away: emptyTeam() };
 
   for (const p of plays) {
+    if (p.penalty?.accepted) {
+      const t = team[p.penalty.team];
+      t.penalties += 1;
+      t.penaltyYards += p.penalty.yards;
+      add(p.penalty.player, "penalties");
+      add(p.penalty.player, "penaltyYds", p.penalty.yards);
+    }
+    // A play wiped out by a penalty doesn't count in anyone's stats.
+    if (p.noPlay) {
+      // A first down by penalty still counts as a first down.
+      if (p.firstDown) team[p.offense].firstDowns += 1;
+      continue;
+    }
     const off = team[p.offense];
     const td = p.touchdown !== undefined;
     const offenseTd = p.touchdown === p.offense;

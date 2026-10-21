@@ -54,9 +54,10 @@ describe("game stats in the league", () => {
     for (const g of old.games) delete g.boxScore;
     delete old.rules.game;
     const upgraded = parseLeague(JSON.stringify(old));
-    expect(upgraded.formatVersion).toBe(3);
+    expect(upgraded.formatVersion).toBe(4);
     expect(upgraded.players.every((p) => p.stats.length === 0)).toBe(true);
     expect(upgraded.games.every((g) => g.boxScore === null)).toBe(true);
     expect(upgraded.rules.game.quarterMinutes).toBe(15);
+    expect(Object.keys(upgraded.rules.game.penalties.types).length).toBeGreaterThan(10);
   });
 });

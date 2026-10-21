@@ -167,6 +167,179 @@
         "timeouts": 3,
         "bothTeamsPossess": true
       }
+    },
+    "penalties": {
+      "source": "NFL rulebook (Rule 14 enforcement; Rules 7, 8, 12): yardage, where it's enforced from, automatic first downs, and loss of down. Simplifications for now: offensive fouls are enforced from the previous spot; pass interference by the defense is a spot foul (at the 1 if in the end zone); personal fouls after a completed play are added to the end of the play; any foul is limited to half the distance to the goal. Which penalties happen, and how often, comes from real data (calibration/matchups.json).",
+      "types": {
+        "False Start": {
+          "phase": "pre",
+          "side": "offense",
+          "yards": 5,
+          "from": "previous",
+          "automaticFirstDown": false,
+          "lossOfDown": false
+        },
+        "Delay of Game": {
+          "phase": "pre",
+          "side": "offense",
+          "yards": 5,
+          "from": "previous",
+          "automaticFirstDown": false,
+          "lossOfDown": false
+        },
+        "Illegal Formation": {
+          "phase": "pre",
+          "side": "offense",
+          "yards": 5,
+          "from": "previous",
+          "automaticFirstDown": false,
+          "lossOfDown": false
+        },
+        "Illegal Shift": {
+          "phase": "pre",
+          "side": "offense",
+          "yards": 5,
+          "from": "previous",
+          "automaticFirstDown": false,
+          "lossOfDown": false
+        },
+        "Defensive Offside": {
+          "phase": "pre",
+          "side": "defense",
+          "yards": 5,
+          "from": "previous",
+          "automaticFirstDown": false,
+          "lossOfDown": false
+        },
+        "Neutral Zone Infraction": {
+          "phase": "pre",
+          "side": "defense",
+          "yards": 5,
+          "from": "previous",
+          "automaticFirstDown": false,
+          "lossOfDown": false
+        },
+        "Encroachment": {
+          "phase": "pre",
+          "side": "defense",
+          "yards": 5,
+          "from": "previous",
+          "automaticFirstDown": false,
+          "lossOfDown": false
+        },
+        "Defensive Too Many Men on Field": {
+          "phase": "pre",
+          "side": "defense",
+          "yards": 5,
+          "from": "previous",
+          "automaticFirstDown": false,
+          "lossOfDown": false
+        },
+        "Offensive Holding": {
+          "phase": "live",
+          "side": "offense",
+          "yards": 10,
+          "from": "previous",
+          "automaticFirstDown": false,
+          "lossOfDown": false
+        },
+        "Illegal Block Above the Waist": {
+          "phase": "live",
+          "side": "offense",
+          "yards": 10,
+          "from": "previous",
+          "automaticFirstDown": false,
+          "lossOfDown": false
+        },
+        "Offensive Pass Interference": {
+          "phase": "pass",
+          "side": "offense",
+          "yards": 10,
+          "from": "previous",
+          "automaticFirstDown": false,
+          "lossOfDown": false
+        },
+        "Ineligible Downfield Pass": {
+          "phase": "pass",
+          "side": "offense",
+          "yards": 5,
+          "from": "previous",
+          "automaticFirstDown": false,
+          "lossOfDown": false
+        },
+        "Intentional Grounding": {
+          "phase": "pass",
+          "side": "offense",
+          "yards": 10,
+          "from": "previous",
+          "automaticFirstDown": false,
+          "lossOfDown": true
+        },
+        "Defensive Holding": {
+          "phase": "live",
+          "side": "defense",
+          "yards": 5,
+          "from": "previous",
+          "automaticFirstDown": true,
+          "lossOfDown": false
+        },
+        "Illegal Contact": {
+          "phase": "pass",
+          "side": "defense",
+          "yards": 5,
+          "from": "previous",
+          "automaticFirstDown": true,
+          "lossOfDown": false
+        },
+        "Illegal Use of Hands": {
+          "phase": "live",
+          "side": "defense",
+          "yards": 5,
+          "from": "previous",
+          "automaticFirstDown": true,
+          "lossOfDown": false
+        },
+        "Defensive Pass Interference": {
+          "phase": "pass",
+          "side": "defense",
+          "yards": 0,
+          "from": "spot",
+          "automaticFirstDown": true,
+          "lossOfDown": false
+        },
+        "Roughing the Passer": {
+          "phase": "pass",
+          "side": "defense",
+          "yards": 15,
+          "from": "end",
+          "automaticFirstDown": true,
+          "lossOfDown": false
+        },
+        "Unnecessary Roughness": {
+          "phase": "live",
+          "side": "defense",
+          "yards": 15,
+          "from": "end",
+          "automaticFirstDown": true,
+          "lossOfDown": false
+        },
+        "Face Mask": {
+          "phase": "live",
+          "side": "defense",
+          "yards": 15,
+          "from": "end",
+          "automaticFirstDown": true,
+          "lossOfDown": false
+        },
+        "Return Holding": {
+          "phase": "return",
+          "side": "offense",
+          "yards": 10,
+          "from": "end",
+          "automaticFirstDown": false,
+          "lossOfDown": false
+        }
+      }
     }
   }
 }

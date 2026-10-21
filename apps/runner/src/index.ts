@@ -191,10 +191,11 @@ function runCalibration(seed: number, leagues: number, seasonsPerLeague: number)
   const fmt = (v: number) => (Math.abs(v) < 1.5 ? v.toFixed(3) : v.toFixed(2));
   for (const line of lines) {
     console.log(
-      `${line.key.padEnd(28)} ${fmt(line.sim).padStart(10)}  ${fmt(line.real).padStart(10)}   ${`${fmt(line.range[0])} to ${fmt(line.range[1])}`.padEnd(18)}  ${line.pass ? "ok" : "MISS"}`,
+      `${line.key.padEnd(28)} ${fmt(line.sim).padStart(10)}  ${fmt(line.real).padStart(10)}   ${`${fmt(line.range[0])} to ${fmt(line.range[1])}`.padEnd(18)}  ${line.pending ? "later" : line.pass ? "ok" : "MISS"}`,
     );
   }
-  const passed = lines.filter((x) => x.pass).length;
+  const passed = lines.filter((x) => x.pass && !x.pending).length;
+  const counted = lines.filter((x) => !x.pending).length;
   const total = Number(process.hrtime.bigint() - started) / 1e9;
-  console.log(`\n${passed} of ${lines.length} inside the real range (${total.toFixed(1)} s).`);
+  console.log(`\n${passed} of ${counted} inside the real range (${total.toFixed(1)} s).`);
 }

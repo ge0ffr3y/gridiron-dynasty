@@ -23,6 +23,17 @@ export interface GameRules {
     regularSeason: OvertimeRules;
     playoffs: OvertimeRules;
   };
+  penalties: { types: Record<string, PenaltyRule> };
+}
+
+/** How a penalty is enforced (from the rules file). */
+export interface PenaltyRule {
+  phase: "pre" | "live" | "pass" | "return";
+  side: "offense" | "defense";
+  yards: number;
+  from: "previous" | "spot" | "end";
+  automaticFirstDown: boolean;
+  lossOfDown: boolean;
 }
 
 export interface OvertimeRules {
@@ -42,10 +53,16 @@ export interface LineupPlayer {
   overall: number;
 }
 
-/** Who plays where for one team. */
+/**
+ * Who is available to play, by spot, best first. Offensive line order: left
+ * tackle, right tackle, left guard, right guard, center. Defensive line:
+ * edge, edge, tackle, tackle.
+ */
 export interface Lineup {
   qb: LineupPlayer;
   rb: LineupPlayer[];
+  /** A fullback, if the team carries one (used in 21 and 22 personnel). */
+  fb?: LineupPlayer;
   wr: LineupPlayer[];
   te: LineupPlayer[];
   ol: LineupPlayer[];
@@ -61,6 +78,8 @@ export interface Lineup {
 export interface TeamInput {
   id: string;
   lineup: Lineup;
+  /** How this team's defense likes to play (coaches set this from Phase 10). */
+  defenseStyle?: { extraBlitz?: number };
 }
 
 export interface GameInput {
@@ -88,7 +107,8 @@ export type PlayKind =
   | "spike"
   | "timeout"
   | "twoMinuteWarning"
-  | "endOfPeriod";
+  | "endOfPeriod"
+  | "penalty";
 
 /**
  * One play. Field position is `yardsToGoal`: how far the offense is from
@@ -138,6 +158,27 @@ export interface Play {
   score: [number, number];
   /** Why a notable call was made (4th downs, 2-point tries, kneels, timeouts). */
   note?: string;
+  // --- Matchup details (Phase 4) ---
+  personnel?: string;
+  formation?: string;
+  coverage?: string;
+  rushers?: number;
+  playAction?: boolean;
+  rpo?: boolean;
+  sneak?: boolean;
+  route?: string;
+  /** The hole a run went through, in words. */
+  gap?: string;
+  /** Who got pressure on the quarterback. */
+  pressure?: number;
+  throwAway?: boolean;
+  drop?: boolean;
+  breakup?: boolean;
+  missedTackles?: number[];
+  /** A penalty on the play (accepted or declined). */
+  penalty?: { type: string; team: Side; player?: number; yards: number; accepted: boolean };
+  /** The play was wiped out by an accepted penalty (its stats don't count). */
+  noPlay?: boolean;
 }
 
 export const STAT_KEYS = [
@@ -181,6 +222,8 @@ export const STAT_KEYS = [
   "prYds",
   "prTd",
   "twoPt",
+  "penalties",
+  "penaltyYds",
 ] as const;
 
 export type StatKey = (typeof STAT_KEYS)[number];
@@ -211,6 +254,8 @@ export interface TeamGameStats {
   punts: number;
   drives: number;
   possessionSeconds: number;
+  penalties: number;
+  penaltyYards: number;
 }
 
 export interface BoxScore {

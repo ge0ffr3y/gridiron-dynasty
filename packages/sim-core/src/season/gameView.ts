@@ -15,6 +15,8 @@ export interface PlayLine {
   text: string;
   /** Why a notable call was made. */
   note?: string;
+  /** Formation, personnel and coverage ("Shotgun, 11 personnel vs. Cover 3, 5 rushers"). */
+  scheme?: string;
   offense: Side;
   scoring: boolean;
   score: [number, number];
@@ -75,8 +77,50 @@ function spot(ytg: number, offense: string, defense: string): string {
   return ytg > 50 ? `${offense} ${100 - ytg}` : `${defense} ${ytg}`;
 }
 
-/** Turns one play into a sentence. */
+/** Turns one play into a sentence, with any penalty on it. */
 export function describePlay(
+  p: Play,
+  name: (id: number | undefined) => string,
+  abbr: Record<Side, string>,
+): string {
+  const penalty = p.penalty
+    ? ` PENALTY on ${abbr[p.penalty.team]}${p.penalty.player !== undefined ? ` ${name(p.penalty.player)}` : ""}, ${p.penalty.type}, ${
+        !p.penalty.accepted
+          ? "declined"
+          : [
+              p.penalty.yards > 0
+                ? `${p.penalty.yards} yard${p.penalty.yards === 1 ? "" : "s"}`
+                : "",
+              p.noPlay ? "no play" : "",
+            ]
+              .filter(Boolean)
+              .join(", ") || "enforced"
+      }.`
+    : "";
+  if (p.kind === "penalty") return penalty.trim();
+  return `${p.noPlay ? "(No play) " : ""}${describeAction(p, name, abbr)}${penalty}`;
+}
+
+const COVERAGES: Record<string, string> = {
+  cover0: "Cover 0",
+  cover1: "Cover 1",
+  cover2: "Cover 2",
+  "2man": "2-Man",
+  cover3: "Cover 3",
+  cover4: "Cover 4",
+  cover6: "Cover 6",
+  other: "mixed coverage",
+};
+
+/** Formation, personnel, coverage and rush, e.g. "Shotgun, 11 personnel vs. Cover 3, 5 rushers". */
+export function describeScheme(p: Play): string {
+  if (!p.personnel) return "";
+  const formation = p.formation ? p.formation[0] + p.formation.slice(1).toLowerCase() + ", " : "";
+  const coverage = p.coverage ? (COVERAGES[p.coverage] ?? "") : "";
+  return `${formation}${p.personnel} personnel${coverage ? ` vs. ${coverage}${p.rushers ? `, ${p.rushers} rushers` : ""}` : ""}`;
+}
+
+function describeAction(
   p: Play,
   name: (id: number | undefined) => string,
   abbr: Record<Side, string>,
@@ -88,6 +132,9 @@ export function describePlay(
     p.direction === "middle" ? "up the middle" : p.direction ? `to the ${p.direction}` : "";
   const tackle = p.tacklers?.length ? ` (${name(p.tacklers[0])})` : "";
   const oob = p.outOfBounds ? ", out of bounds" : "";
+  const broke = p.missedTackles?.length ? `, breaking a tackle by ${name(p.missedTackles[0])}` : "";
+  const pressure = p.pressure !== undefined ? ` under pressure from ${name(p.pressure)},` : "";
+  const action = p.playAction ? " (play action)" : p.rpo ? " (RPO)" : "";
   const fumble = p.fumble
     ? p.fumble.lost
       ? `. ${name(p.fumble.by)} FUMBLES, recovered by ${def} ${name(p.fumble.recoveredBy)}`
@@ -95,7 +142,9 @@ export function describePlay(
     : "";
   switch (p.kind) {
     case "run":
-      return `${name(p.rusher)} runs ${dirText} ${yards(p.yards)}${td}${oob}${p.touchdown ? "" : tackle}${fumble}`.replace(
+      if (p.sneak)
+        return `${name(p.rusher)} QB sneak ${yards(p.yards)}${td}${p.touchdown ? "" : tackle}${fumble}`;
+      return `${name(p.rusher)} runs ${p.gap ?? dirText} ${yards(p.yards)}${td}${oob}${p.touchdown ? "" : tackle}${broke}${fumble}`.replace(
         "  ",
         " ",
       );
@@ -106,15 +155,25 @@ export function describePlay(
     case "spike":
       return `${name(p.passer)} spikes the ball to stop the clock`;
     case "sack":
-      return `${name(p.passer)} sacked by ${name(p.defender)} ${yards(p.yards)}${fumble}${p.safety ? ", SAFETY" : ""}`;
+      return `${name(p.passer)}${action} sacked by ${name(p.defender)} ${yards(p.yards)}${fumble}${p.safety ? ", SAFETY" : ""}`;
     case "pass": {
-      const where = `${p.depth ?? ""} ${p.direction ?? ""}`.trim();
+      const where = p.route
+        ? `${p.depth ?? ""} (${p.route.toLowerCase()})`
+        : `${p.depth ?? ""} ${p.direction ?? ""}`.trim();
+      const who = `${name(p.passer)}${action}${pressure}`;
+      if (p.throwAway) return `${who} throws it away`;
       if (p.intercepted) {
-        return `${name(p.passer)} pass ${where} intended for ${name(p.receiver)} INTERCEPTED by ${name(p.defender)}${p.touchdown ? `, returned ${p.returnYards} yards for a TOUCHDOWN` : `, returned ${p.returnYards ?? 0} yards`}`;
+        return `${who} pass ${where} intended for ${name(p.receiver)} INTERCEPTED by ${name(p.defender)}${
+          p.touchdown
+            ? `, returned ${p.returnYards} yards for a TOUCHDOWN`
+            : `, returned ${p.returnYards ?? 0} yards`
+        }`;
       }
-      if (!p.complete)
-        return `${name(p.passer)} pass incomplete ${where} intended for ${name(p.receiver)}`;
-      return `${name(p.passer)} pass ${where} to ${name(p.receiver)} ${yards(p.yards)}${td}${oob}${p.touchdown ? "" : tackle}${fumble}`;
+      if (!p.complete) {
+        const why = p.drop ? ", DROPPED" : p.breakup ? `, broken up by ${name(p.defender)}` : "";
+        return `${who} pass incomplete ${where} intended for ${name(p.receiver)}${why}`;
+      }
+      return `${who} pass ${where} to ${name(p.receiver)} ${yards(p.yards)}${td}${oob}${p.touchdown ? "" : tackle}${broke}${fumble}`;
     }
     case "punt": {
       const result = p.touchback
@@ -151,6 +210,8 @@ export function describePlay(
       return "Two-minute warning";
     case "endOfPeriod":
       return p.quarter >= 5 ? "End of overtime period" : `End of the ${ordinal(p.quarter)} quarter`;
+    case "penalty":
+      return "";
   }
 }
 
@@ -164,6 +225,7 @@ function situation(p: Play, abbr: Record<Side, string>): string {
     "spike",
     "punt",
     "fieldGoal",
+    "penalty",
   ].includes(p.kind);
   if (!scrimmage) return "";
   const off = abbr[p.offense];
@@ -194,6 +256,7 @@ function teamStatRows(box: BoxScore): GameView["teamStats"] {
     row("Third downs", (s) => `${s.thirdDownConv}/${s.thirdDownAtt}`),
     row("Fourth downs", (s) => `${s.fourthDownConv}/${s.fourthDownAtt}`),
     row("Punts", (s) => String(s.punts)),
+    row("Penalties (yards)", (s) => `${s.penalties} (${s.penaltyYards})`),
     row("Time of possession", (s) => top(s.possessionSeconds)),
   ];
 }
@@ -245,6 +308,7 @@ export function gameView(league: League, gameId: number, plays: Play[] | null): 
             situation: situation(p, abbr),
             text: describePlay(p, name, abbr),
             ...(p.note ? { note: p.note } : {}),
+            ...(describeScheme(p) ? { scheme: describeScheme(p) } : {}),
             offense: p.offense,
             scoring: p.score[0] !== before[0] || p.score[1] !== before[1],
             score: p.score,

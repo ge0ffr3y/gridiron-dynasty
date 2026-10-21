@@ -17,7 +17,23 @@ import {
   type Call,
   type Situation,
 } from "./playcall";
-import { adjustProbability, fromQuantiles, shiftedUniform, weightedPick } from "./sample";
+import { chooseHuddle } from "./onfield";
+import {
+  expectedPoints,
+  liveFoul,
+  preSnapFoul,
+  returnFoul,
+  TOUCHDOWN_VALUE,
+  type Foul,
+} from "./penalties";
+import {
+  adjustProbability,
+  interpolate,
+  fromQuantiles,
+  shiftedUniform,
+  weightedPick,
+} from "./sample";
+import { PASS_STYLE, resolvePass, resolveRun, type ScrimmageResult } from "./scrimmage";
 import type {
   GameInput,
   GameOutput,
@@ -255,7 +271,17 @@ class Game {
       return;
     }
     if (!fromSafety && r < k.kickoffTouchbackRate + k.kickoffOutOfBoundsRate) {
-      this.record({ kind: "kickoff", yards: 0, kicker: kicker.id, outOfBounds: true }, at);
+      // A kickoff out of bounds is a penalty on the kicking team (ball at the 40).
+      this.record(
+        {
+          kind: "kickoff",
+          yards: 0,
+          kicker: kicker.id,
+          outOfBounds: true,
+          penalty: { type: "Kickoff Out of Bounds", team: kicking, yards: 0, accepted: true },
+        },
+        at,
+      );
       this.newPossession(receiving, 100 - rules.shortOrOutOfBoundsSpot);
       return;
     }
@@ -293,6 +319,7 @@ class Game {
       this.afterTouchdown(receiving, false);
       return;
     }
+    const foul = this.returnPenalty("kickoff", receiving, start);
     this.record(
       {
         kind: "kickoff",
@@ -301,10 +328,39 @@ class Game {
         returner: returner.id,
         returnYards: Math.max(0, start - catchSpot),
         tacklers: [this.tackler(kicking, "pass").id],
+        ...(foul ? { penalty: foul.penalty } : {}),
       },
       at,
     );
-    this.newPossession(receiving, 100 - start);
+    this.newPossession(receiving, 100 - (start - (foul?.yards ?? 0)));
+  }
+
+  /** A foul by the return team (holding, illegal block): enforced back from where the return ended. */
+  private returnPenalty(
+    kick: "punt" | "kickoff",
+    receiving: Side,
+    ownYardLine: number,
+  ): { penalty: NonNullable<Play["penalty"]>; yards: number } | null {
+    const l = this.lineup[receiving];
+    const foul = returnFoul(this.rng, this.input.rules, kick, [
+      ...l.lb,
+      ...l.s,
+      ...l.cb,
+      ...l.te,
+      ...l.rb,
+    ]);
+    if (!foul) return null;
+    const yards = Math.min(foul.rule.yards, Math.floor(ownYardLine / 2));
+    return {
+      penalty: {
+        type: foul.type,
+        team: receiving,
+        ...(foul.player ? { player: foul.player.id } : {}),
+        yards,
+        accepted: true,
+      },
+      yards,
+    };
   }
 
   /**
@@ -368,11 +424,21 @@ class Game {
   }
 
   private fieldGoalChance(side: Side, distance: number): number {
+    // The real make rate at this distance; past the longest measured distance
+    // it keeps falling along the fitted curve.
+    const { distances, rates } = REAL.kicking.fieldGoalByDistance;
+    const last = distances[distances.length - 1] as number;
     const { a, b } = REAL.kicking.fieldGoalLogistic;
+    const base =
+      distance <= last
+        ? interpolate(distances, rates, distance)
+        : ((rates[rates.length - 1] as number) * dmath.logistic(a + b * distance)) /
+          dmath.logistic(a + b * last);
     const u = this.units[side];
-    const base = dmath.logistic(a + b * distance);
     const k = TUNING.averageKicker;
-    const skill = u.kickAccuracy - k + (distance > 45 ? (u.kickPower - k) * 0.4 : 0);
+    const F = TUNING.fieldGoal;
+    const skill =
+      u.kickAccuracy - k + (distance > F.longKick ? (u.kickPower - k) * F.longKickPowerWeight : 0);
     return adjustProbability(base, skill * TUNING.matchup.fieldGoalLogit);
   }
 
@@ -487,9 +553,8 @@ class Game {
   private resolve(call: Call): void {
     switch (call.kind) {
       case "run":
-        return this.run(call.inside, call.note);
       case "pass":
-        return this.dropback(call.depth, call.note);
+        return this.scrimmage(call);
       case "punt":
         return this.punt(call.note);
       case "fieldGoal":
@@ -561,334 +626,270 @@ class Game {
     this.newPossession(this.defense, 100 - ytgOffenseFrame);
   }
 
-  private run(inside: boolean, note?: string): void {
-    const at = { clock: this.clock };
-    const off = this.units[this.offense];
-    const def = this.units[this.defense];
-    const rusher = this.pickRusher(this.offense);
-    const rusherSkill = rusher.position === "QB" ? rusher.ratings.speed : off.rusher;
-    const edge =
-      0.5 * (off.runBlocking - AVERAGE_RATING) +
-      0.5 * (rusherSkill - AVERAGE_RATING) -
-      (def.runDefense - AVERAGE_RATING);
-    const u = shiftedUniform(
-      this.rng,
-      edge * TUNING.matchup.runQuantileShift + TUNING.baseline.runQuantileShift,
-    );
-    const gain = Math.round(fromQuantiles(Q, REAL.run.yardQuantiles, u, TUNING.tails.run));
-    this.playTime(TUNING.playSeconds.run, this.offense);
-    const direction: "left" | "middle" | "right" = inside
-      ? "middle"
-      : this.rng.chance(0.5)
-        ? "left"
-        : "right";
-    const outOfBounds =
-      gain < this.ytg &&
-      this.rng.chance(inside ? TUNING.outOfBounds.insideRun : TUNING.outOfBounds.outsideRun);
-    const base = { kind: "run" as const, rusher: rusher.id, direction, ...(note ? { note } : {}) };
+  // --- Scrimmage plays: huddle, fouls, matchups, accept/decline ----------------------
 
-    // Fumble?
-    const fumbleChance = adjustProbability(
-      REAL.run.fumbleRate,
-      (AVERAGE_RATING - rusher.ratings.ballSecurity) * 0.03,
-    );
-    if (gain < this.ytg && this.ytg - gain < 100 && this.rng.chance(fumbleChance)) {
-      const lost = this.rng.chance(TUNING.fumbleLostShare.run);
-      const recoverer = this.tackler(this.defense, "run");
-      if (lost) {
-        const at2 = { clock: at.clock, down: this.down, toGo: this.toGo, ytg: this.ytg };
-        this.record(
-          {
-            ...base,
-            yards: gain,
-            tacklers: [recoverer.id],
-            fumble: { by: rusher.id, lost: true, recoveredBy: recoverer.id },
-            turnover: true,
-          },
-          at2,
-        );
-        this.turnover(this.ytg - gain);
-        return;
-      }
-      this.advance(
-        gain,
-        {
-          ...base,
-          tacklers: [this.tackler(this.defense, "run").id],
-          fumble: { by: rusher.id, lost: false },
-        },
-        at,
-        false,
-      );
-      return;
-    }
-    const tacklers = gain >= this.ytg ? [] : [this.tackler(this.defense, "run").id];
-    this.advance(
-      gain,
-      { ...base, tacklers, ...(outOfBounds ? { outOfBounds: true } : {}) },
-      at,
-      outOfBounds && this.outOfBoundsStopsClock(),
-    );
-    this.restartsOnSpot = outOfBounds && !this.outOfBoundsStopsClock();
+  private homeEdgeFor(offense: Side): number {
+    if (this.input.neutral) return 0;
+    return offense === "home" ? TUNING.homeFieldEdge : -TUNING.homeFieldEdge;
   }
 
-  private dropback(depth: Depth, note?: string): void {
+  /** Half the distance to the goal: no foul moves the ball more than that. */
+  private backward(yards: number): number {
+    return Math.min(yards, Math.floor((100 - this.ytg) / 2));
+  }
+  private forward(yards: number, ytg = this.ytg): number {
+    return yards > ytg / 2 ? Math.floor(ytg / 2) : yards;
+  }
+
+  private scrimmage(call: Extract<Call, { kind: "run" | "pass" }>): void {
+    const offense = this.offense;
+    const defense = this.defense;
+    let isPass = call.kind === "pass";
+    const sneak = !isPass && this.down >= 3 && this.toGo <= 1 && this.rng.chance(PASS_STYLE.sneak);
+    const huddle = chooseHuddle(
+      this.rng,
+      isPass ? "pass" : "run",
+      { down: this.down, toGo: this.toGo, yardsToGoal: this.ytg },
+      this.lineup[offense],
+      this.lineup[defense],
+      this.input[defense].defenseStyle ?? {},
+    );
+    // Run-pass option: against a stacked box the quarterback pulls it and throws quick.
+    let rpo = false;
+    if (!isPass && !sneak && huddle.box >= 7 && this.rng.chance(PASS_STYLE.rpo * 2)) {
+      isPass = true;
+      rpo = true;
+    }
     const at = { clock: this.clock };
-    const off = this.units[this.offense];
-    const def = this.units[this.defense];
-    const qb = this.lineup[this.offense].qb;
-    this.restartsOnSpot = false;
 
-    // Sack?
-    const sackEdge =
-      def.passRush -
-      AVERAGE_RATING -
-      (off.passProtection - AVERAGE_RATING) -
-      0.3 * (qb.ratings.awareness - AVERAGE_RATING);
-    if (
-      this.rng.chance(
-        adjustProbability(
-          SACK_PER_DROPBACK * TUNING.baseline.sackRateScale,
-          sackEdge * TUNING.matchup.sackLogit,
-        ),
-      )
-    ) {
-      const sacker = this.passRusher(this.defense);
-      const loss = Math.round(fromQuantiles(Q, REAL.pass.sackYardQuantiles, this.rng.next()));
-      this.playTime(TUNING.playSeconds.sack, this.offense);
-      const base = {
-        kind: "sack" as const,
-        passer: qb.id,
-        defender: sacker.id,
-        ...(note ? { note } : {}),
-      };
-      if (this.ytg - loss < 100 && this.rng.chance(REAL.pass.sackFumbleRate)) {
-        const lost = this.rng.chance(TUNING.fumbleLostShare.sack);
-        if (lost) {
-          this.record(
-            {
-              ...base,
-              yards: loss,
-              fumble: { by: qb.id, lost: true, recoveredBy: sacker.id },
-              turnover: true,
-            },
-            { clock: at.clock },
-          );
-          this.turnover(this.ytg - loss);
-          return;
-        }
-        this.advance(loss, { ...base, fumble: { by: qb.id, lost: false } }, at, false);
-        return;
-      }
-      this.advance(loss, base, at, false);
+    const pre = preSnapFoul(this.rng, this.input.rules, huddle);
+    if (pre) {
+      this.enforcePreSnap(pre);
       return;
     }
 
-    // Scramble?
-    const scrambleChance = adjustProbability(
-      REAL.pass.scrambleShareOfDropbacks,
-      (qb.ratings.speed - 70) * TUNING.matchup.scrambleLogit,
-    );
-    if (this.rng.chance(scrambleChance)) {
-      const gain = Math.round(
-        fromQuantiles(
-          Q,
-          REAL.pass.scrambleYardQuantiles,
-          shiftedUniform(this.rng, (qb.ratings.speed - 70) * 0.003),
-          TUNING.tails.run,
-        ),
-      );
-      this.playTime(TUNING.playSeconds.scramble, this.offense);
-      const outOfBounds = gain < this.ytg && this.rng.chance(TUNING.outOfBounds.scramble);
-      const tacklers =
-        gain >= this.ytg || outOfBounds ? [] : [this.tackler(this.defense, "pass").id];
-      this.advance(
-        gain,
-        {
-          kind: "scramble",
-          rusher: qb.id,
-          tacklers,
-          ...(outOfBounds ? { outOfBounds: true } : {}),
-          ...(note ? { note } : {}),
-        },
-        at,
-        outOfBounds && this.outOfBoundsStopsClock(),
-      );
-      this.restartsOnSpot = outOfBounds && !this.outOfBoundsStopsClock();
-      return;
-    }
-
-    // The throw.
-    const target = this.pickTarget(this.offense);
-    const direction = this.rng.pick(["left", "middle", "right"] as const);
-    const passEdge =
-      0.6 * (off.passer - AVERAGE_RATING) +
-      0.4 * (off.receivers - AVERAGE_RATING) -
-      (def.coverage - AVERAGE_RATING) +
-      0.3 * (target.overall - off.receivers);
-    const pComplete = adjustProbability(
-      REAL.pass.completionByDepth[depth],
-      passEdge * TUNING.matchup.completionLogit +
-        TUNING.baseline.completionLogit +
-        (this.down === 3 ? TUNING.baseline.thirdDownCompletionLogit : 0),
-    );
-    const pInt = adjustProbability(
-      REAL.pass.interceptionByDepth[depth] * TUNING.baseline.interceptionRateScale,
-      (def.coverage - AVERAGE_RATING - (off.passer - AVERAGE_RATING)) *
-        TUNING.matchup.interceptionLogit,
-    );
-    const r = this.rng.next();
-    const base = {
-      kind: "pass" as const,
-      passer: qb.id,
-      receiver: target.id,
-      depth,
-      direction,
-      ...(note ? { note } : {}),
+    const ctx = {
+      rng: this.rng,
+      huddle,
+      ytg: this.ytg,
+      down: this.down,
+      toGo: this.toGo,
+      homeEdge: this.homeEdgeFor(offense),
+      ...(call.note ? { note: call.note } : {}),
     };
+    const playAction =
+      isPass && !rpo && this.rng.chance(PASS_STYLE.playAction * (this.down <= 2 ? 1.25 : 0.45));
+    const screen = isPass && !rpo && !playAction && this.rng.chance(PASS_STYLE.screen);
+    const depth = rpo ? "short" : call.kind === "pass" ? call.depth : "short";
+    const result = isPass
+      ? resolvePass(ctx, { depth, playAction, screen })
+      : resolveRun(ctx, sneak);
+    if (rpo) result.details.rpo = true;
+    if (!isPass)
+      Object.assign(result.details, { personnel: huddle.personnel, formation: huddle.formation });
+    this.playTime(result.seconds, offense);
 
-    if (r < pComplete) {
-      // Caught. Air yards can't go past the back of the end zone.
-      const air = Math.min(
-        this.ytg + 9,
-        Math.round(fromQuantiles(Q, REAL.pass.airYardQuantiles[depth], this.rng.next())),
-      );
-      this.playTime(TUNING.playSeconds.pass, this.offense);
-      if (air >= this.ytg) {
-        this.advance(this.ytg, { ...base, complete: true, airYards: this.ytg }, at, true);
-        return;
-      }
-      const yacEdge = off.receivers - AVERAGE_RATING - (def.tackling - AVERAGE_RATING);
-      const yac = Math.max(
-        0,
-        Math.round(
-          fromQuantiles(
-            Q,
-            REAL.pass.yacQuantiles[depth],
-            shiftedUniform(
-              this.rng,
-              yacEdge * TUNING.matchup.yacQuantileShift + TUNING.baseline.yacQuantileShift,
-            ),
-            TUNING.tails.yac,
-          ),
-        ),
-      );
-      const gain = air + yac;
-      if (gain < this.ytg && this.ytg - gain < 100 && this.rng.chance(REAL.pass.catchFumbleRate)) {
-        const lost = this.rng.chance(TUNING.fumbleLostShare.catch);
-        const recoverer = this.tackler(this.defense, "pass");
-        if (lost) {
-          this.record(
-            {
-              ...base,
-              yards: gain,
-              complete: true,
-              airYards: air,
-              tacklers: [recoverer.id],
-              fumble: { by: target.id, lost: true, recoveredBy: recoverer.id },
-              turnover: true,
-            },
-            { clock: at.clock },
-          );
-          this.turnover(this.ytg - gain);
+    const foul = liveFoul(this.rng, this.input.rules, huddle, isPass ? "pass" : "run", result);
+    if (!foul) {
+      this.commit(result, at);
+      return;
+    }
+    this.decidePenalty(foul, result, at);
+  }
+
+  /** The offense's expected points if the play stands. */
+  private valueOf(result: ScrimmageResult): number {
+    if (result.turnover) {
+      const defenseYtg =
+        (result.turnover.spot <= 0 ? 80 : 100 - result.turnover.spot) -
+        (result.details.intercepted ? result.turnover.returnYards : 0);
+      return defenseYtg <= 0 ? -TOUCHDOWN_VALUE : -expectedPoints(1, 10, Math.min(99, defenseYtg));
+    }
+    const newYtg = this.ytg - result.gain;
+    if (newYtg <= 0) return TOUCHDOWN_VALUE;
+    if (newYtg >= 100) return -3;
+    if (result.gain >= this.toGo) return expectedPoints(1, Math.min(10, newYtg), newYtg);
+    if (this.down === 4) return -expectedPoints(1, 10, 100 - newYtg);
+    return expectedPoints(this.down + 1, this.toGo - result.gain, newYtg);
+  }
+
+  /** The offended team takes the penalty or the play, whichever is worth more to it. */
+  private decidePenalty(foul: Foul, result: ScrimmageResult, at: { clock: number }): void {
+    const offense = this.offense;
+    const team: Side = foul.side === "offense" ? offense : this.defense;
+    const rule = foul.rule;
+    const stands = this.valueOf(result);
+    const info = (accepted: boolean, yards: number) => ({
+      penalty: {
+        type: foul.type,
+        team,
+        ...(foul.player ? { player: foul.player.id } : {}),
+        yards,
+        accepted,
+      },
+    });
+
+    if (foul.side === "offense") {
+      const yards = this.backward(rule.yards);
+      const newYtg = this.ytg + yards;
+      const newDown = rule.lossOfDown ? this.down + 1 : this.down;
+      const accepted =
+        newDown > 4
+          ? -expectedPoints(1, 10, 100 - newYtg)
+          : expectedPoints(newDown, this.toGo + yards, newYtg);
+      if (accepted < stands) {
+        this.recordNoPlay(result, at, info(true, yards));
+        if (newDown > 4) {
+          this.newPossession(this.defense, 100 - newYtg);
           return;
         }
-        this.advance(
-          gain,
-          {
-            ...base,
-            complete: true,
-            airYards: air,
-            tacklers: [recoverer.id],
-            fumble: { by: target.id, lost: false },
-          },
-          at,
-          false,
-        );
+        this.ytg = newYtg;
+        this.toGo += yards;
+        this.down = newDown;
+        this.stopAfterFoul();
         return;
       }
-      const outOfBounds = gain < this.ytg && this.rng.chance(TUNING.outOfBounds.completion);
-      const tacklers =
-        gain >= this.ytg || outOfBounds ? [] : [this.tackler(this.defense, "pass").id];
-      this.advance(
-        gain,
-        {
-          ...base,
-          complete: true,
-          airYards: air,
-          tacklers,
-          ...(outOfBounds ? { outOfBounds: true } : {}),
-        },
-        at,
-        outOfBounds && this.outOfBoundsStopsClock(),
-      );
-      this.restartsOnSpot = outOfBounds && !this.outOfBoundsStopsClock();
+      this.commit(result, at, info(false, 0));
       return;
     }
 
-    if (r < pComplete + pInt) {
-      // Intercepted.
-      const air = Math.min(
-        this.ytg + 9,
-        Math.round(fromQuantiles(Q, REAL.pass.airYardQuantiles[depth], this.rng.next())),
-      );
-      const hawk = this.ballHawk(this.defense);
-      const spotOffenseFrame = this.ytg - air;
-      // The defense's field position after the catch: in the end zone it's a touchback unless returned out.
-      let defenseYtg = spotOffenseFrame <= 0 ? 100 : 100 - spotOffenseFrame;
-      const returnYards = Math.round(
-        fromQuantiles(
-          Q,
-          REAL.pass.interceptionReturnQuantiles,
-          this.rng.next(),
-          TUNING.tails.return,
-        ),
-      );
-      this.playTime(TUNING.playSeconds.pass, this.offense);
+    // Defensive foul. Personal fouls after a play that stands are added to the end of it.
+    const playStands =
+      !result.turnover && this.ytg - result.gain > 0 && this.ytg - result.gain < 100;
+    if (rule.from === "end" && playStands) {
+      // Enforced from the end of the play, unless the play lost yards (a sack,
+      // a run stuffed behind the line): then from the line of scrimmage.
+      const endYtg = this.ytg - result.gain;
+      const afterYtg = this.ytg - Math.max(0, result.gain);
+      const yards = this.forward(rule.yards, afterYtg);
+      const value = expectedPoints(1, Math.min(10, afterYtg - yards), afterYtg - yards);
+      if (value >= stands) {
+        this.commit(result, at, { ...info(true, yards), firstDown: true });
+        if (this.offense === offense && this.ytg === endYtg) {
+          this.ytg = afterYtg - yards;
+          this.down = 1;
+          this.toGo = Math.min(10, this.ytg);
+          this.stopAfterFoul();
+        }
+        return;
+      }
+      this.commit(result, at, info(false, 0));
+      return;
+    }
+    let newYtg: number;
+    let yards: number;
+    if (rule.from === "spot") {
+      // The foul happens downfield, at least a yard past the line.
+      const spot = this.ytg - Math.max(1, result.airYards ?? 0);
+      newYtg = Math.max(1, Math.min(this.ytg, spot));
+      yards = this.ytg - newYtg;
+    } else {
+      yards = this.forward(rule.yards);
+      newYtg = this.ytg - yards;
+    }
+    const firstDown = rule.automaticFirstDown || yards >= this.toGo;
+    const accepted = firstDown
+      ? expectedPoints(1, Math.min(10, newYtg), newYtg)
+      : expectedPoints(this.down, this.toGo - yards, newYtg);
+    if (accepted > stands) {
+      this.recordNoPlay(result, at, {
+        ...info(true, yards),
+        ...(firstDown ? { firstDown: true } : {}),
+      });
+      this.ytg = newYtg;
+      if (firstDown) {
+        this.down = 1;
+        this.toGo = Math.min(10, newYtg);
+      } else this.toGo -= yards;
+      this.stopAfterFoul();
+      return;
+    }
+    this.commit(result, at, info(false, 0));
+  }
+
+  /** After an accepted foul the clock stops; outside the late minutes it restarts on the referee's signal. */
+  private stopAfterFoul(): void {
+    this.clockRunning = !this.outOfBoundsStopsClock() && this.clock > 0;
+    this.restartsOnSpot = this.clockRunning;
+  }
+
+  private recordNoPlay(
+    result: ScrimmageResult,
+    at: { clock: number },
+    extra: Pick<Play, "penalty" | "firstDown">,
+  ): void {
+    const { turnover: _t, touchdown: _td, ...details } = result.details as Play;
+    void _t;
+    void _td;
+    this.record({ ...details, yards: 0, noPlay: true, ...extra }, at);
+  }
+
+  private enforcePreSnap(foul: Foul): void {
+    const team: Side = foul.side === "offense" ? this.offense : this.defense;
+    const yards =
+      foul.side === "offense" ? this.backward(foul.rule.yards) : this.forward(foul.rule.yards);
+    const firstDown = foul.side === "defense" && yards >= this.toGo;
+    this.record(
+      {
+        kind: "penalty",
+        yards: 0,
+        noPlay: true,
+        ...(firstDown ? { firstDown: true } : {}),
+        penalty: {
+          type: foul.type,
+          team,
+          ...(foul.player ? { player: foul.player.id } : {}),
+          yards,
+          accepted: true,
+        },
+      },
+      { clock: this.clock },
+    );
+    if (foul.side === "offense") {
+      this.ytg += yards;
+      this.toGo += yards;
+    } else {
+      this.ytg -= yards;
+      this.toGo -= yards;
+      if (this.toGo <= 0) {
+        this.down = 1;
+        this.toGo = Math.min(10, this.ytg);
+      }
+    }
+    this.stopAfterFoul();
+  }
+
+  /** Applies a play that stands: turnovers, scores, downs and the clock. */
+  private commit(result: ScrimmageResult, at: { clock: number }, extra: Partial<Play> = {}): void {
+    const details = { ...result.details, ...extra };
+    if (result.turnover) {
       const defense = this.defense;
-      if (defenseYtg - returnYards <= 0) {
-        this.addPoints(defense, 6);
-        this.touchdowns[defense] += 1;
-        this.record(
-          {
-            ...base,
-            yards: 0,
-            intercepted: true,
-            airYards: air,
-            defender: hawk.id,
-            returnYards: defenseYtg,
-            turnover: true,
-            touchdown: defense,
-          },
-          { clock: at.clock },
-        );
-        this.offense = defense;
-        this.drives[defense] += 1;
-        this.afterTouchdown(defense, true);
+      if (result.details.intercepted) {
+        const spot = result.turnover.spot;
+        let defenseYtg = spot <= 0 ? 100 : 100 - spot;
+        const returnYards = result.turnover.returnYards;
+        if (defenseYtg - returnYards <= 0) {
+          this.addPoints(defense, 6);
+          this.touchdowns[defense] += 1;
+          this.record({ ...details, yards: 0, returnYards: defenseYtg, touchdown: defense }, at);
+          this.offense = defense;
+          this.drives[defense] += 1;
+          this.afterTouchdown(defense, true);
+          return;
+        }
+        defenseYtg -= returnYards;
+        if (defenseYtg >= 100) defenseYtg = 80;
+        this.record({ ...details, yards: 0 }, at);
+        this.newPossession(defense, defenseYtg);
         return;
       }
-      defenseYtg -= returnYards;
-      if (defenseYtg >= 100) defenseYtg = 80; // touchback
-      this.record(
-        {
-          ...base,
-          yards: 0,
-          intercepted: true,
-          airYards: air,
-          defender: hawk.id,
-          returnYards,
-          turnover: true,
-          tacklers: [this.tackler(this.offense, "pass").id],
-        },
-        { clock: at.clock },
-      );
-      this.newPossession(defense, defenseYtg);
+      this.record({ ...details, yards: result.gain }, at);
+      this.turnover(result.turnover.spot);
       return;
     }
-
-    // Incomplete: the clock stops.
-    this.playTime(TUNING.playSeconds.incomplete, this.offense);
-    this.advance(0, { ...base, complete: false }, at, true);
+    const late = this.outOfBoundsStopsClock();
+    this.advance(result.gain, details, at, result.incomplete || (result.outOfBounds && late));
+    this.restartsOnSpot = result.outOfBounds && !late;
   }
 
   private punt(note?: string): void {
@@ -959,6 +960,7 @@ class Game {
       this.afterTouchdown(receiving, true);
       return;
     }
+    const foul = this.returnPenalty("punt", receiving, Math.max(1, landing + ret));
     this.record(
       {
         ...base,
@@ -967,10 +969,11 @@ class Game {
         returner: returner.id,
         returnYards: ret,
         tacklers: [this.tackler(this.offense, "pass").id],
+        ...(foul ? { penalty: foul.penalty } : {}),
       },
       at,
     );
-    this.newPossession(receiving, 100 - Math.max(1, landing + ret));
+    this.newPossession(receiving, 100 - Math.max(1, landing + ret - (foul?.yards ?? 0)));
   }
 
   private fieldGoal(note?: string): void {

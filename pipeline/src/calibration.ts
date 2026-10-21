@@ -147,7 +147,11 @@ async function analyseSeason(season: number, pooled: Pooled): Promise<SeasonStat
             pooled.c.add(`completions:${depth}`);
             pooled.air[depth]!.push(air);
             const yac = num(r["yards_after_catch"]);
-            if (!Number.isNaN(yac)) pooled.yac[depth]!.push(yac);
+            if (!Number.isNaN(yac)) {
+              pooled.yac[depth]!.push(yac);
+              // Short catches behind the line (screens, swings) run much farther after the catch.
+              if (depth === "short") pooled.yacShort[air <= 0 ? "behind" : "ahead"]!.push(yac);
+            }
             if (flag(r["fumble"])) pooled.c.add("catchFumbles");
             if (flag(r["fumble_lost"])) pooled.c.add("catchFumblesLost");
             pooled.c.add("catches");
@@ -317,6 +321,7 @@ class Pooled {
   readonly scrambleYards: number[] = [];
   readonly air: Record<string, number[]> = { short: [], medium: [], deep: [] };
   readonly yac: Record<string, number[]> = { short: [], medium: [], deep: [] };
+  readonly yacShort: Record<string, number[]> = { behind: [], ahead: [] };
   readonly intReturn: number[] = [];
   readonly puntDistance: number[] = [];
   readonly puntReturn: number[] = [];
@@ -327,6 +332,23 @@ class Pooled {
 }
 
 /** Least-squares logistic fit p = 1 / (1 + e^-(a + b*x)) by gradient descent (for FG make rate by distance). */
+/**
+ * Field goal make rate every 5 yards (each point pools kicks within 2 yards
+ * of it). Real kicking doesn't follow one smooth curve: modern kickers make
+ * long kicks more often than a single fitted curve predicts.
+ */
+function makeRateByDistance(points: [number, number][]): { distances: number[]; rates: number[] } {
+  const distances: number[] = [];
+  const rates: number[] = [];
+  for (let d = 20; d <= 65; d += 5) {
+    const near = points.filter(([x]) => Math.abs(x - d) <= 2);
+    if (near.length < 30) continue;
+    distances.push(d);
+    rates.push(round(near.reduce((sum, [, made]) => sum + made, 0) / near.length));
+  }
+  return { distances, rates };
+}
+
 function fitLogistic(points: [number, number][]): { a: number; b: number } {
   let a = 5;
   let b = -0.1;
@@ -413,6 +435,10 @@ export async function calibration(): Promise<void> {
       yacQuantiles: Object.fromEntries(
         depths.map((d) => [d, quantiles(pooled.yac[d]!, QUANTILE_POINTS)]),
       ),
+      yacQuantilesShort: {
+        behind: quantiles(pooled.yacShort["behind"]!, QUANTILE_POINTS),
+        ahead: quantiles(pooled.yacShort["ahead"]!, QUANTILE_POINTS),
+      },
       catchFumbleRate: rate("catchFumbles", "catches"),
       catchFumbleLostRate: rate("catchFumblesLost", "catches"),
       sackYardQuantiles: quantiles(pooled.sackYards, QUANTILE_POINTS),
@@ -432,6 +458,7 @@ export async function calibration(): Promise<void> {
     },
     kicking: {
       fieldGoalLogistic: fitLogistic(pooled.fgByDistance),
+      fieldGoalByDistance: makeRateByDistance(pooled.fgByDistance),
       puntDistanceQuantiles: quantiles(pooled.puntDistance, QUANTILE_POINTS),
       puntReturnQuantiles: quantiles(pooled.puntReturn, QUANTILE_POINTS),
       puntFairCatchRate: rate("puntFairCatch", "puntsAll"),

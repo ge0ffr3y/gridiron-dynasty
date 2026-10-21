@@ -9,7 +9,7 @@ import { STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-engine";
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 3;
+export const LEAGUE_FORMAT_VERSION = 4;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -83,6 +83,8 @@ const TeamGameStatsSchema = z.object({
   punts: z.number().int(),
   drives: z.number().int(),
   possessionSeconds: z.number().int(),
+  penalties: z.number().int(),
+  penaltyYards: z.number().int(),
 });
 
 export const BoxScoreSchema = z.object({

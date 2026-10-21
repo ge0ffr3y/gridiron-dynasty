@@ -1,6 +1,7 @@
 import type { GameSummary } from "@fgm/sim-core";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
+import { PlayAndWatchButton } from "./PlayAndWatch";
 import { TeamChip } from "./shared";
 
 /** One game: away @ home, with the score once played. The winner is bold. */
@@ -39,6 +40,9 @@ export function GameRow({ game }: { game: GameSummary }) {
           <Link href={`/game/${game.id}`} className="font-medium text-primary hover:underline">
             Box score
           </Link>
+        )}
+        {game.playable && (
+          <PlayAndWatchButton gameId={game.id} className="[&_button]:h-7 [&_button]:text-xs" />
         )}
       </div>
     </div>

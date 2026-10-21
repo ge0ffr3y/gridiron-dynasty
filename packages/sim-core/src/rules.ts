@@ -28,9 +28,15 @@ export const GameRulesSchema = z.object({
   extraPointSpot: z.number().int().positive(),
   twoPointSpot: z.number().int().positive(),
   kickoff: z.object({
+    /** The kicking team's yard line the ball is kicked from. */
+    kickFrom: z.number().int().positive(),
+    /** The landing zone runs from the receiving team's goal line out to this yard line. */
+    landingZoneDepth: z.number().int().positive(),
     touchbackSpot: z.number().int().positive(),
     landingZoneTouchbackSpot: z.number().int().positive(),
     shortOrOutOfBoundsSpot: z.number().int().positive(),
+    /** When an onside kick may be declared (there are no surprise onside kicks). */
+    onside: z.object({ anyTime: z.boolean(), onlyWhenTrailing: z.boolean() }),
   }),
   puntTouchbackSpot: z.number().int().positive(),
   safetyFreeKickFrom: z.number().int().positive(),

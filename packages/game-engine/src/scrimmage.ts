@@ -59,6 +59,8 @@ export interface ScrimmageContext {
   homeEdge: number;
   /** The offense is in a two-minute drill, so the defense plays deep ("prevent"). */
   prevent?: boolean;
+  /** What the weather does to this play (Phase 5b); missing = indoors. */
+  weather?: { completionLogit: number; catchYardsFactor: number; fumbleFactor: number };
   /** In-game adjustments and momentum: extra quantile shift on runs, extra completion log-odds on passes. */
   runShift?: number;
   passShift?: number;
@@ -307,7 +309,11 @@ export function resolveRun(ctx: ScrimmageContext, sneak: boolean): ScrimmageResu
     (A - rusher.ratings.ballSecurity) * T.run.fumbleBallSecurityLogit +
       (tackler.ratings.strength - A) * T.run.fumbleHitLogit,
   );
-  if (gain < ctx.ytg && ctx.ytg - gain < 100 && rng.chance(fumbleChance)) {
+  if (
+    gain < ctx.ytg &&
+    ctx.ytg - gain < 100 &&
+    rng.chance(fumbleChance * (ctx.weather?.fumbleFactor ?? 1))
+  ) {
     const lost = rng.chance(T.fumbleLostShare.run);
     if (lost) {
       return {
@@ -506,7 +512,10 @@ export function resolvePass(ctx: ScrimmageContext, opts: PassOptions): Scrimmage
         ...scheme,
         ...note,
       };
-      if (ctx.ytg - loss < 100 && rng.chance(REAL.pass.sackFumbleRate)) {
+      if (
+        ctx.ytg - loss < 100 &&
+        rng.chance(REAL.pass.sackFumbleRate * (ctx.weather?.fumbleFactor ?? 1))
+      ) {
         const lost = rng.chance(T.fumbleLostShare.sack);
         return {
           details: lost
@@ -669,7 +678,8 @@ export function resolvePass(ctx: ScrimmageContext, opts: PassOptions): Scrimmage
     cov.completion +
     (opts.playAction ? T.pass.playActionCompletionLogit : 0) +
     ctx.homeEdge * T.matchup.completionLogit +
-    (ctx.passShift ?? 0);
+    (ctx.passShift ?? 0) +
+    (ctx.weather?.completionLogit ?? 0);
   const baseComplete = opts.screen ? T.pass.screenCompletion : REAL.pass.completionByDepth[depth];
   const pComplete = adjustProbability(baseComplete, completionShift);
   const intShift =
@@ -761,10 +771,15 @@ export function resolvePass(ctx: ScrimmageContext, opts: PassOptions): Scrimmage
       0,
       Math.round(fromQuantiles(Q, yacTable, shiftedUniform(rng, yacShift), T.tails.yac)),
     );
-    const gain = air + yac;
+    // Wind and rain cut how far a catch goes (real yards per catch).
+    const gain = Math.min(ctx.ytg, Math.round((air + yac) * (ctx.weather?.catchYardsFactor ?? 1)));
     const tackler = missed !== undefined ? (h.defense.s[0] ?? tacklerFirst) : tacklerFirst;
     const extras = missed !== undefined ? { missedTackles: [missed] } : {};
-    if (gain < ctx.ytg && ctx.ytg - gain < 100 && rng.chance(REAL.pass.catchFumbleRate)) {
+    if (
+      gain < ctx.ytg &&
+      ctx.ytg - gain < 100 &&
+      rng.chance(REAL.pass.catchFumbleRate * (ctx.weather?.fumbleFactor ?? 1))
+    ) {
       const lost = rng.chance(T.fumbleLostShare.catch);
       return {
         details: lost

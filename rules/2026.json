@@ -136,7 +136,7 @@
     "byesPerConference": 1
   },
   "game": {
-    "source": "NFL rulebook timing rules (15-minute quarters, 3 timeouts per half, two-minute warning, 40-second play clock, clock stops on out-of-bounds plays only in the last 2:00 of the first half and last 5:00 of the second half); extra point snapped from the 15, 2-point try from the 2; dynamic kickoff (2025): touchback to the 35, landing-zone touchback to the 20, short or out of bounds to the 40; punt touchback to the 20; safety free kick from the 20. Overtime (owners, March 2025): both teams get a possession in the regular season too; regular-season overtime is one 10-minute period with 2 timeouts per team and can end tied; playoff overtime is 15-minute periods, 3 timeouts per two periods, until there is a winner.",
+    "source": "NFL rulebook timing rules (15-minute quarters, 3 timeouts per half, two-minute warning, 40-second play clock, clock stops on out-of-bounds plays only in the last 2:00 of the first half and last 5:00 of the second half); extra point snapped from the 15, 2-point try from the 2; dynamic kickoff (2025, kept for 2026): kicked from the 35 into a landing zone from the receiving team's goal line to its 20; kicks into or out of the end zone are touchbacks at the 35, a landing-zone kick downed in the end zone at the 20, short kicks and kicks out of bounds at the 40 (operations.nfl.com dynamic kickoff explainer; 2025 touchback move reported by AP). Onside kicks (owners, March 2026): the kicking team may declare one at any time (2025 allowed it any time only when trailing; no surprise onside kicks); punt touchback to the 20; safety free kick from the 20. Overtime (owners, March 2025): both teams get a possession in the regular season too; regular-season overtime is one 10-minute period with 2 timeouts per team and can end tied; playoff overtime is 15-minute periods, 3 timeouts per two periods, until there is a winner.",
     "quarterMinutes": 15,
     "timeoutsPerHalf": 3,
     "twoMinuteWarning": true,
@@ -148,9 +148,15 @@
     "extraPointSpot": 15,
     "twoPointSpot": 2,
     "kickoff": {
+      "kickFrom": 35,
+      "landingZoneDepth": 20,
       "touchbackSpot": 35,
       "landingZoneTouchbackSpot": 20,
-      "shortOrOutOfBoundsSpot": 40
+      "shortOrOutOfBoundsSpot": 40,
+      "onside": {
+        "anyTime": true,
+        "onlyWhenTrailing": false
+      }
     },
     "puntTouchbackSpot": 20,
     "safetyFreeKickFrom": 20,

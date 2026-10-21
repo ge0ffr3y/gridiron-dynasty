@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 5;
+export const LEAGUE_FORMAT_VERSION = 6;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -182,6 +182,22 @@ export const CoachSchema = z.object({
   defensiveScheme: z.enum(DEFENSIVE_SCHEMES).nullable(),
 });
 
+export const StadiumSchema = z.object({
+  roof: z.enum(["dome", "outdoor", "retractable"]),
+  /** For a retractable roof: the share of games it's open when the weather allows. */
+  openShare: z.number().min(0).max(1).optional(),
+  surface: z.enum(["grass", "turf"]),
+  elevationMeters: z.number(),
+});
+
+/** The weather at kickoff (outside conditions; `indoors` when under a dome or closed roof). */
+export const WeatherSchema = z.object({
+  indoors: z.boolean(),
+  temperatureF: z.number(),
+  windMph: z.number(),
+  precipitation: z.enum(["none", "rain", "snow"]),
+});
+
 export const TeamSchema = z.object({
   id: z.string(),
   city: z.string(),
@@ -200,6 +216,8 @@ export const TeamSchema = z.object({
     auto: z.boolean(),
     slots: z.partialRecord(z.enum(DEPTH_SLOTS), z.array(z.number().int())),
   }),
+  /** Home stadium: roof, playing surface and elevation (no names; Phase 5b). */
+  stadium: StadiumSchema,
 });
 
 export const DraftPickSchema = z.object({
@@ -246,6 +264,8 @@ export const GameSchema = z.object({
     .nullable(),
   /** Team and player stats for the game (null before it's played, or for games from older saves). */
   boxScore: BoxScoreSchema.nullable(),
+  /** The weather it was played in (null before it's played, or for games from older saves). */
+  weather: WeatherSchema.nullable(),
 });
 
 export const CALENDAR_STAGES = [
@@ -371,6 +391,8 @@ export type Player = z.infer<typeof PlayerSchema>;
 export type Coach = z.infer<typeof CoachSchema>;
 export type CoachRole = z.infer<typeof CoachRoleSchema>;
 export type Team = z.infer<typeof TeamSchema>;
+export type Stadium = z.infer<typeof StadiumSchema>;
+export type Weather = z.infer<typeof WeatherSchema>;
 export type DraftPick = z.infer<typeof DraftPickSchema>;
 export type Transaction = z.infer<typeof TransactionSchema>;
 export type DecisionRequest = z.infer<typeof DecisionRequestSchema>;

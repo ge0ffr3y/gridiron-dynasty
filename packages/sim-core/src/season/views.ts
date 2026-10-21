@@ -5,7 +5,7 @@ import type { Game, League, PlayoffRound, Team } from "../league/schema";
 import { PLAYOFF_ROUNDS } from "../league/schema";
 import { availableActions, type SimAction } from "./actions";
 import { stageLabel } from "./calendar";
-import { currentStandings, isPlaying } from "./flow";
+import { canPlayNow, currentStandings, isPlaying } from "./flow";
 import { formatWLT, pctOf } from "./standings";
 
 export interface TeamTag {
@@ -56,6 +56,8 @@ export interface GameSummary {
   homeScore: number | null;
   awayScore: number | null;
   overtime: boolean;
+  /** Up next and not played yet, so it can be played (and watched) right away. */
+  playable: boolean;
 }
 
 function gameSummary(league: League, g: Game): GameSummary {
@@ -70,6 +72,7 @@ function gameSummary(league: League, g: Game): GameSummary {
     homeScore: g.result?.homeScore ?? null,
     awayScore: g.result?.awayScore ?? null,
     overtime: g.result?.overtime ?? false,
+    playable: canPlayNow(league, g),
   };
 }
 

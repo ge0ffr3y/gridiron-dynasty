@@ -87,3 +87,16 @@ export const INJURY_RISK = {
 
 /** Games missed beyond the "9+" bucket of the real data: drawn up to this many. */
 export const LONGEST_INJURY_GAMES = 17;
+
+/** Drawing game-day weather (season/weather.ts). */
+export const WEATHER = {
+  /** Climate's second half (rain/snow shares) starts this week. */
+  lateSeasonWeek: 10,
+  /** Snow only falls this cold or colder (warmer "snow" falls as rain); rain this cold falls as snow. */
+  snowAtMostF: 38,
+  freezingF: 30,
+  /** A retractable roof opens only without rain or snow, between these temperatures. */
+  openRoof: { minF: 55, maxF: 85 },
+  /** Shown for games under a roof. */
+  indoorTemperatureF: 70,
+};

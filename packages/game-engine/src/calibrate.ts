@@ -3,16 +3,29 @@
  * seasons, and compares them to the real ranges (the scorecard).
  */
 import type { Position } from "@fgm/foundation";
-import { CALIBRATION_TARGETS, PEOPLE } from "./config";
+import { CALIBRATION_TARGETS, ELEMENTS, PEOPLE } from "./config";
+
+/** Special-teams and weather targets (Phase 5b). */
+const ELEMENT_TARGETS = ELEMENTS.targets as Record<string, { real: number; range: number[] }>;
 import { passGroup as situationGroup } from "./playcall";
 import { GROUP_OF } from "./sideline";
-import type { GameOutput, Play, StatKey } from "./types";
+import type { Conditions, GameOutput, Play, StatKey } from "./types";
 
 export interface MeasuredGame {
   homeId: string;
   awayId: string;
   output: GameOutput;
+  /** The game's weather (for dome vs. cold-or-windy lines). */
+  conditions?: Pick<Conditions, "indoors" | "temperatureF" | "windMph">;
 }
+
+/** Weather groups as in the real data: under a roof, or outdoors at 40 F or colder or 15 mph or more wind. */
+function weatherGroup(c: MeasuredGame["conditions"]): "dome" | "coldWindy" | "outdoor" {
+  if (!c || c.indoors) return "dome";
+  return c.temperatureF <= COLD_F || c.windMph >= WINDY_MPH ? "coldWindy" : "outdoor";
+}
+const COLD_F = 40;
+const WINDY_MPH = 15;
 
 /** Real league-wide EPA per play and success rate, as scorecard targets (mean and range over the seasons). */
 const ADVANCED_TARGETS = Object.fromEntries(
@@ -39,6 +52,14 @@ export function measureSeason(games: MeasuredGame[]): Record<string, number> {
     teamPoints.set(g.homeId, [...(teamPoints.get(g.homeId) ?? []), o.homeScore]);
     teamPoints.set(g.awayId, [...(teamPoints.get(g.awayId) ?? []), o.awayScore]);
     add("drives", o.box.home.drives + o.box.away.drives);
+    const group = weatherGroup(g.conditions);
+    add(`games|${group}`);
+    add(`points|${group}`, o.homeScore + o.awayScore);
+    for (const p of o.plays)
+      if (p.kind === "fieldGoal") {
+        add(`fga|${group}`);
+        if (p.good) add(`fgm|${group}`);
+      }
     let before: [number, number] = [0, 0];
     for (const p of o.plays) {
       measurePlay(p, add, before);
@@ -93,6 +114,16 @@ export function measureSeason(games: MeasuredGame[]): Record<string, number> {
     shotgunShare: v("shotgun") / v("personnelPlays"),
     manCoverageShare: v("manCoverage") / v("coverageKnown"),
     injuriesPerTeamGame: injuries / teamGames,
+    // Special teams and weather (Phase 5b).
+    kickoffTouchbackRate: v("kickoffTouchbacks") / v("kickoffs"),
+    onsideAttemptsPerTeamGame: v("onside") / teamGames,
+    onsideRecoveryRate: v("onsideRecovered") / v("onside"),
+    puntGrossAverage: v("puntGross") / v("puntsKicked"),
+    puntNetAverage: v("puntNet") / v("puntsKicked"),
+    pointsPerTeamGameDome: v("points|dome") / (2 * v("games|dome")),
+    pointsPerTeamGameColdOrWindy: v("points|coldWindy") / (2 * v("games|coldWindy")),
+    fieldGoalPctDome: v("fgm|dome") / v("fga|dome"),
+    fieldGoalPctColdOrWindy: v("fgm|coldWindy") / v("fga|coldWindy"),
     // Situations (Phase 5a).
     timeoutsPerTeamGame: v("timeouts") / teamGames,
     endOfHalfPointsPerTeamGame: v("endOfHalfPoints") / teamGames,
@@ -145,6 +176,22 @@ function measurePlay(
     if (p.penalty.type === "False Start") add(`falseStarts:${p.penalty.team}`);
   }
   if (p.kind === "timeout" && p.team) add("timeouts");
+  if (p.kind === "kickoff" && p.down === 0) {
+    if (p.onside) {
+      add("onside");
+      if (p.onside.recovered) add("onsideRecovered");
+    } else if (p.yardsToGoal === 65) {
+      // Regular kickoffs from the 35 (not free kicks after a safety).
+      add("kickoffs");
+      if (p.touchback) add("kickoffTouchbacks");
+    }
+  }
+  if (p.kind === "punt" && !p.blocked && (p.kickDistance ?? 0) > 0) {
+    const gross = p.kickDistance ?? 0;
+    add("puntsKicked");
+    add("puntGross", gross);
+    add("puntNet", gross - (p.returnYards ?? 0) - (p.touchback ? 20 : 0));
+  }
   if (p.review) {
     const kind = p.review.by === "challenge" ? "challenge" : "booth";
     add(`${kind}s`);
@@ -245,6 +292,18 @@ function measurePlay(
   }
 }
 
+/**
+ * Shown for reference, not pass/fail: real dome vs. cold-or-windy splits mix the
+ * weather with which teams play there (betting lines expected dome teams to score
+ * more before kickoff). The weather's own effect is tested with the same teams.
+ */
+const INFO_LINES = new Set([
+  "pointsPerTeamGameDome",
+  "pointsPerTeamGameColdOrWindy",
+  "fieldGoalPctDome",
+  "fieldGoalPctColdOrWindy",
+]);
+
 export interface ScorecardLine {
   key: string;
   sim: number;
@@ -253,16 +312,21 @@ export interface ScorecardLine {
   pass: boolean;
   /** Not simulated yet (e.g. injuries before Phase 4b). */
   pending?: boolean;
+  /** Reference only (not pass/fail). */
+  info?: boolean;
 }
 
 export function scorecard(values: Record<string, number>): ScorecardLine[] {
-  return Object.entries({ ...CALIBRATION_TARGETS, ...ADVANCED_TARGETS }).map(([key, t]) => {
-    const sim = values[key] ?? NaN;
-    const range = t.range as [number, number];
-    if (values[key] === undefined)
-      return { key, sim, real: t.real, range, pass: true, pending: true };
-    return { key, sim, real: t.real, range, pass: sim >= range[0] && sim <= range[1] };
-  });
+  return Object.entries({ ...CALIBRATION_TARGETS, ...ADVANCED_TARGETS, ...ELEMENT_TARGETS }).map(
+    ([key, t]) => {
+      const sim = values[key] ?? NaN;
+      const range = t.range as [number, number];
+      if (values[key] === undefined)
+        return { key, sim, real: t.real, range, pass: true, pending: true };
+      if (INFO_LINES.has(key)) return { key, sim, real: t.real, range, pass: true, info: true };
+      return { key, sim, real: t.real, range, pass: sim >= range[0] && sim <= range[1] };
+    },
+  );
 }
 
 /** The core stats the CI test holds to the real ranges. */

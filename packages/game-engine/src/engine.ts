@@ -7,9 +7,10 @@
  */
 import { dmath, type Rng } from "@fgm/foundation";
 import { buildBoxScore } from "./boxscore";
-import { AVERAGE_RATING, CALIBRATION_TARGETS, PEOPLE, REAL, TUNING } from "./config";
+import { AVERAGE_RATING, CALIBRATION_TARGETS, ELEMENTS, PEOPLE, REAL, TUNING } from "./config";
 import { decideTwoPoint, type Evaluator, type NextState } from "./decisions";
 import { closeCall, reverse, rulingFavors } from "./review";
+import { weatherEffects, type WeatherEffects } from "./weather";
 import { winProbability } from "./winprob";
 import { addExpectedPoints } from "./epa";
 import {
@@ -131,6 +132,7 @@ class Game {
     this.timeouts = { home: input.rules.timeoutsPerHalf, away: input.rules.timeoutsPerHalf };
     const ot = input.playoff ? input.rules.overtime.playoffs : input.rules.overtime.regularSeason;
     this.overtime = { active: false, rules: ot, first: "home", phase: "first", periods: 0 };
+    this.weather = weatherEffects(input.conditions);
   }
 
   // --- Helpers -------------------------------------------------------------------
@@ -161,9 +163,11 @@ class Game {
       defenseTimeouts: this.timeouts[this.defense],
       clockRunning: this.clockRunning,
       overtime: this.overtime.active,
+      // Bad weather shortens the range a coach trusts (the yards its effect on the make chance is worth).
       fieldGoalRange:
         TUNING.fieldGoal.maxDistance +
-        (k.kickPower - AVERAGE_RATING) * TUNING.fieldGoal.rangePerPowerPoint,
+        (k.kickPower - AVERAGE_RATING) * TUNING.fieldGoal.rangePerPowerPoint +
+        Math.min(0, this.weather.fieldGoalLogit) / Math.abs(REAL.kicking.fieldGoalLogistic.b),
       // On the second overtime possession, a trailing team can't give the ball back.
       mustScore:
         this.overtime.active && this.overtime.phase === "second" && this.margin(this.offense) < 0,
@@ -364,6 +368,7 @@ class Game {
   }
   private pendingWarning = false;
   private snapWinChance: number | undefined;
+  private readonly weather: WeatherEffects;
   private readonly challenges: Record<Side, { left: number; won: number }> = {
     home: { left: TUNING.review.challenges, won: 0 },
     away: { left: TUNING.review.challenges, won: 0 },
@@ -431,38 +436,77 @@ class Game {
   private kickoffPlay(kicking: Side, fromSafety: boolean): void {
     const receiving = otherSide(kicking);
     const rules = this.input.rules.kickoff;
+    if (!fromSafety && this.wantsOnside(kicking)) {
+      this.onsideKick(kicking);
+      return;
+    }
     const kicker = this.lineupOf(kicking).k;
     const returner = this.lineupOf(receiving).returner;
     const k = REAL.kicking;
+    const ko = ELEMENTS.kickoffs;
     const at = {
       clock: this.clock,
       offense: kicking,
       down: 0,
       toGo: 0,
-      ytg: fromSafety ? 100 - this.input.rules.safetyFreeKickFrom : 65,
+      ytg: fromSafety ? 100 - this.input.rules.safetyFreeKickFrom : 100 - rules.kickFrom,
     };
-    const r = this.rng.next();
-    if (!fromSafety && r < k.kickoffTouchbackRate) {
-      this.record({ kind: "kickoff", yards: 0, kicker: kicker.id, touchback: true }, at);
-      this.newPossession(receiving, 100 - rules.touchbackSpot);
-      return;
-    }
-    if (!fromSafety && r < k.kickoffTouchbackRate + k.kickoffOutOfBoundsRate) {
-      // A kickoff out of bounds is a penalty on the kicking team (ball at the 40).
-      this.record(
-        {
-          kind: "kickoff",
-          yards: 0,
-          kicker: kicker.id,
-          outOfBounds: true,
-          penalty: { type: "Kickoff Out of Bounds", team: kicking, yards: 0, accepted: true },
-        },
-        at,
+    if (!fromSafety) {
+      // The real 2025 mix of kickoffs, moved by the kicker's leg, the wind and altitude.
+      const ST = TUNING.specialTeams;
+      const touchback = adjustProbability(
+        ko.touchbackShare,
+        (kicker.ratings.kickPower - TUNING.averageKicker) * ST.touchbackPerPowerPoint +
+          ST.touchbackLogit +
+          this.weather.touchbackLogit,
       );
-      this.newPossession(receiving, 100 - rules.shortOrOutOfBoundsSpot);
-      return;
+      const short = adjustProbability(ko.shortShare, this.weather.shortKickLogit);
+      const r = this.rng.next();
+      let edge = touchback;
+      if (r < edge) {
+        this.record({ kind: "kickoff", yards: 0, kicker: kicker.id, touchback: true }, at);
+        this.newPossession(receiving, 100 - rules.touchbackSpot);
+        return;
+      }
+      edge += ko.landingZoneTouchbackShare;
+      if (r < edge) {
+        // Landed in the landing zone and rolled into the end zone, where it was downed.
+        this.record(
+          {
+            kind: "kickoff",
+            yards: 0,
+            kicker: kicker.id,
+            touchback: true,
+            note: "Downed in the end zone after landing short of it",
+          },
+          at,
+        );
+        this.newPossession(receiving, 100 - rules.landingZoneTouchbackSpot);
+        return;
+      }
+      edge += ko.outOfBoundsShare;
+      if (r < edge) {
+        this.record(
+          {
+            kind: "kickoff",
+            yards: 0,
+            kicker: kicker.id,
+            outOfBounds: true,
+            penalty: { type: "Kickoff Out of Bounds", team: kicking, yards: 0, accepted: true },
+          },
+          at,
+        );
+        this.newPossession(receiving, 100 - rules.shortOrOutOfBoundsSpot);
+        return;
+      }
+      edge += short;
+      if (r < edge) {
+        this.record({ kind: "kickoff", yards: 0, kicker: kicker.id, short: true }, at);
+        this.newPossession(receiving, 100 - rules.shortOrOutOfBoundsSpot);
+        return;
+      }
     }
-    const speedShift = (returner.ratings.speed - 85) * 0.003;
+    const speedShift = this.returnShift(returner, kicking);
     let start = Math.round(
       fromQuantiles(
         Q,
@@ -496,6 +540,24 @@ class Game {
       this.afterTouchdown(receiving, false);
       return;
     }
+    // A muffed or fumbled return: the kicking team recovers where the returner went down.
+    if (this.rng.chance(ELEMENTS.kickoffs.returnFumbleLostRate * this.weather.fumbleFactor)) {
+      const recoveredBy = this.tackler(kicking, "pass").id;
+      this.record(
+        {
+          kind: "kickoff",
+          yards: 0,
+          kicker: kicker.id,
+          returner: returner.id,
+          returnYards: Math.max(0, start - catchSpot),
+          fumble: { by: returner.id, lost: true, recoveredBy },
+          turnover: true,
+        },
+        at,
+      );
+      this.newPossession(kicking, Math.max(1, start));
+      return;
+    }
     const foul = this.returnPenalty("kickoff", receiving, start);
     this.record(
       {
@@ -510,6 +572,61 @@ class Game {
       at,
     );
     this.newPossession(receiving, 100 - (start - (foul?.yards ?? 0)));
+  }
+
+  /** A returner's speed against the kicking team's coverage (backups at the hitting positions). */
+  private returnShift(returner: LineupPlayer, kicking: Side): number {
+    const ST = TUNING.specialTeams;
+    const unit = this.sideline[kicking].kickUnit();
+    const coverage =
+      unit.length === 0
+        ? ST.coverageTypical
+        : unit.reduce((sum, p) => sum + (p.ratings.speed + p.ratings.tackling) / 2, 0) /
+          unit.length;
+    return (
+      (returner.ratings.speed - ST.returnerSpeedTypical) * ST.returnerShift -
+      (coverage - ST.coverageTypical) * ST.coverageShift
+    );
+  }
+
+  /**
+   * Onside kick? Only when the rules allow it, and the way real teams use it:
+   * trailing late, when kicking deep wouldn't leave time to get the ball back
+   * (inside `onsideOneScoreSeconds` down one score, `onsideTwoScoreSeconds` down two).
+   * Every real onside kick in 2024-25 came from a trailing team in the 4th quarter.
+   */
+  private wantsOnside(kicking: Side): boolean {
+    const rules = this.input.rules.kickoff.onside;
+    const ST = TUNING.specialTeams;
+    const margin = this.margin(kicking);
+    if (rules.onlyWhenTrailing && margin >= 0) return false;
+    if (!rules.anyTime && this.quarter < 4) return false;
+    if (margin >= 0 || margin < -ST.onsideMaxDeficit) return false;
+    if (this.quarter < 4 && !this.overtime.active) return false;
+    const seconds = -margin <= ST.oneScore ? ST.onsideOneScoreSeconds : ST.onsideTwoScoreSeconds;
+    return this.clock <= seconds;
+  }
+
+  private onsideKick(kicking: Side): void {
+    const receiving = otherSide(kicking);
+    const ko = this.input.rules.kickoff;
+    const yards = TUNING.specialTeams.onsideKickYards;
+    const kicker = this.lineupOf(kicking).k;
+    const recovered = this.rng.chance(ELEMENTS.kickoffs.onsideRecoveryRate);
+    this.playTime(TUNING.playSeconds.punt / 2, receiving);
+    this.record(
+      {
+        kind: "kickoff",
+        yards: 0,
+        kicker: kicker.id,
+        kickDistance: yards,
+        onside: { recovered },
+        note: "Trailing, they declare an onside kick",
+      },
+      { clock: this.clock, offense: kicking, down: 0, toGo: 0, ytg: 100 - ko.kickFrom },
+    );
+    if (recovered) this.newPossession(kicking, 100 - (ko.kickFrom + yards));
+    else this.newPossession(receiving, ko.kickFrom + yards);
   }
 
   /** A foul by the return team (holding, illegal block): enforced back from where the return ended. */
@@ -623,7 +740,10 @@ class Game {
     const F = TUNING.fieldGoal;
     const skill =
       u.kickAccuracy - k + (distance > F.longKick ? (u.kickPower - k) * F.longKickPowerWeight : 0);
-    return adjustProbability(base, skill * TUNING.matchup.fieldGoalLogit);
+    return adjustProbability(
+      base,
+      skill * TUNING.matchup.fieldGoalLogit + this.weather.fieldGoalLogit,
+    );
   }
 
   /** After a safety (points already added): the conceding team free-kicks. */
@@ -875,6 +995,7 @@ class Game {
       toGo: this.toGo,
       homeEdge: this.homeEdgeFor(offense),
       prevent: twoMinuteDrill(this.situation()),
+      weather: this.weather,
       ...this.playShifts(offense),
       ...(call.note ? { note: call.note } : {}),
     };
@@ -886,6 +1007,7 @@ class Game {
       ? resolvePass(ctx, { depth, playAction, screen })
       : resolveRun(ctx, sneak);
     if (rpo) result.details.rpo = true;
+    if (call.fake) result.details.fake = call.fake;
     this.updateMomentum(result, offense);
     this.afterSnap(huddle, result.details);
     if (!isPass)
@@ -1203,10 +1325,33 @@ class Game {
       fromQuantiles(
         Q,
         k.puntDistanceQuantiles,
-        shiftedUniform(this.rng, (punter.ratings.kickPower - AVERAGE_RATING) * 0.004),
-      ),
+        shiftedUniform(
+          this.rng,
+          (punter.ratings.kickPower - AVERAGE_RATING) * 0.004 + TUNING.specialTeams.fullPuntShift,
+        ),
+      ) + this.weather.puntYards,
     );
-    const landing = this.ytg - gross; // receiving team's own yard line where it lands
+    let landing = this.ytg - gross; // receiving team's own yard line where it lands
+    // Near midfield a punter aims short of the end zone: usually he pins it inside the 15,
+    // where it's downed or fair-caught; sometimes it carries into the end zone anyway.
+    const P = TUNING.specialTeams.pin;
+    if (landing < P.aimInside && this.rng.chance(P.success)) {
+      landing = P.aimInside - this.rng.int(P.aimInside - P.closest + 1);
+      const fairCatch = this.rng.chance(P.fairCatchShare);
+      this.record(
+        {
+          ...base,
+          yards: 0,
+          kickDistance: this.ytg - landing,
+          ...(fairCatch
+            ? { fairCatch: true, returner: returner.id }
+            : { note: "Downed inside the 20" }),
+        },
+        at,
+      );
+      this.newPossession(receiving, 100 - landing);
+      return;
+    }
     if (landing <= 0) {
       this.record({ ...base, yards: 0, kickDistance: gross, touchback: true }, at);
       this.newPossession(receiving, 100 - this.input.rules.puntTouchbackSpot);
@@ -1231,7 +1376,7 @@ class Game {
       fromQuantiles(
         Q,
         k.puntReturnQuantiles,
-        shiftedUniform(this.rng, (returner.ratings.speed - 85) * 0.003),
+        shiftedUniform(this.rng, this.returnShift(returner, this.offense)),
         TUNING.tails.return,
       ),
     );
@@ -1254,6 +1399,25 @@ class Game {
       this.afterTouchdown(receiving, true);
       return;
     }
+    // A muffed or fumbled return: the kicking team recovers where the returner went down.
+    if (this.rng.chance(ELEMENTS.punts.returnFumbleLostRate * this.weather.fumbleFactor)) {
+      const spot = Math.max(1, landing + Math.max(0, ret));
+      const recoveredBy = this.tackler(this.offense, "pass").id;
+      this.record(
+        {
+          ...base,
+          yards: 0,
+          kickDistance: gross,
+          returner: returner.id,
+          returnYards: Math.max(0, ret),
+          fumble: { by: returner.id, lost: true, recoveredBy },
+          turnover: true,
+        },
+        at,
+      );
+      this.newPossession(this.offense, Math.max(1, spot));
+      return;
+    }
     const foul = this.returnPenalty("punt", receiving, Math.max(1, landing + ret));
     this.record(
       {
@@ -1274,7 +1438,13 @@ class Game {
     const at = { clock: this.clock };
     const distance = this.ytg + TUNING.fieldGoal.snapYards;
     const kicker = this.lineupOf(this.offense).k;
-    const good = this.rng.chance(this.fieldGoalChance(this.offense, distance));
+    // A block counts as a miss (the real make rates already include blocks).
+    const blocked = this.rng.chance(ELEMENTS.fieldGoals.blockedRate);
+    const good =
+      !blocked &&
+      this.rng.chance(
+        this.fieldGoalChance(this.offense, distance) / (1 - ELEMENTS.fieldGoals.blockedRate),
+      );
     this.playTime(TUNING.playSeconds.fieldGoal, this.offense);
     // Points go on the board before the play is recorded, so its score is the score after it.
     if (good) this.addPoints(this.offense, 3);
@@ -1285,6 +1455,7 @@ class Game {
         good,
         kicker: kicker.id,
         kickDistance: distance,
+        ...(blocked ? { blocked: true } : {}),
         ...(note ? { note } : {}),
       },
       at,

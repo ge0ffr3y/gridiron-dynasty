@@ -10,6 +10,22 @@ describe("rules config", () => {
     expect(rules!.roster.offseasonMax).toBe(90);
   });
 
+  it("kickoff rules match the 2026 rulebook (checked in Phase 5b; sources in the file)", () => {
+    const k = RULES_BY_SEASON[2026]!.game.kickoff;
+    // Dynamic kickoff: kick from the 35, a landing zone from the 20 to the goal line,
+    // touchbacks to the 35 (to the 20 if it lands in the zone first), short or out of bounds to the 40.
+    expect(k).toMatchObject({
+      kickFrom: 35,
+      landingZoneDepth: 20,
+      touchbackSpot: 35,
+      landingZoneTouchbackSpot: 20,
+      shortOrOutOfBoundsSpot: 40,
+    });
+    // From 2026 an onside kick may be declared at any time, trailing or not.
+    expect(k.onside).toEqual({ anyTime: true, onlyWhenTrailing: false });
+    expect(rules2026.game.source).toMatch(/dynamic kickoff explainer/);
+  });
+
   it("rejects a broken rules file with a readable message", () => {
     const broken = JSON.parse(JSON.stringify(rules2026)) as Record<string, unknown>;
     (broken["roster"] as Record<string, unknown>)["offseasonMax"] = "ninety";

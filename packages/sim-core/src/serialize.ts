@@ -4,6 +4,7 @@
  */
 import { LEAGUE_FORMAT, LEAGUE_FORMAT_VERSION, LeagueSchema, type League } from "./league/schema";
 import { rulesFor } from "./rules";
+import { stadiumFor } from "./season/weather";
 
 function sortKeys(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortKeys);
@@ -70,6 +71,16 @@ function upgrade(data: Record<string, unknown>): void {
       }
     }
     data["formatVersion"] = 5;
+  }
+  // Version 5 -> 6: stadiums on teams, weather on games (none for games already played),
+  // and the 2026 kickoff rules (landing zone, onside kicks).
+  if (data["formatVersion"] === 5) {
+    for (const t of (data["teams"] as Record<string, unknown>[]) ?? [])
+      t["stadium"] = stadiumFor(String(t["id"]));
+    for (const g of (data["games"] as Record<string, unknown>[]) ?? []) g["weather"] = null;
+    const rules = data["rules"] as { game?: Record<string, unknown> } | undefined;
+    if (rules?.game) rules.game["kickoff"] = rulesFor(Number(data["season"])).game.kickoff;
+    data["formatVersion"] = 6;
   }
 }
 

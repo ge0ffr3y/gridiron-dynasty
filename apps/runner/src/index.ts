@@ -119,7 +119,7 @@ function runSeasons(seed: number, count: number): void {
   const started = process.hrtime.bigint();
   const league = createLeague({ seed, name: `League ${seed}` });
   console.log(
-    `\nSeed ${seed}: simulating ${count} season${count === 1 ? "" : "s"} (placeholder scores until the Phase 3 engine).\n`,
+    `\nSeed ${seed}: simulating ${count} season${count === 1 ? "" : "s"} snap by snap. No player development or roster moves yet, so the same teams stay strong.\n`,
   );
   console.log(
     "season  champion  runner-up  score    best record     pts/team/game  home win%  ties  schedule",
@@ -179,7 +179,13 @@ function runCalibration(seed: number, leagues: number, seasonsPerLeague: number)
       const games: MeasuredGame[] = [];
       advanceUntil(league, (x) => x.calendar.stage === "regular");
       advanceUntil(league, (x) => x.calendar.stage !== "regular", {
-        onGame: (g, output) => games.push({ homeId: g.homeId, awayId: g.awayId, output }),
+        onGame: (g, output) =>
+          games.push({
+            homeId: g.homeId,
+            awayId: g.awayId,
+            output,
+            ...(g.weather ? { conditions: g.weather } : {}),
+          }),
       });
       perSeason.push(measureSeason(games));
       const positions = new Map(league.players.map((p) => [p.id, p.position]));
@@ -205,13 +211,13 @@ function runCalibration(seed: number, leagues: number, seasonsPerLeague: number)
   const print = (list: typeof lines) => {
     for (const line of list) {
       console.log(
-        `${line.key.padEnd(28)} ${fmt(line.sim).padStart(10)}  ${fmt(line.real).padStart(10)}   ${`${fmt(line.range[0])} to ${fmt(line.range[1])}`.padEnd(18)}  ${line.pending ? "later" : line.pass ? "ok" : "MISS"}`,
+        `${line.key.padEnd(28)} ${fmt(line.sim).padStart(10)}  ${fmt(line.real).padStart(10)}   ${`${fmt(line.range[0])} to ${fmt(line.range[1])}`.padEnd(18)}  ${line.pending ? "later" : line.info ? "info" : line.pass ? "ok" : "MISS"}`,
       );
     }
   };
   print(lines);
-  const passed = lines.filter((x) => x.pass && !x.pending).length;
-  const counted = lines.filter((x) => !x.pending).length;
+  const passed = lines.filter((x) => x.pass && !x.pending && !x.info).length;
+  const counted = lines.filter((x) => !x.pending && !x.info).length;
   console.log(`\n${passed} of ${counted} league stats inside the real range.`);
   console.log(
     "\nPlayer level (leaderboard values at each rank; snap shares within 6 points of real)\n",

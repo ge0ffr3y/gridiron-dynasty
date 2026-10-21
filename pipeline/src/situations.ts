@@ -55,10 +55,10 @@ export function wpFeatures(s: {
   ];
 }
 
-const logistic = (z: number) => 1 / (1 + Math.exp(-z));
+export const logistic = (z: number) => 1 / (1 + Math.exp(-z));
 
 /** Logistic regression by Newton's method (small and dependency-free). */
-function fitLogistic(x: number[][], y: number[], iterations = 12): number[] {
+export function fitLogistic(x: number[][], y: number[], iterations = 12): number[] {
   const k = x[0]!.length;
   let w = new Array<number>(k).fill(0);
   for (let it = 0; it < iterations; it++) {

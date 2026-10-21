@@ -29,6 +29,8 @@ import {
   leadersView,
   moveOnDepthChart,
   resetDepthChart,
+  playGameNow as playOneGame,
+  type SimHooks,
 } from "@fgm/sim-core";
 import type { Play } from "@fgm/game-engine";
 import { db, PLAY_LOG_SEASONS_KEPT, type PlayLog } from "./db";
@@ -74,6 +76,26 @@ async function save(league: League, existing?: SavedLeague): Promise<SavedLeague
     await db.leagueData.put({ id: saved.id, text });
   });
   return saved;
+}
+
+/** Collects each game's play-by-play as it's played. */
+function keepPlays(logs: PlayLog[]): SimHooks["onGame"] {
+  const id = open!.saved.id;
+  return (game, output) =>
+    logs.push({ leagueId: id, season: game.season, gameId: game.id, plays: output.plays });
+}
+
+/** Saves the league and the new play-by-play, keeping play-by-play for recent seasons only. */
+async function saveWithPlays(league: League, logs: PlayLog[]): Promise<void> {
+  const id = open!.saved.id;
+  open = { saved: await save(league, open!.saved), league };
+  await db.playLogs.bulkPut(logs);
+  const oldest = league.season - PLAY_LOG_SEASONS_KEPT + 1;
+  await db.playLogs
+    .where("leagueId")
+    .equals(id)
+    .and((log) => log.season < oldest)
+    .delete();
 }
 
 type Handlers = {
@@ -161,22 +183,17 @@ const handlers: Handlers = {
 
   async simAction({ action }) {
     const league = requireLeague();
-    const id = open!.saved.id;
     const logs: PlayLog[] = [];
-    runAction(league, action, {
-      onStep: progress,
-      onGame: (game, output) =>
-        logs.push({ leagueId: id, season: game.season, gameId: game.id, plays: output.plays }),
-    });
-    open = { saved: await save(league, open!.saved), league };
-    await db.playLogs.bulkPut(logs);
-    // Keep play-by-play for recent seasons only.
-    const oldest = league.season - PLAY_LOG_SEASONS_KEPT + 1;
-    await db.playLogs
-      .where("leagueId")
-      .equals(id)
-      .and((log) => log.season < oldest)
-      .delete();
+    runAction(league, action, { onStep: progress, onGame: keepPlays(logs) });
+    await saveWithPlays(league, logs);
+    return calendarView(league);
+  },
+
+  async playGameNow({ gameId }) {
+    const league = requireLeague();
+    const logs: PlayLog[] = [];
+    playOneGame(league, gameId, { onGame: keepPlays(logs) });
+    await saveWithPlays(league, logs);
     return calendarView(league);
   },
 

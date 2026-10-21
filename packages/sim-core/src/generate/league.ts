@@ -14,6 +14,7 @@ import { POSITIONS } from "@fgm/foundation";
 import { RngStreams } from "@fgm/foundation";
 import { RULES_BY_SEASON, rulesFor, teamIdsInOrder, type Rules } from "../rules";
 import { advanceUntil, scheduleSeason, startNextSeason } from "../season/flow";
+import { stadiumFor } from "../season/weather";
 import { generateCoach } from "./coaches";
 import { ROSTER_MIX, STAFF, TEAM_STRENGTH_SPREAD } from "./config";
 import { COLLEGES } from "./names";
@@ -54,6 +55,7 @@ export function createLeague(options: NewLeagueOptions): League {
           colors: { primary: identity.colors[0], secondary: identity.colors[1] },
           controller: "ai",
           depthChart: { auto: true, slots: {} },
+          stadium: stadiumFor(id),
         });
       }
     }

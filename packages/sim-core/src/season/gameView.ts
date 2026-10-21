@@ -6,7 +6,9 @@
 import { RULING_NAMES, type BoxScore, type Play, type Side, type StatLine } from "@fgm/game-engine";
 import type { Game, League } from "../league/schema";
 import { drives, elapsedAt, winProbabilitySeries, type Drive, type WinPoint } from "./gameCharts";
+import { canPlayNow } from "./flow";
 import { type TeamTag } from "./views";
+import { describeConditions } from "./weather";
 
 export interface PlayLine {
   quarter: number;
@@ -41,6 +43,10 @@ export interface GameView {
   homeScore: number | null;
   awayScore: number | null;
   overtime: boolean;
+  /** Up next and not played yet, so it can be played (and watched) right away. */
+  playable: boolean;
+  /** Stadium and weather ("34°F, wind 15 mph, snow · grass"); null until played. */
+  conditions: string | null;
   /** Points per period, with labels ("1", "2", "3", "4", "OT"). */
   periods: { labels: string[]; home: number[]; away: number[] } | null;
   teamStats: { label: string; home: string; away: string }[];
@@ -203,12 +209,13 @@ function describeAction(
               : p.returner !== undefined
                 ? `returned ${p.returnYards ?? 0} yards by ${name(p.returner)}`
                 : "BLOCKED";
-      return p.kickDistance === 0
-        ? `${name(p.kicker)} punt is BLOCKED`
-        : `${name(p.kicker)} punts ${p.kickDistance} yards, ${result}`;
+      if (p.kickDistance === 0) return `${name(p.kicker)} punt is BLOCKED`;
+      return `${name(p.kicker)} punts ${p.kickDistance} yards, ${result}${muff(p, name)}`;
     }
     case "fieldGoal":
-      return `${name(p.kicker)} ${p.kickDistance}-yard field goal is ${p.good ? "GOOD" : "NO GOOD"}`;
+      return p.blocked
+        ? `${name(p.kicker)} ${p.kickDistance}-yard field goal is BLOCKED`
+        : `${name(p.kicker)} ${p.kickDistance}-yard field goal is ${p.good ? "GOOD" : "NO GOOD"}`;
     case "extraPoint":
       return `${name(p.kicker)} extra point is ${p.good ? "good" : "NO GOOD"}`;
     case "twoPoint":
@@ -216,9 +223,12 @@ function describeAction(
         ? `Two-point try: ${name(p.passer)} pass to ${name(p.receiver)} ${p.good ? "SUCCEEDS" : "fails"}`
         : `Two-point try: ${name(p.rusher)} run ${p.good ? "SUCCEEDS" : "fails"}`;
     case "kickoff": {
+      if (p.onside)
+        return `${name(p.kicker)} onside kick, recovered by the ${p.onside.recovered ? "KICKING team" : "receiving team"}`;
       if (p.touchback) return `${name(p.kicker)} kicks off, touchback`;
       if (p.outOfBounds) return `${name(p.kicker)} kicks off out of bounds`;
-      return `${name(p.kicker)} kicks off, returned ${p.returnYards ?? 0} yards by ${name(p.returner)}${p.touchdown ? " for a TOUCHDOWN" : ""}`;
+      if (p.short) return `${name(p.kicker)} kicks off short of the landing zone`;
+      return `${name(p.kicker)} kicks off, returned ${p.returnYards ?? 0} yards by ${name(p.returner)}${p.touchdown ? " for a TOUCHDOWN" : ""}${muff(p, name)}`;
     }
     case "timeout":
       return `Timeout, ${abbr[p.team ?? "home"]}`;
@@ -229,6 +239,13 @@ function describeAction(
     case "penalty":
       return "";
   }
+}
+
+/** A return fumbled away: ", FUMBLES, recovered by J. Smith". */
+function muff(p: Play, name: (id: number | undefined) => string): string {
+  return p.fumble?.lost
+    ? `, ${name(p.fumble.by)} FUMBLES, recovered by ${name(p.fumble.recoveredBy)}`
+    : "";
 }
 
 function situation(p: Play, abbr: Record<Side, string>): string {
@@ -322,6 +339,8 @@ export function gameView(league: League, gameId: number, plays: Play[] | null): 
     homeScore: g.result?.homeScore ?? null,
     awayScore: g.result?.awayScore ?? null,
     overtime: g.result?.overtime ?? false,
+    playable: canPlayNow(league, g),
+    conditions: describeConditions(league, g),
     periods,
     teamStats: box ? teamStatRows(box) : [],
     players: { home: playerRows("home"), away: playerRows("away") },

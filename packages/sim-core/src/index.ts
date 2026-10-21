@@ -11,9 +11,16 @@ export * from "./season/gameView";
 export type { Drive, DriveResult, WinPoint } from "./season/gameCharts";
 export * from "./peopleViews";
 export { availableActions, runAction, type SimAction, type SimActionId } from "./season/actions";
-export { advance, advanceUntil, currentStandings, type SimHooks } from "./season/flow";
+export {
+  advance,
+  advanceUntil,
+  canPlayNow,
+  currentStandings,
+  playGameNow,
+  type SimHooks,
+} from "./season/flow";
 export { validateSchedule } from "./season/validate";
 export { seasonDates } from "./season/calendar";
 
 /** Bumped when the league save format or simulation rules change in a breaking way. */
-export const SIM_CORE_VERSION = "0.5.0";
+export const SIM_CORE_VERSION = "0.6.0";

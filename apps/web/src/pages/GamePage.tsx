@@ -1,5 +1,7 @@
 import { Fragment } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { LiveTicker } from "@/components/LiveTicker";
+import { PlayAndWatchButton } from "@/components/PlayAndWatch";
 import { DriveChart, ScoringSummary, WinProbabilityChart } from "@/components/GameCharts";
 import { StatTables } from "@/components/StatTables";
 import { ErrorNote, Loading, TeamChip } from "@/components/shared";
@@ -18,20 +20,46 @@ import { cn } from "@/lib/utils";
 import { useSim } from "@/sim/client";
 import { ROUND_LABELS } from "./SchedulePage";
 
-export function GamePage({ gameId }: { gameId: number }) {
+/** A game's page. With `watch`, it first replays the game live, hiding the result until the end. */
+export function GamePage({ gameId, watch = false }: { gameId: number; watch?: boolean }) {
   const view = useSim("gameView", { gameId }, useLeagueKey(String(gameId)));
+  const [, navigate] = useLocation();
   if (view.error) return <ErrorNote message={view.error} />;
   if (!view.data) return <Loading />;
   const g = view.data;
   const played = g.homeScore !== null;
   const when = g.round === "regular" ? `Week ${g.week}` : `${ROUND_LABELS[g.round]} round`;
   const quarterName = (q: number) => (q <= 4 ? `Quarter ${q}` : "Overtime");
+  const header = (
+    <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
+      <div>
+        {g.season} · {when} · {formatLeagueDate(g.date)} ·{" "}
+        {g.neutral ? "Neutral site" : `at ${g.home.city}`}
+      </div>
+      {g.conditions && <div>{g.conditions}</div>}
+    </div>
+  );
+
+  if (watch && played && g.plays)
+    return (
+      <div className="flex flex-col gap-4">
+        {header}
+        <LiveTicker game={g} plays={g.plays} onFinished={() => navigate(`/game/${g.id}`)} />
+      </div>
+    );
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="text-sm text-muted-foreground">
-        {g.season} · {when} · {formatLeagueDate(g.date)} ·{" "}
-        {g.neutral ? "Neutral site" : `at ${g.home.city}`}
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        {header}
+        {played && g.plays && (
+          <Link
+            href={`/game/${g.id}/watch`}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            Watch it play by play
+          </Link>
+        )}
       </div>
       <Card>
         <CardContent className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
@@ -77,7 +105,10 @@ export function GamePage({ gameId }: { gameId: number }) {
       </Card>
 
       {!played && (
-        <p className="text-sm text-muted-foreground">This game hasn't been played yet.</p>
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          This game hasn't been played yet.
+          {g.playable && <PlayAndWatchButton gameId={g.id} />}
+        </div>
       )}
       {played && !g.periods && (
         <p className="text-sm text-muted-foreground">

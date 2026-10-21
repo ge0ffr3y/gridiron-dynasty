@@ -57,6 +57,8 @@ export interface SimApi {
   calendar(params: Record<string, never>): CalendarView;
   /** Runs a sim button; progress messages arrive while it runs. The league is saved afterwards. */
   simAction(params: { action: SimActionId }): CalendarView;
+  /** Plays one of this week's games right away ("Play and watch"). The league is saved afterwards. */
+  playGameNow(params: { gameId: number }): CalendarView;
   scheduleView(params: { selection?: ScheduleSelection }): ScheduleView;
   standingsView(params: Record<string, never>): StandingsView;
   playoffsView(params: Record<string, never>): PlayoffsView;

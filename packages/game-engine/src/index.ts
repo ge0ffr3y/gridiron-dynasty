@@ -14,7 +14,7 @@ export {
   type MeasuredGame,
   type ScorecardLine,
 } from "./calibrate";
-export { CALIBRATION_TARGETS, PEOPLE, REAL, SITUATIONS, TUNING } from "./config";
+export { CALIBRATION_TARGETS, ELEMENTS, PEOPLE, REAL, SITUATIONS, TUNING } from "./config";
 export { smoothExpectedPoints } from "./epa";
 export { RULING_NAMES } from "./review";
 export { winProbability } from "./winprob";
@@ -22,4 +22,4 @@ export type * from "./types";
 export { STAT_KEYS, LONGEST_STATS, DEPTH_SLOTS } from "./types";
 
 /** Bumped when the engine changes how games play out. */
-export const GAME_ENGINE_VERSION = "0.4.0";
+export const GAME_ENGINE_VERSION = "0.5.0";

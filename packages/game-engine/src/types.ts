@@ -13,9 +13,12 @@ export interface GameRules {
   extraPointSpot: number;
   twoPointSpot: number;
   kickoff: {
+    kickFrom: number;
+    landingZoneDepth: number;
     touchbackSpot: number;
     landingZoneTouchbackSpot: number;
     shortOrOutOfBoundsSpot: number;
+    onside: { anyTime: boolean; onlyWhenTrailing: boolean };
   };
   puntTouchbackSpot: number;
   safetyFreeKickFrom: number;
@@ -123,10 +126,22 @@ export interface TeamInput {
   gameStyle?: { aggressiveness?: number; twoPointAggressiveness?: number; adaptability?: number };
 }
 
+/** Weather and the stadium for one game (Phase 5b). */
+export interface Conditions {
+  /** Under a dome or a closed roof: the weather doesn't reach the field. */
+  indoors: boolean;
+  temperatureF: number;
+  windMph: number;
+  precipitation: "none" | "rain" | "snow";
+  elevationMeters: number;
+}
+
 export interface GameInput {
   home: TeamInput;
   away: TeamInput;
   neutral: boolean;
+  /** Weather and stadium; missing means indoors at sea level. */
+  conditions?: Conditions;
   /** Playoff games use playoff overtime and can't end tied. */
   playoff: boolean;
   rules: GameRules;
@@ -172,6 +187,14 @@ export interface Play {
   intercepted?: boolean;
   /** Field goals, extra points, 2-point tries. */
   good?: boolean;
+  /** A kick blocked at the line. */
+  blocked?: boolean;
+  /** An onside kickoff, and whether the kicking team got it back. */
+  onside?: { recovered: boolean };
+  /** A fake punt or field goal (a run or pass out of kicking formation). */
+  fake?: "punt" | "fieldGoal";
+  /** A kickoff that landed short of the landing zone. */
+  short?: boolean;
   touchback?: boolean;
   fairCatch?: boolean;
   outOfBounds?: boolean;

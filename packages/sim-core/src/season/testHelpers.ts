@@ -18,6 +18,7 @@ export function rulesTeams(rules: Rules = RULES): Team[] {
         colors: { primary: "#000000", secondary: "#ffffff" },
         controller: "ai" as const,
         depthChart: { auto: true, slots: {} },
+        stadium: { roof: "outdoor" as const, surface: "grass" as const, elevationMeters: 0 },
       })),
     ),
   );
@@ -52,6 +53,7 @@ export class Results {
       awayId: away,
       neutral: false,
       boxScore: null,
+      weather: null,
       result: {
         homeScore: hs,
         awayScore: as,

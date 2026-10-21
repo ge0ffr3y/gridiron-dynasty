@@ -23,6 +23,7 @@ import {
 } from "@fgm/game-engine";
 import { gameDepthChart } from "./depthChart";
 import { applyInjuries } from "./injuries";
+import { conditionsFor, drawWeather } from "./weather";
 import { rulesFor } from "../rules";
 import { generateDraftPicks } from "../generate/players";
 import { seasonDates } from "./calendar";
@@ -96,6 +97,7 @@ export function scheduleSeason(league: League, finish: Map<string, number>): voi
     neutral: false,
     result: null,
     boxScore: null,
+    weather: null,
   }));
 }
 
@@ -137,14 +139,19 @@ function recordStats(
 
 function playGames(league: League, games: Game[], hooks: SimHooks): void {
   // Depth charts are set before the week's games, so this week's injuries count from next week.
-  const depth = new Map(league.teams.map((t) => [t.id, gameDepthChart(league, t.id)]));
+  const playing = new Set(games.flatMap((g) => [g.homeId, g.awayId]));
+  const depth = new Map(
+    league.teams.filter((t) => playing.has(t.id)).map((t) => [t.id, gameDepthChart(league, t.id)]),
+  );
   const players = new Map(league.players.map((p) => [p.id, p]));
   for (const g of games) {
+    const weather = drawWeather(league, g);
     const output = simulateGame(
       {
         home: { id: g.homeId, depth: depth.get(g.homeId)! },
         away: { id: g.awayId, depth: depth.get(g.awayId)! },
         neutral: g.neutral,
+        conditions: conditionsFor(league, g, weather),
         playoff: g.round !== "regular",
         rules: league.rules.game,
       },
@@ -158,11 +165,32 @@ function playGames(league: League, games: Game[], hooks: SimHooks): void {
       overtime: output.overtime,
     };
     g.boxScore = output.box;
+    g.weather = weather;
     // Season totals are regular-season stats, as in real record books; playoff box scores stay on the games.
     if (g.round === "regular") recordStats(league, g, output.box, players);
     applyInjuries(league, g, output.injuries, players);
     hooks.onGame?.(g, output);
   }
+}
+
+/** True when a game is up next on the calendar (this week or this playoff round) and not played yet. */
+export function canPlayNow(league: League, game: Game): boolean {
+  if (game.result !== null || game.season !== league.season) return false;
+  const cal = league.calendar;
+  if (cal.stage === "regular") return game.round === "regular" && game.week === cal.week;
+  return game.round === cal.stage;
+}
+
+/**
+ * Plays one of this week's games right away ("Play and watch"). Every game has
+ * its own seed and weather, and depth charts don't change within a week except
+ * by the user, so the result is the same as simming it with the rest of the week.
+ */
+export function playGameNow(league: League, gameId: number, hooks: SimHooks = {}): Game {
+  const game = league.games.find((g) => g.id === gameId);
+  if (!game || !canPlayNow(league, game)) throw new Error("That game can't be played right now.");
+  playGames(league, [game], hooks);
+  return game;
 }
 
 function addPlayoffRound(league: League, round: PlayoffRound): void {
@@ -181,6 +209,7 @@ function addPlayoffRound(league: League, round: PlayoffRound): void {
       date,
       result: null,
       boxScore: null,
+      weather: null,
       ...m,
     });
   }
@@ -211,7 +240,8 @@ export function advance(league: League, hooks: SimHooks = {}): string {
       const week = cal.week;
       playGames(
         league,
-        league.games.filter((g) => g.round === "regular" && g.week === week),
+        // A game already played with "Play and watch" isn't played again.
+        league.games.filter((g) => g.round === "regular" && g.week === week && g.result === null),
         hooks,
       );
       league.date = dates.weekSundays[week - 1] as string;
@@ -228,7 +258,7 @@ export function advance(league: League, hooks: SimHooks = {}): string {
       const round = cal.stage;
       playGames(
         league,
-        league.games.filter((g) => g.round === round),
+        league.games.filter((g) => g.round === round && g.result === null),
         hooks,
       );
       league.date = dates.playoffs[round];

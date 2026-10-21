@@ -1,0 +1,562 @@
+{
+  "source": "nflverse play-by-play (2022-2025), github.com/nflverse/nflverse-data, CC-BY-4.0. Regular seasons. Built by `npm run pipeline -- elements`. Denver's elevation is a city fact. Stadium entries are roof and surface only (no names).",
+  "stadiums": {
+    "NYA": {
+      "roof": "outdoor",
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "LAB": {
+      "roof": "dome",
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "CAR": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "SEA": {
+      "roof": "outdoor",
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "MIN": {
+      "roof": "dome",
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "HOU": {
+      "roof": "retractable",
+      "openShare": 0.059,
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "WAS": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "ARI": {
+      "roof": "retractable",
+      "openShare": 0.152,
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "LAA": {
+      "roof": "dome",
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "MIA": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "ATL": {
+      "roof": "retractable",
+      "openShare": 0.176,
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "TEN": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "DET": {
+      "roof": "dome",
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "CIN": {
+      "roof": "outdoor",
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "CHI": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "DAL": {
+      "roof": "retractable",
+      "openShare": 0.059,
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "LV": {
+      "roof": "dome",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "NYB": {
+      "roof": "outdoor",
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "GB": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "DEN": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 1609
+    },
+    "JAX": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "KC": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "BAL": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "PHI": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "PIT": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "CLE": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "SF": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "NO": {
+      "roof": "dome",
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "BUF": {
+      "roof": "outdoor",
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "NE": {
+      "roof": "outdoor",
+      "surface": "turf",
+      "elevationMeters": 0
+    },
+    "TB": {
+      "roof": "outdoor",
+      "surface": "grass",
+      "elevationMeters": 0
+    },
+    "IND": {
+      "roof": "retractable",
+      "openShare": 0.182,
+      "surface": "turf",
+      "elevationMeters": 0
+    }
+  },
+  "climate": {
+    "note": "Outside conditions on game day at each home city (including games under a roof): temperature = tempByWeek[0] + tempByWeek[1] x week, spread tempSd; wind mean and spread (mph); share of games with rain or snow in weeks 1-9 and 10-18.",
+    "NYA": {
+      "games": 34,
+      "tempByWeek": [77.92, -2.395],
+      "tempSd": 8.01,
+      "windMean": 8,
+      "windSd": 4.34,
+      "rain": [0.229, 0.229],
+      "snow": [0.001, 0.008]
+    },
+    "LAB": {
+      "games": 34,
+      "tempByWeek": [77.89, -0.81],
+      "tempSd": 6.59,
+      "windMean": 4.91,
+      "windSd": 2.25,
+      "rain": [0.024, 0.027],
+      "snow": [0.001, 0.007]
+    },
+    "CAR": {
+      "games": 34,
+      "tempByWeek": [84.31, -2.282],
+      "tempSd": 9.49,
+      "windMean": 7.88,
+      "windSd": 4.48,
+      "rain": [0.024, 0.101],
+      "snow": [0.001, 0.007]
+    },
+    "SEA": {
+      "games": 34,
+      "tempByWeek": [68.76, -1.563],
+      "tempSd": 4.82,
+      "windMean": 5.65,
+      "windSd": 3.42,
+      "rain": [0.059, 0.182],
+      "snow": [0.001, 0.008]
+    },
+    "MIN": {
+      "games": 34,
+      "tempByWeek": [77.24, -3.348],
+      "tempSd": 11.57,
+      "windMean": 9.15,
+      "windSd": 3.88,
+      "rain": [0.025, 0.026],
+      "snow": [0.001, 0.007]
+    },
+    "HOU": {
+      "games": 34,
+      "tempByWeek": [87.05, -1.379],
+      "tempSd": 7.76,
+      "windMean": 6.47,
+      "windSd": 3.4,
+      "rain": [0.025, 0.062],
+      "snow": [0.001, 0.007]
+    },
+    "WAS": {
+      "games": 34,
+      "tempByWeek": [76.53, -1.872],
+      "tempSd": 7.49,
+      "windMean": 6.91,
+      "windSd": 3.51,
+      "rain": [0.061, 0.064],
+      "snow": [0.001, 0.007]
+    },
+    "ARI": {
+      "games": 16,
+      "tempByWeek": [87.13, -1.169],
+      "tempSd": 5.92,
+      "windMean": 3.56,
+      "windSd": 2.74,
+      "rain": [0.046, 0.079],
+      "snow": [0.002, 0.009]
+    },
+    "LAA": {
+      "games": 34,
+      "tempByWeek": [82.07, -1.259],
+      "tempSd": 6.64,
+      "windMean": 6.56,
+      "windSd": 2.66,
+      "rain": [0.025, 0.026],
+      "snow": [0.001, 0.007]
+    },
+    "MIA": {
+      "games": 33,
+      "tempByWeek": [92.1, -1.253],
+      "tempSd": 6.38,
+      "windMean": 9.58,
+      "windSd": 4.19,
+      "rain": [0.025, 0.027],
+      "snow": [0.001, 0.007]
+    },
+    "ATL": {
+      "games": 20,
+      "tempByWeek": [77.2, -0.907],
+      "tempSd": 7.88,
+      "windMean": 5.67,
+      "windSd": 3.3,
+      "rain": [0.029, 0.096],
+      "snow": [0.001, 0.011]
+    },
+    "TEN": {
+      "games": 34,
+      "tempByWeek": [82.45, -2.176],
+      "tempSd": 11.23,
+      "windMean": 9.03,
+      "windSd": 3.71,
+      "rain": [0.026, 0.06],
+      "snow": [0.001, 0.007]
+    },
+    "DET": {
+      "games": 34,
+      "tempByWeek": [68.06, 0.031],
+      "tempSd": 1.01,
+      "windMean": 0,
+      "windSd": 0,
+      "rain": [0.024, 0.027],
+      "snow": [0.001, 0.007]
+    },
+    "CIN": {
+      "games": 33,
+      "tempByWeek": [78.74, -2.251],
+      "tempSd": 11.09,
+      "windMean": 6.88,
+      "windSd": 2.8,
+      "rain": [0.023, 0.069],
+      "snow": [0.001, 0.008]
+    },
+    "CHI": {
+      "games": 34,
+      "tempByWeek": [75.48, -2.744],
+      "tempSd": 11.23,
+      "windMean": 8.59,
+      "windSd": 4.76,
+      "rain": [0.066, 0.025],
+      "snow": [0.001, 0.076]
+    },
+    "DAL": {
+      "games": 4,
+      "tempByWeek": [79, -1.882],
+      "tempSd": 10.69,
+      "windMean": 8.5,
+      "windSd": 4.39,
+      "rain": [0.049, 0.067],
+      "snow": [0.002, 0.018]
+    },
+    "LV": {
+      "games": 33,
+      "tempByWeek": [94.59, -2.412],
+      "tempSd": 6.67,
+      "windMean": 7.52,
+      "windSd": 5.54,
+      "rain": [0.026, 0.026],
+      "snow": [0.001, 0.007]
+    },
+    "NYB": {
+      "games": 34,
+      "tempByWeek": [73.15, -2.062],
+      "tempSd": 7.72,
+      "windMean": 8.79,
+      "windSd": 5.23,
+      "rain": [0.098, 0.027],
+      "snow": [0.001, 0.007]
+    },
+    "GB": {
+      "games": 34,
+      "tempByWeek": [74.6, -2.952],
+      "tempSd": 9.64,
+      "windMean": 8.91,
+      "windSd": 3.26,
+      "rain": [0.098, 0.027],
+      "snow": [0.001, 0.007]
+    },
+    "DEN": {
+      "games": 34,
+      "tempByWeek": [79.37, -2.045],
+      "tempSd": 11.31,
+      "windMean": 7,
+      "windSd": 3.34,
+      "rain": [0.024, 0.027],
+      "snow": [0.038, 0.007]
+    },
+    "JAX": {
+      "games": 34,
+      "tempByWeek": [83.49, -1.384],
+      "tempSd": 7.42,
+      "windMean": 8.76,
+      "windSd": 3.74,
+      "rain": [0.059, 0.028],
+      "snow": [0.001, 0.008]
+    },
+    "KC": {
+      "games": 34,
+      "tempByWeek": [87.93, -3.426],
+      "tempSd": 11.01,
+      "windMean": 8.35,
+      "windSd": 3.69,
+      "rain": [0.059, 0.028],
+      "snow": [0.001, 0.008]
+    },
+    "BAL": {
+      "games": 34,
+      "tempByWeek": [80.96, -2.549],
+      "tempSd": 8.9,
+      "windMean": 6.74,
+      "windSd": 4.46,
+      "rain": [0.098, 0.101],
+      "snow": [0.001, 0.007]
+    },
+    "PHI": {
+      "games": 34,
+      "tempByWeek": [76.16, -1.965],
+      "tempSd": 8.75,
+      "windMean": 10.85,
+      "windSd": 7.83,
+      "rain": [0.102, 0.062],
+      "snow": [0.001, 0.007]
+    },
+    "PIT": {
+      "games": 34,
+      "tempByWeek": [75.7, -2.744],
+      "tempSd": 9.51,
+      "windMean": 7.74,
+      "windSd": 4.69,
+      "rain": [0.061, 0.027],
+      "snow": [0.001, 0.007]
+    },
+    "CLE": {
+      "games": 34,
+      "tempByWeek": [75.39, -2.449],
+      "tempSd": 9.34,
+      "windMean": 12.38,
+      "windSd": 5.25,
+      "rain": [0.057, 0.109],
+      "snow": [0.001, 0.048]
+    },
+    "SF": {
+      "games": 34,
+      "tempByWeek": [80.24, -1.587],
+      "tempSd": 6.92,
+      "windMean": 6.59,
+      "windSd": 3.18,
+      "rain": [0.026, 0.06],
+      "snow": [0.001, 0.007]
+    },
+    "NO": {
+      "games": 34,
+      "tempByWeek": [84.54, -1.539],
+      "tempSd": 7.71,
+      "windMean": 8.38,
+      "windSd": 3.4,
+      "rain": [0.057, 0.109],
+      "snow": [0.001, 0.008]
+    },
+    "BUF": {
+      "games": 34,
+      "tempByWeek": [73.39, -2.414],
+      "tempSd": 9.71,
+      "windMean": 8.61,
+      "windSd": 4.62,
+      "rain": [0.024, 0.175],
+      "snow": [0.001, 0.081]
+    },
+    "NE": {
+      "games": 34,
+      "tempByWeek": [73.07, -2.265],
+      "tempSd": 8.71,
+      "windMean": 6.65,
+      "windSd": 3.64,
+      "rain": [0.094, 0.067],
+      "snow": [0.001, 0.085]
+    },
+    "TB": {
+      "games": 34,
+      "tempByWeek": [90.04, -1.265],
+      "tempSd": 7.22,
+      "windMean": 6.5,
+      "windSd": 2.68,
+      "rain": [0.024, 0.064],
+      "snow": [0.001, 0.007]
+    },
+    "IND": {
+      "games": 34,
+      "tempByWeek": [74.96, -2.365],
+      "tempSd": 10.24,
+      "windMean": 3.94,
+      "windSd": 2.01,
+      "rain": [0.023, 0.105],
+      "snow": [0.001, 0.046]
+    }
+  },
+  "effects": {
+    "note": "Fitted on real games. Conditions count only outdoors or with the roof open; cold = 40 F or colder, windy = 15 mph or more. Field goals and completions: log-odds change per mph of wind, and for cold, rain/snow, and altitude. Yards per catch: ratio in wind (per mph) and in rain/snow. Fumbles: rate ratio vs. dry. Punts: yards per mph of wind, and at altitude.",
+    "fieldGoal": {
+      "windPerMph": -0.023,
+      "cold": -0.3757,
+      "precip": -0.12,
+      "altitude": 0.1002
+    },
+    "completion": {
+      "windPerMph": -0.004,
+      "cold": -0.0517,
+      "precip": -0.129
+    },
+    "yardsPerCatch": {
+      "perMphOfWind": -0.00199,
+      "precip": 0.956
+    },
+    "fumbles": {
+      "rain": 1.152,
+      "snow": 1.269
+    },
+    "punt": {
+      "yardsPerMphOfWind": -0.063,
+      "altitudeYards": 0.95
+    },
+    "average": {
+      "note": "Average conditions over real plays: the league-wide tables already include these, so a game's effects are measured from here.",
+      "wind": 5.375,
+      "cold": 0.1122,
+      "rain": 0.0456,
+      "snow": 0.0071,
+      "altitude": 0.0315
+    }
+  },
+  "kickoffs": {
+    "note": "Kickoffs under the 2025 rules (touchback at the 35; a landing-zone kick downed in the end zone at the 20; short kicks and kicks out of bounds at the 40). Onside kicks: 2024, 2025 (declared kicks, recovered by the kicking team at this rate).",
+    "kickoffs": 2742,
+    "touchbackShare": 0.1813,
+    "landingZoneTouchbackShare": 0.0292,
+    "outOfBoundsShare": 0.0135,
+    "shortShare": 0.0157,
+    "returnedShare": 0.7604,
+    "returnFumbleLostRate": 0.0067,
+    "onsideAttemptsPerTeamGame": 0.0956,
+    "onsideRecoveryRate": 0.0769,
+    "onsideSituations": {
+      "trailing|q4": 104
+    }
+  },
+  "punts": {
+    "blockedRate": 0.0046,
+    "returnFumbleLostRate": 0.0254
+  },
+  "fieldGoals": {
+    "blockedRate": 0.0199
+  },
+  "fakes": {
+    "note": "Runs and passes out of punt or field goal formation, per punt or field goal attempt, and how often they gained a first down or scored.",
+    "puntFakeRate": 0.0093,
+    "puntFakeSuccess": 0.57,
+    "fieldGoalFakeRate": 0.0021,
+    "fieldGoalFakeSuccess": 0.111
+  },
+  "targets": {
+    "pointsPerTeamGameDome": {
+      "real": 23.411,
+      "range": [22.9815, 23.6369]
+    },
+    "pointsPerTeamGameColdOrWindy": {
+      "real": 21.1552,
+      "range": [19.5606, 22.3415]
+    },
+    "fieldGoalPctDome": {
+      "real": 0.8622,
+      "range": [0.8503, 0.8787]
+    },
+    "fieldGoalPctColdOrWindy": {
+      "real": 0.8321,
+      "range": [0.7927, 0.8742]
+    },
+    "puntGrossAverage": {
+      "real": 47.3258,
+      "range": [46.9968, 47.5619]
+    },
+    "puntNetAverage": {
+      "real": 41.6711,
+      "range": [41.408, 41.8196]
+    },
+    "kickoffTouchbackRate": {
+      "real": 0.2104,
+      "range": [0.1949, 0.226]
+    },
+    "onsideRecoveryRate": {
+      "real": 0.0769,
+      "range": [0.0247, 0.1292]
+    },
+    "onsideAttemptsPerTeamGame": {
+      "real": 0.0956,
+      "range": [0.0768, 0.1143]
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createLeague } from "../generate/league";
+import { LEAGUE_FORMAT_VERSION } from "../league/schema";
 import { parseLeague, serializeLeague } from "../serialize";
 import { advanceUntil } from "./flow";
 
@@ -58,7 +59,7 @@ describe("game stats in the league", () => {
     for (const g of old.games) delete g.boxScore;
     delete old.rules.game;
     const upgraded = parseLeague(JSON.stringify(old));
-    expect(upgraded.formatVersion).toBe(5);
+    expect(upgraded.formatVersion).toBe(LEAGUE_FORMAT_VERSION);
     expect(upgraded.teams.every((t) => t.depthChart.auto)).toBe(true);
     expect(upgraded.players.every((p) => p.injury === null)).toBe(true);
     expect(upgraded.players.every((p) => p.stats.length === 0)).toBe(true);
@@ -79,7 +80,7 @@ describe("game stats in the league", () => {
           delete g.boxScore[side][key];
     }
     const upgraded = parseLeague(JSON.stringify(old));
-    expect(upgraded.formatVersion).toBe(5);
+    expect(upgraded.formatVersion).toBe(LEAGUE_FORMAT_VERSION);
     expect(upgraded.games.some((g) => g.boxScore !== null)).toBe(true);
   });
 });

@@ -165,6 +165,13 @@ function Shell() {
                 <HistoryPage />
               </NeedsLeague>
             </Route>
+            <Route path="/game/:id/watch">
+              {(params) => (
+                <NeedsLeague>
+                  <GamePage gameId={Number(params.id)} watch />
+                </NeedsLeague>
+              )}
+            </Route>
             <Route path="/game/:id">
               {(params) => (
                 <NeedsLeague>

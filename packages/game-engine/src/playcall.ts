@@ -32,8 +32,8 @@ export interface Situation {
 }
 
 export type Call =
-  | { kind: "run"; inside: boolean; note?: string }
-  | { kind: "pass"; depth: "short" | "medium" | "deep"; note?: string }
+  | { kind: "run"; inside: boolean; note?: string; fake?: "punt" | "fieldGoal" }
+  | { kind: "pass"; depth: "short" | "medium" | "deep"; note?: string; fake?: "punt" | "fieldGoal" }
   | { kind: "punt"; note?: string }
   | { kind: "fieldGoal"; note?: string }
   | { kind: "kneel"; note?: string }
@@ -65,11 +65,20 @@ const late = (s: Situation) => s.quarter >= 4 || s.overtime;
 const kickDistance = (s: Situation) => s.yardsToGoal + TUNING.fieldGoal.snapYards;
 const inRange = (s: Situation) => kickDistance(s) <= s.fieldGoalRange;
 
-/** Can the leading offense kneel out the clock? Each kneel burns a play clock unless the defense stops it. */
+/**
+ * Can the leading offense kneel out the clock? Each kneel takes a second or two,
+ * and the play clock runs between kneels unless the defense calls timeout. The
+ * gaps come only BETWEEN kneels: after a 4th-down kneel the other team gets the
+ * ball, so the clock has to be gone by then (Phase 5b found a team kneeling
+ * away a 6-point lead with 38 seconds left).
+ */
 function canKneelOut(s: Situation): boolean {
   const kneelsLeft = 4 - s.down + 1;
-  const stoppable = Math.min(s.defenseTimeouts, kneelsLeft - 1);
-  return s.clock <= (kneelsLeft - stoppable) * 40 + 2;
+  const gaps = kneelsLeft - 1;
+  // The two-minute warning stops the clock once, like a timeout.
+  const warning = s.clock > TWO_MINUTES ? 1 : 0;
+  const stoppable = Math.min(s.defenseTimeouts + warning, gaps);
+  return s.clock <= kneelsLeft * TUNING.playSeconds.kneel + (gaps - stoppable) * TUNING.tempo.milk;
 }
 
 export function twoMinuteDrill(
@@ -140,6 +149,21 @@ function fourthDown(rng: Rng, s: Situation): Call {
     ? ` (win chance ${pct(chosen)}${ranked[1] ? ` vs. ${pct(ranked[1][1])} ${OPTION_NAMES[ranked[1][0]]}` : ""})`
     : `, though ${OPTION_NAMES[best[0]]} rated higher (${pct(best[1])} vs. ${pct(chosen)})`;
   if (choice === "go") return scrimmageCall(rng, s, `4th & ${s.toGo}: going for it${detail}`);
+  // Now and then, on short yardage, the kick is a fake (real rates per punt and field goal).
+  const ST = TUNING.specialTeams;
+  if (
+    s.toGo <= ST.fakeMaxToGo &&
+    !late(s) &&
+    rng.chance(choice === "punt" ? ST.puntFakeChance : ST.fieldGoalFakeChance)
+  ) {
+    const fake = choice === "punt" ? "punt" : "fieldGoal";
+    const play = scrimmageCall(
+      rng,
+      s,
+      fake === "punt" ? "Fake punt!" : "Fake field goal!",
+    ) as Extract<Call, { kind: "run" | "pass" }>;
+    return { ...play, fake };
+  }
   // Ordinary kicks only get a note when the coach went against the numbers.
   const note = followed ? undefined : `4th & ${s.toGo}: ${OPTION_NAMES[choice]}${detail}`;
   return choice === "fieldGoal"

@@ -9,6 +9,7 @@ import charting from "../../../calibration/charting.json";
 import matchups from "../../../calibration/matchups.json";
 import people from "../../../calibration/people.json";
 import situations from "../../../calibration/situations.json";
+import elements from "../../../calibration/elements.json";
 import calibration from "../../../calibration/targets.json";
 
 /** Real-NFL shapes the engine draws from. */
@@ -25,6 +26,9 @@ export const PEOPLE = people;
 
 /** Real win probability, conversion rates, punt results and situational targets (Phase 5a). */
 export const SITUATIONS = situations;
+
+/** Real special teams, stadiums, climate and weather effects (Phase 5b). */
+export const ELEMENTS = elements;
 
 /** Real-NFL season averages (what the scorecard compares against). */
 export const CALIBRATION_TARGETS = {
@@ -302,7 +306,7 @@ export const TUNING = {
   decisions: {
     goSlope: 150,
     /** Real coaches give up a punt far less readily than a field goal. */
-    goLeanVsPunt: -2.35,
+    goLeanVsPunt: -2.45,
     goLeanVsFieldGoal: -1.6,
     /** ...and they trust long field goals less: per yard of kick beyond `trustedKick`, the lean shrinks by this. */
     longKickDoubt: 0.08,
@@ -361,6 +365,44 @@ export const TUNING = {
    * effect could be measured to calibrate it.
    */
   momentum: { strength: 0, swing: 3, plays: 4 },
+  /**
+   * Special teams (Phase 5b). Kickoffs start from the real 2025 outcome mix;
+   * the kicker's leg, the wind and altitude move it (log-odds per point / mph). Fakes: chance a short-yardage punt or field goal is a fake.
+   */
+  /** Weather counts as cold at or below this temperature, and altitude from this elevation (as in the data). */
+  weather: { coldF: 40, altitudeMeters: 1000 },
+  specialTeams: {
+    touchbackPerPowerPoint: 0.04,
+    /** League kickers out-kick the real average a little; this centers the touchback rate. */
+    touchbackLogit: -0.1,
+    touchbackPerMphOfWind: 0.03,
+    touchbackAtAltitude: 0.6,
+    shortKickPerMphOfWind: 0.05,
+    /** Onside kicks: trailing by at most this much, inside these many seconds of the 4th quarter. */
+    onsideMaxDeficit: 16,
+    oneScore: 8,
+    onsideOneScoreSeconds: 120,
+    onsideTwoScoreSeconds: 240,
+    /** An onside kick goes about this far before someone falls on it. */
+    onsideKickYards: 10,
+    /** Fakes only on 4th and this short or shorter, at this chance. */
+    fakeMaxToGo: 4,
+    puntFakeChance: 0.04,
+    fieldGoalFakeChance: 0.01,
+    /**
+     * Pinning punts: when a full punt would land inside `aimInside` (or in the end zone), the punter
+     * aims short, landing it between `closest` and `aimInside` yards from the goal `success` of the time.
+     */
+    pin: { aimInside: 15, closest: 3, success: 0.32, fairCatchShare: 0.5 },
+    /** The real distance table includes pinned punts; full punts go a little farther than it says. */
+    fullPuntShift: 0.05,
+    /** Return speed and coverage: quantile shift per point of returner speed and of coverage speed + tackling. */
+    returnerShift: 0.003,
+    coverageShift: 0.002,
+    returnerSpeedTypical: 85,
+    /** Coverage units are backups: a typical one rates about this (speed + tackling, averaged). */
+    coverageTypical: 68,
+  },
   /** Replay review (Phase 5a): how often each kind of play is a close call, and how often a hurt team challenges one. */
   review: {
     closeCall: {

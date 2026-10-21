@@ -21,6 +21,7 @@ import {
   LEAGUE_FORMAT,
   LEAGUE_FORMAT_VERSION,
   type Coach,
+  type Contract,
   type CoachRole,
   type Game,
   type GameRound,
@@ -34,6 +35,7 @@ import { rulesFor, teamIdsInOrder } from "./rules";
 import { emptyTeamCap } from "./contracts/team";
 import { generateContracts } from "./contracts/generate";
 import { seedSalaryHistory } from "./contracts/tags";
+import { settleUnsigned } from "./contracts/upkeep";
 import { completeSeasonFromResults, startNextSeason } from "./season/flow";
 import { stadiumFor } from "./season/weather";
 import { generateCoach } from "./generate/coaches";
@@ -78,6 +80,20 @@ export interface RealPlayerInput {
   hidden?: Partial<HiddenTraits>;
   /** Real season-by-season stats, oldest first. */
   stats?: SeasonStats[];
+  /** His real contract when the league starts (null: none for this League Year, e.g. a pending free agent). */
+  contract?: Contract | null;
+  /**
+   * Bonus proration still charged to his team after his deal ended with the last
+   * season (its void years accelerate), by season. Becomes the team's dead money.
+   */
+  voidedProration?: { season: number; amount: number }[];
+}
+
+/** A team's published cap facts at the start: dead money left by earlier moves, and room carried over. */
+export interface RealTeamCapInput {
+  /** Dead money already on the books, by season (from moves made before the league began). */
+  deadMoney: { season: number; amount: number }[];
+  carryover: number;
 }
 
 export interface RealCoachInput {
@@ -117,6 +133,8 @@ export interface RealLeagueInput {
   games: RealGameInput[];
   /** Fills coach jobs the real data doesn't cover (special teams, scouts). */
   names: NamePicker;
+  /** Real contracts are on the players; these are each team's starting dead money and carryover. */
+  teamCaps?: Record<string, RealTeamCapInput>;
 }
 
 /** A seeded random stream for one person, independent of everyone else. */
@@ -336,8 +354,51 @@ export function assembleRealLeague(input: RealLeagueInput): League {
   completeSeasonFromResults(league);
   startNextSeason(league, { agePlayers: false });
   // Money: everyone on a roster gets a contract, and the tag history starts from them.
-  generateContracts(league, new Rng(streamSeed(input.seed, "contracts")));
-  seedSalaryHistory(league);
+  if (input.players.some((p) => p.contract)) {
+    // Real contracts as they stood, plus each team's published dead money and carried-over room.
+    const byKey = new Map(input.players.map((p) => [p.key, p]));
+    const sorted = [...input.players].sort((a, b) => a.key.localeCompare(b.key));
+    sorted.forEach((p, i) => {
+      const player = league.players[i]!;
+      const source = byKey.get(p.key)!;
+      player.contract = source.contract ?? null;
+      const team = league.teams.find((t) => t.id === player.teamId);
+      for (const v of source.voidedProration ?? [])
+        if (team && v.amount > 0)
+          team.cap.deadMoney.push({
+            season: v.season,
+            playerId: player.id,
+            amount: v.amount,
+            reason:
+              "Void years of a contract that ended last season: the bonus proration left accelerates",
+          });
+    });
+    for (const team of league.teams) {
+      const facts = input.teamCaps?.[team.id];
+      if (!facts) continue;
+      for (const d of facts.deadMoney)
+        if (d.amount > 0)
+          team.cap.deadMoney.push({
+            season: d.season,
+            playerId: -1,
+            amount: d.amount,
+            reason: "Dead money from moves made before the league began (published figure)",
+          });
+      if (facts.carryover > 0)
+        team.cap.carryover.push({ season: league.season, amount: facts.carryover });
+    }
+    seedSalaryHistory(league);
+    // Pending free agents (deals that ended with the last season) re-sign or move on, as every League Year.
+    settleUnsigned(
+      league,
+      league.players
+        .filter((p) => p.teamId !== null && p.contract === null)
+        .sort((a, b) => a.id - b.id),
+    );
+  } else {
+    generateContracts(league, new Rng(streamSeed(input.seed, "contracts")));
+    seedSalaryHistory(league);
+  }
   return league;
 }
 

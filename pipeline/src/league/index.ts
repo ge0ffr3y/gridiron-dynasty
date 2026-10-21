@@ -42,7 +42,10 @@ import {
   SEASON,
 } from "./inputs";
 import { careers, FIRST_STATS_SEASON, injuryHistory, injuryTraits, rescaleTraits } from "./careers";
+import { fetchTeamPages, matchPages, readTeamPages } from "./capPages";
+import { capSnapshot, contractAtStart, readContracts, teamNameMap } from "./contracts";
 import { matchMadden, parseMadden } from "./madden";
+import { validateCaps, type CapValidation } from "./validate";
 import { fictionalCollege, Renamer } from "./names";
 import { adjustForPerformance, adjustForTeamResults, defenseByPfr } from "./performance";
 import { alignSpecialists, buildRatings } from "./ratings";
@@ -56,7 +59,12 @@ export const LEAGUE_FILE = join(OUT, "real-league-2026.json");
 /** Where the dev server serves it from (git-ignored). */
 export const WEB_COPY = join(ROOT, "apps", "web", "public", "private", "real-league-2026.json");
 
-export async function buildLeague(): Promise<{ league: League; report: string[]; sheet: string }> {
+export async function buildLeague(): Promise<{
+  league: League;
+  report: string[];
+  sheet: string;
+  validation: CapValidation;
+}> {
   await download();
   const report: string[] = [];
   const [rosterRows, players, stats, snaps, games] = await Promise.all([
@@ -170,6 +178,30 @@ export async function buildLeague(): Promise<{ league: League; report: string[];
     durability: [TRAIT_MEAN, TRAIT_SPREAD],
   });
 
+  // Real contracts as of Feb 9, 2026, and each team's published dead money and carryover.
+  const contractRows = await readContracts();
+  const contractNames = teamNameMap(people, contractRows);
+  const pages = readTeamPages(await fetchTeamPages());
+  const matched = matchPages(people, pages);
+  const imported = new Map(
+    people.map((p) => [
+      p.gsis,
+      contractAtStart(
+        p,
+        matched.byPlayer.get(p.gsis),
+        contractRows.get(p.gsis) ?? [],
+        contractNames,
+      ),
+    ]),
+  );
+  const snapshot = capSnapshot();
+  const kinds = { page: 0, voided: 0, pending: 0, none: 0 };
+  for (const p of people) if (p.teamId) kinds[imported.get(p.gsis)!.kind] += 1;
+  report.push(
+    `Contracts: ${kinds.page} from the teams' archived cap pages (${pages.size} teams), ${kinds.pending + kinds.voided} pending free agents (${kinds.voided} of them with void years still charging their team). ${matched.unmatched.length} page rows matched no one on our rosters. ${matched.released.size} players released before their team's page date start as free agents.`,
+  );
+  const validation = validateCaps(people, imported, snapshot, pages, matched);
+
   const missingStarters = people.filter(
     (p) =>
       p.teamId !== null &&
@@ -188,7 +220,8 @@ export async function buildLeague(): Promise<{ league: League; report: string[];
     key: p.gsis,
     ...renamer.name(p.gsis),
     position: p.position,
-    teamId: p.teamId,
+    // Released between the league's start and his team's page date: a free agent.
+    teamId: matched.released.has(p.gsis) ? null : p.teamId,
     jersey: Math.min(99, Math.max(0, p.jersey)),
     birthDate: p.birthDate,
     heightIn: p.heightIn,
@@ -200,6 +233,8 @@ export async function buildLeague(): Promise<{ league: League; report: string[];
     contractThrough: null,
     hidden: traits.get(p.gsis)!,
     stats: career.get(p.gsis) ?? [],
+    contract: imported.get(p.gsis)!.contract,
+    voidedProration: imported.get(p.gsis)!.voidedProration,
   }));
   const coachInputs: RealCoachInput[] = realCoaches.map((c) => ({
     key: `coach:${c.team}:${c.role}`,
@@ -224,6 +259,23 @@ export async function buildLeague(): Promise<{ league: League; report: string[];
     coaches: coachInputs,
     games: seasonGames(games, touchdowns),
     names: new NamePicker(new Rng(streamSeed(REAL_LEAGUE_SEED, "generated-names"))),
+    ...(snapshot
+      ? {
+          teamCaps: Object.fromEntries(
+            [...snapshot].map(([id, f]) => {
+              // Dead money by season from the team's page; the cap-space table's 2026 figure otherwise.
+              const gone = pages.get(id)?.gone;
+              const bySeason = new Map<number, number>();
+              for (const g of gone ?? [])
+                bySeason.set(g.season, (bySeason.get(g.season) ?? 0) + g.capNumber);
+              const deadMoney = gone
+                ? [...bySeason].map(([season, amount]) => ({ season, amount }))
+                : [{ season: 2026, amount: f.deadMoney }];
+              return [id, { deadMoney, carryover: Math.max(0, f.carryover) }];
+            }),
+          ),
+        }
+      : {}),
   });
 
   // The real-name check: generated people (special teams coaches, scouts) too.
@@ -277,6 +329,9 @@ export async function buildLeague(): Promise<{ league: League; report: string[];
     ...moves.slice(-25).reverse().map(line),
   );
 
+  // The cap validation report: imported contracts vs. the published Feb 10, 2026 figures.
+  report.push("", ...validation.lines);
+
   // The unmatched report (real names: private).
   report.push("", "## Unmatched", "", `Roster rows skipped: ${roster.problems.length}`);
   for (const line of roster.problems) report.push(`- ${line}`);
@@ -317,13 +372,35 @@ export async function buildLeague(): Promise<{ league: League; report: string[];
     games,
     keyByName,
   });
-  return { league, report, sheet };
+  return { league, report, sheet, validation };
 }
 
 export async function league(): Promise<void> {
-  const { league, report, sheet } = await buildLeague();
-  writeFileSync(join(OUT, "sanity.html"), sheet);
+  const { league, report, sheet, validation } = await buildLeague();
   mkdirSync(OUT, { recursive: true });
+  writeFileSync(join(OUT, "sanity.html"), sheet);
+  // The cap validation's numbers, for the local tests (no names).
+  writeFileSync(
+    join(OUT, "cap-validation.json"),
+    JSON.stringify(
+      {
+        contracts: validation.reproduced + validation.mismatches.length,
+        reproduced: validation.reproduced,
+        withinTen:
+          validation.reproduced +
+          validation.mismatches.filter((x) => Math.abs(x.ours - x.page) <= 10).length,
+        yearByYear: validation.yearByYear,
+        teams: validation.teams.map(({ teamId, difference, withinTolerance, why }) => ({
+          teamId,
+          difference,
+          withinTolerance,
+          why,
+        })),
+      },
+      null,
+      2,
+    ) + "\n",
+  );
   writeFileSync(LEAGUE_FILE, serializeLeague(league));
   writeFileSync(join(OUT, "report.md"), report.join("\n") + "\n");
   mkdirSync(join(WEB_COPY, ".."), { recursive: true });

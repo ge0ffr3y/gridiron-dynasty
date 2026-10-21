@@ -4,6 +4,9 @@
  */
 import type {
   CalendarView,
+  CapMoveKind,
+  CapSheetView,
+  ContractView,
   DepthChartView,
   DepthSlot,
   LeadersView,
@@ -77,6 +80,12 @@ export interface SimApi {
   }): DepthChartView;
   resetDepthChart(params: { teamId: string }): DepthChartView;
   leadersView(params: { season?: number }): LeadersView;
+  /** A player's contract year by year, with "what if" previews of cap moves. */
+  contractView(params: { id: number }): ContractView;
+  /** A team's cap sheet for this League Year and the next three. */
+  capSheetView(params: { teamId: string }): CapSheetView;
+  /** A league-office cap move (release, June 1 release, restructure), saved. Returns what happened. */
+  capMove(params: { playerId: number; kind: CapMoveKind }): { message: string };
 }
 
 export type Method = keyof SimApi;

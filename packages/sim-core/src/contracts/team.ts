@@ -115,7 +115,10 @@ export function cashSpendingShortfall(league: League, teamId: string, season: nu
   let cash = 0;
   let caps = 0;
   for (let y = period[0]; y <= period[1]; y++) {
-    cash += team.cap.cashPaid.filter((c) => c.season === y).reduce((a, c) => a + c.amount, 0);
+    const paid = team.cap.cashPaid.filter((c) => c.season === y);
+    // Years before the league began have no record: they count as met (only recorded years are checked).
+    if (paid.length === 0) continue;
+    cash += paid.reduce((a, c) => a + c.amount, 0);
     caps += salaryCap(league.rules.cap, y);
   }
   return Math.max(0, Math.round(caps * rule.share) - cash);

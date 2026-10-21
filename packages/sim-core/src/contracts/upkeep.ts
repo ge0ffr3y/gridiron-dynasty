@@ -28,7 +28,7 @@ import {
   releasePlayer,
   restructureContract,
 } from "./operations";
-import { capSheet, cashSpendingShortfall, playersOn } from "./team";
+import { capSheet, cashSpendingShortfall, offseasonRuleApplies, playersOn } from "./team";
 import { fifthYearOptionSalary, recordSalaryHistory } from "./tags";
 
 /** Seasons of dead money and carryover kept on file (older entries can't affect the cap any more). */
@@ -163,9 +163,34 @@ export function openLeagueYear(league: League): void {
     expiring.push(p);
   }
 
+  settleUnsigned(league, expiring, ranks, rng);
+}
+
+/**
+ * Players still on a team without a contract for this League Year (deals that
+ * ran out, or pending free agents when a real league starts): the team gets
+ * under the cap, re-signs those it can afford (best first), the rest go to a
+ * simple free-agent market, and thin rosters fill with minimum deals.
+ */
+export function settleUnsigned(
+  league: League,
+  expiring: Player[],
+  ranks: ReturnType<typeof marketRanks> = marketRanks(league),
+  rng: Rng = new Rng(streamSeed(league.meta.seed, `contracts:${league.season}`)),
+): void {
+  const season = league.season;
   // Get legal with the players still under contract, then re-sign the best expiring players the
   // team can afford while keeping enough room to fill out its roster.
   for (const team of league.teams) getUnderCap(league, team.id);
+  // Would he start for this team (ahead of all but a starter's count of its players at his position)?
+  const wouldStart = (p: Player, teamId: string) =>
+    league.players.filter(
+      (x) =>
+        x.id !== p.id &&
+        x.teamId === teamId &&
+        x.position === p.position &&
+        overallAt(x.ratings, x.position) >= overallAt(p.ratings, p.position),
+    ).length < (STARTERS[p.position] ?? 1);
   const scale = reSigningScale(league, expiring, ranks);
   const priceOf = (p: Player) => {
     const r = ranks.get(p.id)!;
@@ -179,7 +204,16 @@ export function openLeagueYear(league: League): void {
       const apy = priceOf(p);
       const years = yearsForAge(rng, ageOn(p.birthDate, league.date));
       const contract = veteranContract(league, rng, p, team.id, season, apy, years);
-      if (canAfford(league, team.id, capHit(contract, season, league.rules.cap), 1)) {
+      const charge = capHit(contract, season, league.rules.cap);
+      // To keep a starter, a tight team restructures big contracts for room first, as real teams do.
+      if (!canAfford(league, team.id, charge, 1) && wouldStart(p, team.id))
+        restructureForRoom(
+          league,
+          team.id,
+          () => canAfford(league, team.id, charge, 1),
+          `${team.id} turned salary into bonus to make room to re-sign ${p.firstName} ${p.lastName}, a starter.`,
+        );
+      if (canAfford(league, team.id, charge, 1)) {
         p.contract = contract;
         recordTransaction(league, {
           type: "signed",
@@ -203,7 +237,9 @@ export function openLeagueYear(league: League): void {
   }
 
   // A simple free-agent market: the best free agents sign, at their market value, with the team
-  // that has the most room and a roster spot.
+  // that has the most room among those where he'd start (else any team with room) and a roster spot.
+  // Without the "would start" preference, a few teams with room hoard starters while others field backups.
+
   const offseasonMax = league.rules.roster.offseasonMax;
   const freeAgents = league.players
     .filter((p) => p.teamId === null && ranks.has(p.id))
@@ -213,10 +249,20 @@ export function openLeagueYear(league: League): void {
     const minimum = minimumSalary(league.rules.cap, season, p.experience);
     if (apy <= minimum) break; // the rest are minimum-salary players: roster filling takes them
     const rooms = league.teams
-      .map((t) => ({ id: t.id, room: capSheet(league, t.id, season).room }))
-      .sort((a, b) => b.room - a.room || a.id.localeCompare(b.id));
+      .map((t) => ({
+        id: t.id,
+        room: capSheet(league, t.id, season).room,
+        starts: wouldStart(p, t.id),
+      }))
+      .sort(
+        (a, b) =>
+          Number(b.starts) - Number(a.starts) || b.room - a.room || a.id.localeCompare(b.id),
+      );
     const years = yearsForAge(rng, ageOn(p.birthDate, league.date));
     for (const t of rooms) {
+      // Past the roster floor, a team only adds free agents who'd start (so others can fill out).
+      if (!t.starts && league.players.filter((x) => x.teamId === t.id).length >= ROSTER_FLOOR)
+        continue;
       const contract = veteranContract(league, rng, p, t.id, season, apy, years);
       if (!canAfford(league, t.id, capHit(contract, season, league.rules.cap), 1)) continue;
       // A full roster makes space by cutting its weakest cheap player at his position, if he's worse.
@@ -247,7 +293,7 @@ export function openLeagueYear(league: League): void {
         playerIds: [p.id],
         text: `${t.id} signed free agent ${p.firstName} ${p.lastName}: ${years} year${years === 1 ? "" : "s"}, $${(apy / 1_000_000).toFixed(2)}M a year.`,
         reason:
-          "Placeholder until free agency (Phase 12): free agents sign at their market value with the team that has the most cap room and a roster spot.",
+          "Placeholder until free agency (Phase 12): free agents sign at their market value with the team that has the most cap room among those where they'd start, and a roster spot.",
       });
       break;
     }
@@ -264,8 +310,19 @@ function canAfford(league: League, teamId: string, capCharge: Dollars, adding: n
   const roster = league.players.filter(
     (p) => p.teamId === teamId && p.contract?.teamId === teamId,
   ).length;
-  const stillNeeded = Math.max(0, ROSTER_FLOOR - roster - adding);
-  const reserve = stillNeeded * minimumSalary(league.rules.cap, season, 0);
+  // In the offseason only the top 51 contracts count, so only filling up to 51 costs cap room.
+  const fillTo = offseasonRuleApplies(league, season)
+    ? Math.min(ROSTER_FLOOR, league.rules.cap.offseasonTopContracts)
+    : ROSTER_FLOOR;
+  const stillNeeded = Math.max(0, fillTo - roster - adding);
+  // Each open spot priced at the most a minimum deal can count: the minimum for a player just
+  // short of the veteran salary benefit (a benefit player counts less).
+  const perSpot = minimumSalary(
+    league.rules.cap,
+    season,
+    league.rules.cap.veteranSalaryBenefit.minCreditedSeasons - 1,
+  );
+  const reserve = stillNeeded * perSpot;
   return capSheet(league, teamId, season).room - capCharge >= reserve;
 }
 
@@ -326,11 +383,18 @@ export function fillRoster(league: League, teamId: string): number {
   let signed = 0;
   for (;;) {
     const roster = league.players.filter((p) => p.teamId === teamId);
-    if (roster.length >= ROSTER_FLOOR) break;
-    const deficits = POSITIONS.map((pos) => ({
-      pos,
-      need: ROSTER_MIX[pos] - roster.filter((p) => p.position === pos).length,
-    })).sort((a, b) => b.need - a.need || POSITIONS.indexOf(a.pos) - POSITIONS.indexOf(b.pos));
+    if (roster.length >= league.rules.roster.offseasonMax) break;
+    // Every position needs its starters, even on a full roster; below the floor, fill the thinnest spots.
+    const missingStarters = POSITIONS.filter(
+      (pos) => roster.filter((p) => p.position === pos).length < (STARTERS[pos] ?? 1),
+    );
+    if (roster.length >= ROSTER_FLOOR && missingStarters.length === 0) break;
+    const deficits = (roster.length >= ROSTER_FLOOR ? missingStarters : POSITIONS)
+      .map((pos) => ({
+        pos,
+        need: ROSTER_MIX[pos] - roster.filter((p) => p.position === pos).length,
+      }))
+      .sort((a, b) => b.need - a.need || POSITIONS.indexOf(a.pos) - POSITIONS.indexOf(b.pos));
     let pick: Player | undefined;
     for (const { pos } of deficits) {
       pick = league.players
@@ -366,9 +430,14 @@ export function fillRoster(league: League, teamId: string): number {
       fifthYearOption: null,
       veteranSalaryBenefit: vsb,
     };
-    if (capSheet(league, teamId, season).room < capHit(contract, season, cap)) break;
+    // Signed only if he fits (in the offseason a deal outside the top 51 costs no room).
     pick.teamId = teamId;
     pick.contract = contract;
+    if (capSheet(league, teamId, season).room < 0) {
+      pick.teamId = null;
+      pick.contract = null;
+      break;
+    }
     signed += 1;
     recordTransaction(league, {
       type: "signed",
@@ -391,30 +460,59 @@ function keepValue(p: Player, date: string): number {
  * go to the biggest salaries with years left to spread them over; releases
  * to whoever frees the most room for the least football value.
  */
+/** The contract on a team whose restructure frees the most room this season, if any. */
+function bestRestructure(league: League, teamId: string): Player | null {
+  const season = league.season;
+  const best = playersOn(league, teamId)
+    .filter(
+      (p) => yearsLeft(p.contract!, season) >= 2 && (yearOf(p.contract!, season)?.base ?? 0) > 0,
+    )
+    .map((p) => {
+      try {
+        return { p, savings: previewRestructure(league, p.id).savingsThisYear };
+      } catch {
+        return null;
+      }
+    })
+    .filter((x): x is { p: Player; savings: Dollars } => x !== null && x.savings > 0)
+    .sort((a, b) => b.savings - a.savings || a.p.id - b.p.id)[0];
+  return best?.p ?? null;
+}
+
+/**
+ * Restructures the team's biggest contracts, one at a time, until `enough()`, as long as next
+ * season's commitments stay under next season's cap (a team doesn't borrow from a year it can't
+ * pay for). Leaves things as they are if no restructure fits.
+ */
+function restructureForRoom(
+  league: League,
+  teamId: string,
+  enough: () => boolean,
+  reason: string,
+): void {
+  const next = league.season + 1;
+  const nextCap = salaryCap(league.rules.cap, next);
+  for (let moves = 0; !enough() && moves < MAX_COMPLIANCE_MOVES; moves++) {
+    const p = bestRestructure(league, teamId);
+    if (!p) return;
+    const effects = previewRestructure(league, p.id);
+    const addedNext = (effects.capHitAfter[1] ?? 0) - (effects.capHitBefore[1] ?? 0);
+    if (capSheet(league, teamId, next).total + addedNext > nextCap) return;
+    restructureContract(league, p.id, reason);
+  }
+}
+
 export function getUnderCap(league: League, teamId: string): number {
   const season = league.season;
   let moves = 0;
   while (capSheet(league, teamId, season).room < 0 && moves < MAX_COMPLIANCE_MOVES) {
     moves += 1;
     const players = playersOn(league, teamId);
-    const restructurable = players
-      .filter(
-        (p) => yearsLeft(p.contract!, season) >= 2 && (yearOf(p.contract!, season)?.base ?? 0) > 0,
-      )
-      .map((p) => {
-        try {
-          return { p, savings: previewRestructure(league, p.id).savingsThisYear };
-        } catch {
-          return null;
-        }
-      })
-      .filter((x): x is { p: Player; savings: Dollars } => x !== null && x.savings > 0)
-      .sort((a, b) => b.savings - a.savings || a.p.id - b.p.id);
-    if (restructurable.length > 0) {
-      const { p } = restructurable[0]!;
+    const restructure = bestRestructure(league, teamId);
+    if (restructure) {
       restructureContract(
         league,
-        p.id,
+        restructure.id,
         `${teamId} was over the ${season} cap; turning salary into bonus frees room now.`,
       );
       continue;

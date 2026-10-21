@@ -14,7 +14,13 @@ export const COACHES_FILE = join(PRIVATE, "coaches-2025.csv");
 export const OVERRIDES_FILE = join(PRIVATE, "overrides.csv");
 
 /** Real team codes that differ from this league's team ids (two cities have two teams). */
-const LEAGUE_ID: Record<string, string> = { NYJ: "NYA", NYG: "NYB", LAC: "LAA", LA: "LAB" };
+const LEAGUE_ID: Record<string, string> = {
+  NYJ: "NYA",
+  NYG: "NYB",
+  LAC: "LAA",
+  LA: "LAB",
+  LAR: "LAB",
+};
 export const leagueTeam = (code: string) => LEAGUE_ID[code] ?? code;
 
 const FILES: Record<string, string> = {

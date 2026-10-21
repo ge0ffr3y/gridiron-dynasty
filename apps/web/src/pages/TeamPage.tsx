@@ -1,6 +1,7 @@
 import { Fragment, useState } from "react";
 import { Link } from "wouter";
 import type { TeamView } from "@fgm/sim-core";
+import { CapSheet } from "@/components/CapSheet";
 import { DepthChartEditor } from "@/components/DepthChartEditor";
 import { RosterTable } from "@/components/RosterTable";
 import {
@@ -25,7 +26,7 @@ import { ordinal } from "@/lib/format";
 import { useLeagueKey } from "@/lib/session";
 import { useSim } from "@/sim/client";
 
-type Tab = "roster" | "depth" | "stats" | "staff" | "picks";
+type Tab = "roster" | "depth" | "cap" | "stats" | "staff" | "picks";
 
 export function TeamPage({ teamId }: { teamId: string }) {
   const view = useSim("teamView", { teamId }, useLeagueKey(String(teamId)));
@@ -66,6 +67,7 @@ export function TeamPage({ teamId }: { teamId: string }) {
           [
             ["roster", "Roster"],
             ["depth", "Depth chart"],
+            ["cap", "Salary cap"],
             ["staff", "Staff"],
             ["picks", "Draft picks"],
             ["stats", "Stats"],
@@ -90,6 +92,8 @@ export function TeamPage({ teamId }: { teamId: string }) {
       {tab === "roster" && <RosterTable rows={roster} />}
 
       {tab === "depth" && <DepthChartEditor teamId={teamId} />}
+
+      {tab === "cap" && <CapSheet teamId={teamId} />}
 
       {tab === "stats" && (
         <div className="grid gap-4 md:grid-cols-2">

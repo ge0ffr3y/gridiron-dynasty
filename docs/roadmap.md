@@ -73,6 +73,7 @@ Decisions that block a phase. Record the answer here when made.
 | How far back imported history goes (since 1920 vs. championship era + all-time record books) | Phase 15 | |
 | Fully fictional league as an alternative start? | Phase 1 | *Effectively yes: it's how we build Phases 1–5* (built in Phase 1) |
 | Release v0.1 timing | Phase 4 | When the repo goes public: README with screenshots, GitHub Pages deploy and the v0.1 tag together (decided after Phase 4b) |
+| Real contract data (OverTheCap, directly or via nflverse): how to use it | Phase 7 | Treated as private like the Madden file: archived cap pages and contract data stay in `pipeline/private/` and `pipeline/cache/`; only derived numbers reach the local league file, and only the fitted rookie scale (shares of the cap) is committed. Revisit with the public release (decided in Phase 7) |
 | Data licensing approach for the public release | Phase 18 (guardrails from Phase 6) | |
 
 ---
@@ -316,18 +317,18 @@ Decisions that block a phase. Record the answer here when made.
 - [x] **Cap hit and dead money calculators:** release pre- and post-June 1, the June 1 designation, trades (remaining proration accelerates onto the trading team)
 - [x] **Operations:** sign, extend, restructure (convert salary to bonus), release, trade, pay cut, option exercise/decline, void-year acceleration
 - [ ] **Tags & tenders:** franchise tag (exclusive / non-exclusive), transition tag, restricted free agent tenders with offer sheets and matching, exclusive-rights tenders *(7a: non-exclusive franchise and transition tag amounts and RFA tender amounts; offer sheets, matching and the exclusive tag come with Phase 12's free agency)*
-- [x] **Rookie contracts:** wage scale by draft slot; fifth-year option for first-rounders *(scale provisional until 7b's real 2026 rookie contracts; Pro Bowl option tiers wait for awards in Phase 15)*
+- [x] **Rookie contracts:** wage scale by draft slot; fifth-year option for first-rounders *(7b: the scale is fitted to all 257 real 2026 rookie deals, every slot within $40K; Pro Bowl option tiers wait for awards in Phase 15)*
 - [x] **Cash vs. cap ledger:** every dollar tracked; invariant tests (cash paid over a contract's life equals its total cap charges) *(cash per team per year logged for the minimum spending rule; 60 random contracts checked)*
 - [x] **Worked-example tests** for every rule (restructure, void-year acceleration, post-June 1 cut, tag math…)
-- [ ] **Import real contracts** (nflverse / OverTheCap data); document assumptions where year-by-year detail is missing; import existing dead money
-- [ ] **Validation report:** each team's 2026 cap space vs. its published real figure, within a tolerance
-- [ ] **UI:** contract page (year-by-year table), team cap sheet (top 51, dead money, cap space for the next four years), "what if" panel showing savings and dead money *before* you cut, trade, or restructure
+- [x] **Import real contracts** (nflverse / OverTheCap data); document assumptions where year-by-year detail is missing; import existing dead money *(7b: from each team's public cap page as archived Feb 2–25, 2026, plus nflverse for years after 2029; 1,650 contracts, dead money and void years included; kept private like the Madden file)*
+- [x] **Validation report:** each team's 2026 cap space vs. its published real figure, within a tolerance *(7b: 1,629 of 1,650 contracts reproduce their published 2026 cap hit to the dollar, 97% of all 2026–29 contract-years; team totals in the private build report)*
+- [x] **UI:** contract page (year-by-year table), team cap sheet (top 51, dead money, cap space for the next four years), "what if" panel showing savings and dead money *before* you cut, trade, or restructure *(7b: on the player page and the team's Salary cap tab; the league office can release or restructure for any team until GM Mode; trades are previews until Phase 8)*
 
 ### Done when
-- [ ] Team cap sheets match reality within tolerance for nearly every team (exceptions explained)
+- [x] Team cap sheets match reality within tolerance for nearly every team (exceptions explained) *(25 of 32 within $3M of the published Feb 10 figures, 10 within $0.1M; the other 7 are explained: their archived pages are from a different day, and/or they have futures signings our end-of-season rosters don't include)*
 - [x] Every worked-example test passes
-- [ ] You can create cap room with a restructure and see next year's bill grow
-- [ ] Cutting a player shows the correct pre- vs. post-June 1 dead money
+- [x] You can create cap room with a restructure and see next year's bill grow *(checked in the browser: +$21.5M now, +$7.2M a year in 2027–29; also a test)*
+- [x] Cutting a player shows the correct pre- vs. post-June 1 dead money *(the "what if" panel; a test checks preview and result to the dollar)*
 
 > [!example]- Kickoff prompt
 > "Phase 7: build the contracts and salary cap engine with every rule in the rules config, verified against the CBA. Model contracts year by year, compute cap hits and dead money for every operation, add tags/tenders and rookie contracts, keep a cash vs. cap ledger with invariant tests, and write a worked-example test for every rule. Then import real contracts and produce a validation report against published team cap space. Money is integers. Plan first."

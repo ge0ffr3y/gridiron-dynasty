@@ -32,6 +32,9 @@ import {
   playGameNow as playOneGame,
   startRealLeague,
   type SimHooks,
+  capSheetView,
+  contractView,
+  makeCapMove,
 } from "@fgm/sim-core";
 import type { Play } from "@fgm/game-engine";
 import { db, PLAY_LOG_SEASONS_KEPT, type PlayLog } from "./db";
@@ -271,6 +274,21 @@ const handlers: Handlers = {
 
   leadersView({ season }) {
     return leadersView(requireLeague(), season);
+  },
+
+  contractView({ id }) {
+    return contractView(requireLeague(), id);
+  },
+
+  capSheetView({ teamId }) {
+    return capSheetView(requireLeague(), teamId, VIEWER);
+  },
+
+  async capMove({ playerId, kind }) {
+    const league = requireLeague();
+    const message = makeCapMove(league, playerId, kind);
+    open = { saved: await save(league, open!.saved), league };
+    return { message };
   },
 };
 

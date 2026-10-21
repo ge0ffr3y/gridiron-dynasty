@@ -343,6 +343,11 @@ describe("the team's cap", () => {
     const caps = salaryCap(CAP, 2024) + salaryCap(CAP, 2025) + salaryCap(CAP, 2026);
     expect(cashSpendingShortfall(league, "BUF", 2026)).toBe(Math.round(caps * 0.9) - 600 * M);
     expect(cashSpendingShortfall(league, "BUF", 2025)).toBe(0); // not the end of a period
+    // A league that began in 2026 has no record of 2024-25: only 2026 is checked.
+    team.cap.cashPaid = [{ season: 2026, amount: 200 * M }];
+    expect(cashSpendingShortfall(league, "BUF", 2026)).toBe(
+      Math.round(salaryCap(CAP, 2026) * 0.9) - 200 * M,
+    );
   });
 
   it("a new fictional league starts with every team under the cap, with realistic room", () => {

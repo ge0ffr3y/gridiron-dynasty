@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { ContractPanel } from "@/components/ContractPanel";
 import { StatTables } from "@/components/StatTables";
 import { ErrorNote, Facts, Loading, OverallBadge, RatingBar, TeamChip } from "@/components/shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -103,6 +104,8 @@ export function PlayerPage({ playerId }: { playerId: number }) {
           ))}
         </CardContent>
       </Card>
+
+      <ContractPanel playerId={playerId} />
 
       <Card>
         <CardHeader>

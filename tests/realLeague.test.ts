@@ -13,6 +13,8 @@ import { CORE_STATS, measureSeason, scorecard, type MeasuredGame } from "@fgm/ga
 import {
   advanceUntil,
   overallAt,
+  span,
+  teamsOverCap,
   parseLeague,
   serializeLeague,
   startRealLeague,
@@ -25,6 +27,21 @@ const LEAGUE_FILE = join(ROOT, "pipeline", "private", "out", "real-league-2026.j
 const CACHE = join(ROOT, "pipeline", "cache", "nflverse");
 const MADDEN = join(ROOT, "pipeline", "private", "madden", "ratings-2025.csv");
 const ready = existsSync(LEAGUE_FILE) && existsSync(join(CACHE, "players.csv.gz"));
+const CAP_VALIDATION = join(ROOT, "pipeline", "private", "out", "cap-validation.json");
+
+/** Cap and roster legality (CLAUDE.md rule 9). */
+function capProblems(league: League): string[] {
+  const problems = teamsOverCap(league).map((t) => `${t.teamId} over the cap by ${-t.room}`);
+  for (const p of league.players) {
+    if (p.teamId === null) continue;
+    if (!p.contract) problems.push(`player ${p.id} on ${p.teamId} has no contract`);
+    else if (p.contract.teamId !== p.teamId)
+      problems.push(`player ${p.id}'s contract is elsewhere`);
+    else if (span(p.contract).lastReal < league.season)
+      problems.push(`player ${p.id}'s contract has run out`);
+  }
+  return problems;
+}
 
 type Row = Record<string, string>;
 const csv = (file: string): Row[] =>
@@ -101,6 +118,25 @@ describe.skipIf(!ready)("the real league build", () => {
     }
   });
 
+  it("starts cap-legal: every team under the cap, everyone on a roster under contract", () => {
+    expect(capProblems(league)).toEqual([]);
+  });
+
+  it.skipIf(!existsSync(CAP_VALIDATION))(
+    "real contracts reproduce the published cap numbers, and team totals match within tolerance",
+    () => {
+      const v = JSON.parse(readFileSync(CAP_VALIDATION, "utf8"));
+      // Every imported contract's 2026 cap hit against its team's archived cap page.
+      expect(v.withinTen / v.contracts).toBeGreaterThan(0.98);
+      // Every season on the pages (2026-2029).
+      expect(v.yearByYear.withinTen / v.yearByYear.total).toBeGreaterThan(0.95);
+      // Team totals against the published Feb 10 figures: nearly all within tolerance, every miss explained.
+      const teams = v.teams as { withinTolerance: boolean; why: string }[];
+      expect(teams.filter((t) => t.withinTolerance).length).toBeGreaterThanOrEqual(24);
+      expect(teams.filter((t) => !t.withinTolerance && t.why === "unexplained")).toEqual([]);
+    },
+  );
+
   it("the 2025 season in History is the real one", () => {
     const final = games.find((g) => g.season === "2025" && g.game_type === "SB")!;
     const winner =
@@ -140,6 +176,12 @@ describe.skipIf(!ready)("the real league build", () => {
       seasons.push(measureSeason(games));
       advanceUntil(copy, (l) => l.calendar.stage === "complete");
       expect(copy.history.at(-1)!.season).toBe(2026);
+      // Into the next League Year: contracts expire, void years accelerate, teams re-sign and stay
+      // legal. (Checked in the offseason, as for fictional leagues: in-season rosters stay at
+      // offseason size until Phase 8's cutdowns to 53.)
+      advanceUntil(copy, (l) => l.calendar.stage === "offseason");
+      expect(copy.season).toBe(2027);
+      expect(capProblems(copy), `seed ${seed}`).toEqual([]);
     }
     // One season is noisy (a team's points per game moves about 0.3 by chance), so average two, as CI does.
     const averaged = Object.fromEntries(

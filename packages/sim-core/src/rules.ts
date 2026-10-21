@@ -60,6 +60,80 @@ export const GameRulesSchema = z.object({
 });
 export type GameRules = z.infer<typeof GameRulesSchema>;
 
+const Dollars = z.number().int();
+const Share = z.number().min(0).max(1);
+const TAG_CATEGORIES = ["QB", "RB", "WR", "TE", "OL", "DE", "DT", "LB", "CB", "S", "ST"] as const;
+export type TagCategory = (typeof TAG_CATEGORIES)[number];
+const ByCategory = z.object(
+  Object.fromEntries(TAG_CATEGORIES.map((c) => [c, Dollars])) as Record<
+    TagCategory,
+    typeof Dollars
+  >,
+);
+
+/** The salary cap and contract rules (Phase 7), every value from the CBA or an NFL announcement. */
+export const CapRulesSchema = z.object({
+  source: z.string(),
+  /** Real caps; later years grow by `futureGrowthRate`. */
+  salaryCapByYear: z.record(z.string(), Dollars),
+  futureGrowthRate: z.number(),
+  futureGrowthNote: z.string(),
+  maxProrationYears: z.number().int().positive(),
+  offseasonTopContracts: z.number().int().positive(),
+  juneFirstDesignationsPerYear: z.number().int().nonnegative(),
+  minimumSalary: z.object({
+    /** Credited-season floors of each column: 0, 1, 2, 3, 4-6, 7+. */
+    creditedSeasonFloors: z.array(z.number().int().nonnegative()),
+    active: z.record(z.string(), z.array(Dollars)),
+    notActive: z.record(z.string(), z.array(Dollars)),
+    afterAgreementNote: z.string(),
+  }),
+  veteranSalaryBenefit: z.object({
+    minCreditedSeasons: z.number().int(),
+    chargedAsCreditedSeasons: z.number().int(),
+    bonusAllowance: Dollars,
+    note: z.string(),
+  }),
+  minimumCashSpending: z.object({
+    share: Share,
+    periods: z.array(z.tuple([z.number().int(), z.number().int()])),
+    afterAgreementYears: z.number().int().positive(),
+  }),
+  tags: z.object({
+    categories: z.array(z.enum(TAG_CATEGORIES)),
+    positionCategory: z.record(z.string(), z.enum(TAG_CATEGORIES)),
+    franchiseTopN: z.number().int().positive(),
+    transitionTopN: z.number().int().positive(),
+    yearsAveraged: z.number().int().positive(),
+    priorSalaryMultiplier: z.number(),
+    thirdTagMultiplier: z.number(),
+    franchise2026: ByCategory,
+    transition2026: ByCategory,
+  }),
+  rfaTenders2026: z.object({
+    firstRound: Dollars,
+    secondRound: Dollars,
+    originalRound: Dollars,
+    rightOfFirstRefusal: Dollars,
+    priorSalaryMultiplier: z.number(),
+  }),
+  fifthYearOption: z.object({
+    /** Ranks averaged (cap-percentage method) for the basic and playing-time tiers. */
+    basic: z.tuple([z.number().int(), z.number().int()]),
+    playingTime: z.tuple([z.number().int(), z.number().int()]),
+    playingTimeShare: Share,
+    playingTimeSeasons: z.number().int(),
+    everySeasonShare: Share,
+  }),
+  rookieScale: z.object({
+    years: z.number().int().positive(),
+    note: z.string(),
+    /** [overall pick, value above four rookie-minimum salaries as a share of the cap, signing-bonus share]. */
+    picks: z.array(z.tuple([z.number().int().positive(), z.number(), Share])).min(2),
+  }),
+});
+export type CapRules = z.infer<typeof CapRulesSchema>;
+
 /** Two division names, e.g. ["East", "West"]. */
 const DivisionPair = z.tuple([z.string(), z.string()]);
 
@@ -123,6 +197,7 @@ export const RulesSchema = z
       byesPerConference: z.number().int().nonnegative(),
     }),
     game: GameRulesSchema,
+    cap: CapRulesSchema,
   })
   .superRefine((rules, ctx) => {
     const seen = new Set<string>();

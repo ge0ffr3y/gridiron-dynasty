@@ -11,7 +11,10 @@ import {
   type Team,
 } from "../league/schema";
 import { POSITIONS } from "@fgm/foundation";
-import { RngStreams } from "@fgm/foundation";
+import { Rng, RngStreams, streamSeed } from "@fgm/foundation";
+import { emptyTeamCap } from "../contracts/team";
+import { generateContracts } from "../contracts/generate";
+import { seedSalaryHistory } from "../contracts/tags";
 import { RULES_BY_SEASON, rulesFor, teamIdsInOrder, type Rules } from "../rules";
 import { advanceUntil, scheduleSeason, startNextSeason } from "../season/flow";
 import { stadiumFor } from "../season/weather";
@@ -56,6 +59,7 @@ export function createLeague(options: NewLeagueOptions): League {
           controller: "ai",
           depthChart: { auto: true, slots: {} },
           stadium: stadiumFor(id),
+          cap: emptyTeamCap(),
         });
       }
     }
@@ -119,6 +123,7 @@ export function createLeague(options: NewLeagueOptions): League {
     draftPicks,
     games: [],
     history: [],
+    salaryHistory: [],
     transactions: [
       {
         id: 0,
@@ -156,5 +161,8 @@ export function createLeague(options: NewLeagueOptions): League {
   scheduleSeason(league, finish);
   advanceUntil(league, (l) => l.calendar.stage === "complete");
   startNextSeason(league, { agePlayers: false });
+  // Money: everyone on a roster gets a contract, and the tag history starts from them.
+  generateContracts(league, new Rng(streamSeed(options.seed, "contracts")));
+  seedSalaryHistory(league);
   return league;
 }

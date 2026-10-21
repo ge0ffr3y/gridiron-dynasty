@@ -31,6 +31,9 @@ import {
   type Team,
 } from "./league/schema";
 import { rulesFor, teamIdsInOrder } from "./rules";
+import { emptyTeamCap } from "./contracts/team";
+import { generateContracts } from "./contracts/generate";
+import { seedSalaryHistory } from "./contracts/tags";
 import { completeSeasonFromResults, startNextSeason } from "./season/flow";
 import { stadiumFor } from "./season/weather";
 import { generateCoach } from "./generate/coaches";
@@ -175,10 +178,8 @@ function realPlayer(input: RealPlayerInput, id: number, date: LeagueDate, seed: 
       temperament: score(rng, TRAIT_MEAN, TRAIT_SPREAD),
       priorities: { money, winning, role, location },
     },
-    contract:
-      input.teamId !== null && input.contractThrough !== null
-        ? { teamId: input.teamId, expiresAfterSeason: input.contractThrough }
-        : null,
+    // Contracts come after the whole league is assembled (generated until Phase 7b imports real ones).
+    contract: null,
     stats: input.stats ?? [],
     injury: null,
   };
@@ -237,6 +238,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
           controller: "ai",
           depthChart: { auto: true, slots: {} },
           stadium: stadiumFor(id),
+          cap: emptyTeamCap(),
         });
       }
 
@@ -309,6 +311,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     draftPicks,
     games,
     history: [],
+    salaryHistory: [],
     transactions: [
       {
         id: 0,
@@ -332,6 +335,9 @@ export function assembleRealLeague(input: RealLeagueInput): League {
   };
   completeSeasonFromResults(league);
   startNextSeason(league, { agePlayers: false });
+  // Money: everyone on a roster gets a contract, and the tag history starts from them.
+  generateContracts(league, new Rng(streamSeed(input.seed, "contracts")));
+  seedSalaryHistory(league);
   return league;
 }
 

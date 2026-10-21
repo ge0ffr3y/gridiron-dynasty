@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 6;
+export const LEAGUE_FORMAT_VERSION = 7;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -39,11 +39,68 @@ export const PersonalitySchema = z.object({
   priorities: z.object({ money: Score, winning: Score, role: Score, location: Score }),
 });
 
-/** Placeholder until real contracts arrive in Phase 7. */
-export const ContractStubSchema = z.object({
+const Dollars = z.number().int();
+
+/** A playing-time incentive: earned by playing at least `games` games that season. */
+export const IncentiveSchema = z.object({
+  amount: Dollars,
+  games: z.number().int().positive(),
+  /** "Likely to be earned" (counted on the cap now): he reached it the season before. */
+  likely: z.boolean(),
+});
+
+/** One League Year of a contract (Phase 7). Whole dollars throughout. */
+export const ContractYearSchema = z.object({
+  season: z.number().int(),
+  /** Paragraph 5 salary. */
+  base: Dollars,
+  /** Part of the base guaranteed for skill, injury and cap (counts as dead money if he's cut). */
+  guaranteed: Dollars,
+  /** Part guaranteed for injury only (becomes fully guaranteed on `vestsOn`). */
+  injuryGuaranteed: Dollars,
+  vestsOn: IsoDate.nullable(),
+  rosterBonus: Dollars,
+  workoutBonus: Dollars,
+  /** Most he can earn in per-game roster bonuses (counted in full, as a 17-game roster spot). */
+  perGameBonus: Dollars,
+  incentives: z.array(IncentiveSchema),
+  /** A year that voids before it's played: it exists only to spread bonus money. */
+  void: z.boolean(),
+});
+
+/** A bonus spread over up to five League Years (signing bonus, option bonus, a restructure). */
+export const BonusSchema = z.object({
+  amount: Dollars,
+  kind: z.enum(["signing", "option", "restructure"]),
+  /** The League Years its cap charge is spread over, equally, earliest first. */
+  seasons: z.array(z.number().int()).min(1),
+  /** The League Year it's paid in cash. */
+  paidIn: z.number().int(),
+});
+
+export const CONTRACT_TYPES = [
+  "rookie",
+  "veteran",
+  "extension",
+  "franchise",
+  "transition",
+  "tender",
+  "minimum",
+] as const;
+
+export const ContractSchema = z.object({
   teamId: z.string(),
-  /** Last season covered by the contract. */
-  expiresAfterSeason: z.number().int(),
+  type: z.enum(CONTRACT_TYPES),
+  signedOn: IsoDate,
+  /** Contract years in order, including any void years at the end. */
+  years: z.array(ContractYearSchema).min(1),
+  bonuses: z.array(BonusSchema),
+  /** First-round rookies: the fifth-year option (the salary is set when it's exercised). */
+  fifthYearOption: z
+    .object({ season: z.number().int(), exercised: z.boolean().nullable() })
+    .nullable(),
+  /** A one-year minimum deal for a veteran that counts at a lower minimum (veteran salary benefit). */
+  veteranSalaryBenefit: z.boolean(),
 });
 
 export const DraftInfoSchema = z.object({
@@ -128,7 +185,7 @@ export const PlayerSchema = z.object({
   familiarity: z.partialRecord(PositionSchema, z.number().min(0).max(1)),
   hidden: HiddenTraitsSchema,
   personality: PersonalitySchema,
-  contract: ContractStubSchema.nullable(),
+  contract: ContractSchema.nullable(),
   /** Season-by-season stats, oldest first. Career totals are the sum. */
   stats: z.array(SeasonStatsSchema),
   /** A current injury: he sits out until his team has played this many more games. */
@@ -218,6 +275,26 @@ export const TeamSchema = z.object({
   }),
   /** Home stadium: roof, playing surface and elevation (no names; Phase 5b). */
   stadium: StadiumSchema,
+  /** Cap bookkeeping beyond current contracts (Phase 7). */
+  cap: z.object({
+    /** Charges left behind by players who are gone (released, traded, voided years). */
+    deadMoney: z.array(
+      z.object({
+        season: z.number().int(),
+        playerId: z.number().int(),
+        amount: Dollars,
+        reason: z.string(),
+      }),
+    ),
+    /** Unused room carried into a League Year (a credit). */
+    carryover: z.array(z.object({ season: z.number().int(), amount: Dollars })),
+    /** Cash paid to players each League Year (for the minimum cash spending rule). */
+    cashPaid: z.array(z.object({ season: z.number().int(), amount: Dollars })),
+    /** June 1 designations used, by League Year. */
+    juneFirstDesignations: z.array(
+      z.object({ season: z.number().int(), playerId: z.number().int() }),
+    ),
+  }),
 });
 
 export const DraftPickSchema = z.object({
@@ -332,7 +409,19 @@ export const SeasonHistorySchema = z.object({
 export const TransactionSchema = z.object({
   id: z.number().int().nonnegative(),
   date: IsoDate,
-  type: z.enum(["league-created", "signed", "released", "traded"]),
+  type: z.enum([
+    "league-created",
+    "signed",
+    "released",
+    "traded",
+    "restructured",
+    "extended",
+    "pay-cut",
+    "option",
+    "tagged",
+    "expired",
+    "cash-shortfall",
+  ]),
   teamIds: z.array(z.string()),
   playerIds: z.array(z.number().int()),
   text: z.string(),
@@ -378,6 +467,13 @@ export const LeagueSchema = z.object({
   /** One summary per completed season, oldest first. */
   history: z.array(SeasonHistorySchema),
   transactions: z.array(TransactionSchema),
+  /**
+   * Each League Year's top salaries by tag category, highest first (Phase 7):
+   * franchise and transition tags and fifth-year options are set from these.
+   */
+  salaryHistory: z.array(
+    z.object({ season: z.number().int(), category: z.string(), top: z.array(z.number().int()) }),
+  ),
   pendingDecisions: z.array(PendingDecisionSchema),
   rng: z.partialRecord(z.string(), RngStateSchema),
   nextIds: z.object({
@@ -390,6 +486,10 @@ export const LeagueSchema = z.object({
 });
 
 export type Player = z.infer<typeof PlayerSchema>;
+export type Contract = z.infer<typeof ContractSchema>;
+export type ContractYear = z.infer<typeof ContractYearSchema>;
+export type Bonus = z.infer<typeof BonusSchema>;
+export type TeamCap = z.infer<typeof TeamSchema>["cap"];
 export type SeasonStats = z.infer<typeof SeasonStatsSchema>;
 export type HiddenTraits = z.infer<typeof HiddenTraitsSchema>;
 export type Coach = z.infer<typeof CoachSchema>;

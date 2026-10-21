@@ -347,5 +347,166 @@
         }
       }
     }
+  },
+  "cap": {
+    "source": "2020 NFL-NFLPA Collective Bargaining Agreement (text read article by article): Article 13 Section 6 (straight-line signing bonus proration, at most 5 years; acceleration on release or trade on or before June 1; up to two June 1 designations per League Year; after June 1 the future years' proration counts next League Year; a new team carries none of a traded player's bonus; Carry Over of Room; LTBE incentives counted, year-end netting; guaranteed future Salary counts at release), Section 6(a)(i) (offseason top 51), Article 26 Section 1 (minimum salaries 2020-2030 by Credited Seasons), Article 12 Section 9 (Minimum Team Cash Spending 90% over 2024-26 and 2027-30), Article 10 (franchise and transition tenders: Cap Percentage Average of the top 5 / top 10 Prior Year Salaries over five years, or 120% of prior salary; third tag 144%), Article 9 Section 2 (RFA tenders grow with the cap), Article 7 Section 7 (fifth-year option tiers). Salary caps: NFL announcements (2026 $301.2M, 2025 $279.2M, 2024 $255.4M, 2023 $224.8M, 2022 $208.2M, 2021 $182.5M, 2020 $198.2M, 2019 $188.2M). 2026 RFA tenders and minimum salaries: NFL Football Operations, Types of Free Agents. 2026 franchise and transition tag values: published table, cross-checked against the amounts NFL.com reported for the four players tagged in 2026 (WR $27.298M, TE $15.045M, RB $14.293M, QB transition $37.833M).",
+    "salaryCapByYear": {
+      "2019": 188200000,
+      "2020": 198200000,
+      "2021": 182500000,
+      "2022": 208200000,
+      "2023": 224800000,
+      "2024": 255400000,
+      "2025": 279200000,
+      "2026": 301200000
+    },
+    "futureGrowthRate": 0.07,
+    "futureGrowthNote": "Our projection, not a rule: the cap grew 7.88% into 2026; later years grow by this rate until real figures are added.",
+    "maxProrationYears": 5,
+    "offseasonTopContracts": 51,
+    "juneFirstDesignationsPerYear": 2,
+    "minimumSalary": {
+      "creditedSeasonFloors": [0, 1, 2, 3, 4, 7],
+      "active": {
+        "2020": [610000, 675000, 750000, 825000, 910000, 1050000],
+        "2021": [660000, 780000, 850000, 920000, 990000, 1075000],
+        "2022": [705000, 825000, 895000, 965000, 1035000, 1120000],
+        "2023": [750000, 870000, 940000, 1010000, 1080000, 1165000],
+        "2024": [795000, 915000, 985000, 1055000, 1125000, 1210000],
+        "2025": [840000, 960000, 1030000, 1100000, 1170000, 1255000],
+        "2026": [885000, 1005000, 1075000, 1145000, 1215000, 1300000],
+        "2027": [930000, 1050000, 1120000, 1190000, 1260000, 1345000],
+        "2028": [975000, 1095000, 1165000, 1235000, 1305000, 1390000],
+        "2029": [1020000, 1140000, 1210000, 1280000, 1350000, 1435000],
+        "2030": [1065000, 1185000, 1255000, 1325000, 1395000, 1480000]
+      },
+      "notActive": {
+        "2020": [400000, 425000, 450000, 475000, 500000, 550000],
+        "2021": [415000, 440000, 465000, 490000, 515000, 565000],
+        "2022": [430000, 455000, 480000, 505000, 530000, 580000],
+        "2023": [450000, 475000, 500000, 525000, 550000, 600000],
+        "2024": [470000, 495000, 520000, 545000, 570000, 620000],
+        "2025": [490000, 515000, 540000, 565000, 590000, 640000],
+        "2026": [515000, 540000, 565000, 590000, 615000, 665000],
+        "2027": [540000, 565000, 590000, 615000, 640000, 690000],
+        "2028": [565000, 590000, 615000, 640000, 665000, 715000],
+        "2029": [590000, 615000, 640000, 665000, 690000, 740000],
+        "2030": [615000, 640000, 665000, 690000, 715000, 765000]
+      },
+      "afterAgreementNote": "Article 26 schedules end in 2030; later years keep rising by the 2030 step."
+    },
+    "veteranSalaryBenefit": {
+      "minCreditedSeasons": 4,
+      "chargedAsCreditedSeasons": 2,
+      "bonusAllowance": 187500,
+      "note": "One-year minimum deals for 4+ credited seasons count at the 2-credited-season minimum. The 2026 bonus allowance is inferred from a reported 2026 contract ($1,262,500 cap charge = $1,075,000 + $187,500)."
+    },
+    "minimumCashSpending": {
+      "share": 0.9,
+      "periods": [
+        [2024, 2026],
+        [2027, 2030]
+      ],
+      "afterAgreementYears": 4
+    },
+    "tags": {
+      "categories": ["QB", "RB", "WR", "TE", "OL", "DE", "DT", "LB", "CB", "S", "ST"],
+      "positionCategory": {
+        "QB": "QB",
+        "RB": "RB",
+        "FB": "RB",
+        "WR": "WR",
+        "TE": "TE",
+        "OT": "OL",
+        "OG": "OL",
+        "C": "OL",
+        "EDGE": "DE",
+        "DT": "DT",
+        "LB": "LB",
+        "CB": "CB",
+        "S": "S",
+        "K": "ST",
+        "P": "ST",
+        "LS": "ST"
+      },
+      "franchiseTopN": 5,
+      "transitionTopN": 10,
+      "yearsAveraged": 5,
+      "priorSalaryMultiplier": 1.2,
+      "thirdTagMultiplier": 1.44,
+      "franchise2026": {
+        "QB": 43895000,
+        "WR": 27298000,
+        "DT": 27127000,
+        "LB": 26865000,
+        "OL": 25773000,
+        "DE": 24434000,
+        "CB": 21161000,
+        "S": 20149000,
+        "TE": 15045000,
+        "RB": 14293000,
+        "ST": 6649000
+      },
+      "transition2026": {
+        "QB": 37833000,
+        "WR": 23852000,
+        "DT": 22521000,
+        "LB": 21925000,
+        "OL": 23392000,
+        "DE": 21512000,
+        "CB": 18119000,
+        "S": 16012000,
+        "TE": 12687000,
+        "RB": 11323000,
+        "ST": 6006000
+      }
+    },
+    "rfaTenders2026": {
+      "firstRound": 8107000,
+      "secondRound": 5811000,
+      "originalRound": 3674000,
+      "rightOfFirstRefusal": 3547000,
+      "priorSalaryMultiplier": 1.1
+    },
+    "fifthYearOption": {
+      "basic": [3, 25],
+      "playingTime": [3, 20],
+      "playingTimeShare": 0.75,
+      "playingTimeSeasons": 2,
+      "everySeasonShare": 0.5
+    },
+    "rookieScale": {
+      "years": 4,
+      "note": "Provisional shape: total value above four rookie-minimum salaries (as a share of the cap) and the signing-bonus share, by overall pick, fitted to public slot values reported for the 2027 draft and deflated by projected cap growth. Phase 7b replaces it with real 2026 rookie contracts. Compensatory picks continue the curve.",
+      "picks": [
+        [1, 0.19627, 0.672],
+        [2, 0.18667, 0.67],
+        [3, 0.18057, 0.668],
+        [5, 0.16137, 0.661],
+        [8, 0.10467, 0.629],
+        [10, 0.099, 0.625],
+        [13, 0.0785, 0.602],
+        [16, 0.06716, 0.584],
+        [20, 0.06149, 0.573],
+        [24, 0.05757, 0.564],
+        [28, 0.05451, 0.557],
+        [32, 0.04661, 0.535],
+        [33, 0.03401, 0.483],
+        [40, 0.02965, 0.459],
+        [48, 0.02267, 0.407],
+        [56, 0.01613, 0.335],
+        [64, 0.01369, 0.3],
+        [65, 0.01194, 0.27],
+        [80, 0.01055, 0.244],
+        [100, 0.00931, 0.217],
+        [120, 0.00506, 0.23],
+        [140, 0.00289, 0.126],
+        [160, 0.0026, 0.111],
+        [180, 0.00209, 0.081],
+        [200, 0.00184, 0.066],
+        [224, 0.00149, 0.044],
+        [257, 0.00128, 0.031]
+      ]
+    }
   }
 }

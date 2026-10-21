@@ -2,6 +2,10 @@
  * The league file format: JSON with object keys in sorted order, so the same
  * league always produces exactly the same text (and the same fingerprint).
  */
+import { Rng, streamSeed } from "@fgm/foundation";
+import { generateContracts } from "./contracts/generate";
+import { seedSalaryHistory } from "./contracts/tags";
+import { emptyTeamCap } from "./contracts/team";
 import { LEAGUE_FORMAT, LEAGUE_FORMAT_VERSION, LeagueSchema, type League } from "./league/schema";
 import { rulesFor } from "./rules";
 import { stadiumFor } from "./season/weather";
@@ -82,7 +86,21 @@ function upgrade(data: Record<string, unknown>): void {
     if (rules?.game) rules.game["kickoff"] = rulesFor(Number(data["season"])).game.kickoff;
     data["formatVersion"] = 6;
   }
+  // Version 6 -> 7: contracts and the salary cap. Old contract stubs go; real
+  // contracts are generated once the file is read (see parseLeague).
+  if (data["formatVersion"] === 6) {
+    for (const t of (data["teams"] as Record<string, unknown>[]) ?? []) t["cap"] = emptyTeamCap();
+    for (const p of (data["players"] as Record<string, unknown>[]) ?? []) p["contract"] = null;
+    data["salaryHistory"] = [];
+    const rules = data["rules"] as Record<string, unknown> | undefined;
+    if (rules) rules["cap"] = rulesFor(Number(data["season"])).cap;
+    data["formatVersion"] = 7;
+    data[NEEDS_CONTRACTS] = true;
+  }
 }
+
+/** Set on an upgraded save whose players still need contracts (removed before validation). */
+const NEEDS_CONTRACTS = "__needsContracts";
 
 /** Reads a league file (upgrading older saves), checking its format and every field. */
 export function parseLeague(text: string): League {
@@ -104,10 +122,17 @@ export function parseLeague(text: string): League {
         : `This league was saved by a newer version of the game (save format ${String(header.formatVersion)}). Update the game to open it.`,
     );
   }
+  const needsContracts = (data as Record<string, unknown>)[NEEDS_CONTRACTS] === true;
+  delete (data as Record<string, unknown>)[NEEDS_CONTRACTS];
   const result = LeagueSchema.safeParse(data);
   if (!result.success) {
     const first = result.error.issues.slice(0, 5).map((i) => `${i.path.join(".")}: ${i.message}`);
     throw new Error(`The league file is damaged:\n${first.join("\n")}`);
+  }
+  if (needsContracts) {
+    // Seeded by the league, so loading the same old save always gives the same contracts.
+    generateContracts(result.data, new Rng(streamSeed(result.data.meta.seed, "contracts:upgrade")));
+    seedSalaryHistory(result.data);
   }
   return result.data;
 }

@@ -149,9 +149,6 @@ export const JERSEY_RANGES: Record<Position, [number, number][]> = {
   ],
 };
 
-/** Contract stubs end this many seasons after the first season (inclusive range). */
-export const CONTRACT_YEARS_LEFT: [number, number] = [0, 3];
-
 /** Coaching staff per team. */
 export const STAFF: {
   role: "HC" | "OC" | "DC" | "STC" | "SCOUT";

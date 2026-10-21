@@ -18,7 +18,10 @@ describe("depth charts", () => {
     const chart = autoDepthChart(roster);
     for (const slot of ["QB", "RB", "C", "K", "P"] as const) {
       const first = byId.get(chart[slot][0]!)!;
-      const best = Math.max(...roster.map((p) => slotOverall(p, slot) ?? -1));
+      // Kickers and punters are ranked among their own position first.
+      const pool =
+        slot === "K" || slot === "P" ? roster.filter((p) => p.position === slot) : roster;
+      const best = Math.max(...pool.map((p) => slotOverall(p, slot) ?? -1));
       expect(slotOverall(first, slot)).toBe(best);
     }
   });

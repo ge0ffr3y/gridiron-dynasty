@@ -34,4 +34,4 @@ export { validateSchedule } from "./season/validate";
 export { seasonDates } from "./season/calendar";
 
 /** Bumped when the league save format or simulation rules change in a breaking way. */
-export const SIM_CORE_VERSION = "0.7.0";
+export const SIM_CORE_VERSION = "0.8.0";

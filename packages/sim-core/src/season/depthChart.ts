@@ -66,6 +66,13 @@ function ranked(roster: Player[], slot: DepthSlot): Player[] {
 export function autoDepthChart(roster: Player[]): DepthSlots {
   const chart = {} as DepthSlots;
   const rankings = new Map(DEPTH_SLOTS.map((slot) => [slot, ranked(roster, slot)]));
+  // Kickers and punters do their own job: a punter who out-kicks a weak kicker would
+  // otherwise take the kicking job and leave nobody to punt.
+  for (const slot of ["K", "P"] as const) {
+    const own = rankings.get(slot)!.filter((p) => p.position === slot);
+    if (own.length > 0)
+      rankings.set(slot, [...own, ...rankings.get(slot)!.filter((p) => p.position !== slot)]);
+  }
   const starting = new Set<number>();
   const starters = new Map<DepthSlot, number[]>();
   for (const slot of DEPTH_CHART.fillOrder) {

@@ -311,21 +311,21 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** The real cap, the real contract structures, and the real loopholes, with every team starting at its real cap situation.
 
 ### Steps
-- [ ] **Rules config:** cap by year with a growth model, proration limit, minimum salaries by credited seasons, rookie wage scale, veteran-minimum benefit, cap rollover, minimum cash spending, offseason top-51 rule, likely vs. not-likely-to-be-earned incentive accounting and year-end adjustments. Every value verified against the CBA
-- [ ] **Contract model**, year by year: base salary, signing-bonus proration, roster / option / workout / per-game roster bonuses, incentives, guarantees (full, injury-only, vesting dates), void years
-- [ ] **Cap hit and dead money calculators:** release pre- and post-June 1, the June 1 designation, trades (remaining proration accelerates onto the trading team)
-- [ ] **Operations:** sign, extend, restructure (convert salary to bonus), release, trade, pay cut, option exercise/decline, void-year acceleration
-- [ ] **Tags & tenders:** franchise tag (exclusive / non-exclusive), transition tag, restricted free agent tenders with offer sheets and matching, exclusive-rights tenders
-- [ ] **Rookie contracts:** wage scale by draft slot; fifth-year option for first-rounders
-- [ ] **Cash vs. cap ledger:** every dollar tracked; invariant tests (cash paid over a contract's life equals its total cap charges)
-- [ ] **Worked-example tests** for every rule (restructure, void-year acceleration, post-June 1 cut, tag math…)
+- [x] **Rules config:** cap by year with a growth model, proration limit, minimum salaries by credited seasons, rookie wage scale, veteran-minimum benefit, cap rollover, minimum cash spending, offseason top-51 rule, likely vs. not-likely-to-be-earned incentive accounting and year-end adjustments. Every value verified against the CBA *(7a: read from the CBA text and NFL announcements, each with its source; the rookie scale is a provisional curve until 7b)*
+- [x] **Contract model**, year by year: base salary, signing-bonus proration, roster / option / workout / per-game roster bonuses, incentives, guarantees (full, injury-only, vesting dates), void years
+- [x] **Cap hit and dead money calculators:** release pre- and post-June 1, the June 1 designation, trades (remaining proration accelerates onto the trading team)
+- [x] **Operations:** sign, extend, restructure (convert salary to bonus), release, trade, pay cut, option exercise/decline, void-year acceleration
+- [ ] **Tags & tenders:** franchise tag (exclusive / non-exclusive), transition tag, restricted free agent tenders with offer sheets and matching, exclusive-rights tenders *(7a: non-exclusive franchise and transition tag amounts and RFA tender amounts; offer sheets, matching and the exclusive tag come with Phase 12's free agency)*
+- [x] **Rookie contracts:** wage scale by draft slot; fifth-year option for first-rounders *(scale provisional until 7b's real 2026 rookie contracts; Pro Bowl option tiers wait for awards in Phase 15)*
+- [x] **Cash vs. cap ledger:** every dollar tracked; invariant tests (cash paid over a contract's life equals its total cap charges) *(cash per team per year logged for the minimum spending rule; 60 random contracts checked)*
+- [x] **Worked-example tests** for every rule (restructure, void-year acceleration, post-June 1 cut, tag math…)
 - [ ] **Import real contracts** (nflverse / OverTheCap data); document assumptions where year-by-year detail is missing; import existing dead money
 - [ ] **Validation report:** each team's 2026 cap space vs. its published real figure, within a tolerance
 - [ ] **UI:** contract page (year-by-year table), team cap sheet (top 51, dead money, cap space for the next four years), "what if" panel showing savings and dead money *before* you cut, trade, or restructure
 
 ### Done when
 - [ ] Team cap sheets match reality within tolerance for nearly every team (exceptions explained)
-- [ ] Every worked-example test passes
+- [x] Every worked-example test passes
 - [ ] You can create cap room with a restructure and see next year's bill grow
 - [ ] Cutting a player shows the correct pre- vs. post-June 1 dead money
 

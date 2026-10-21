@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { formatHeight, formatLeagueDate, ordinal } from "@/lib/format";
 import { useLeagueKey } from "@/lib/session";
 import { useSim } from "@/sim/client";
+import { formatShort } from "@fgm/sim-core";
 
 const GROUP_TITLES = { physical: "Physical", technical: "Technical", mental: "Mental" } as const;
 
@@ -61,7 +62,7 @@ export function PlayerPage({ playerId }: { playerId: number }) {
               [
                 "Contract",
                 p.contract
-                  ? `${p.contract.team}, through ${p.contract.expiresAfterSeason}`
+                  ? `${p.contract.team}, through ${p.contract.expiresAfterSeason} · ${formatShort(p.contract.averagePerYear)} a year · ${formatShort(p.contract.capHit)} cap hit this year`
                   : "None",
               ],
               [

@@ -128,22 +128,33 @@ describe.skipIf(!ready)("the real league build", () => {
     expect(ours).toEqual(real);
   });
 
-  it("a season with the real rosters keeps the core stats inside the real ranges", () => {
-    const copy = startRealLeague(league, { name: "Check", seed: 42 });
-    const games: MeasuredGame[] = [];
-    advanceUntil(copy, (l) => l.calendar.stage === "regular");
-    advanceUntil(copy, (l) => l.calendar.stage !== "regular", {
-      onGame: (g, output) => games.push({ homeId: g.homeId, awayId: g.awayId, output }),
-    });
-    const misses = scorecard(measureSeason(games))
+  it("seasons with the real rosters keep the core stats inside the real ranges (two leagues averaged)", () => {
+    const seasons: Record<string, number>[] = [];
+    for (const seed of [42, 43]) {
+      const copy = startRealLeague(league, { name: "Check", seed });
+      const games: MeasuredGame[] = [];
+      advanceUntil(copy, (l) => l.calendar.stage === "regular");
+      advanceUntil(copy, (l) => l.calendar.stage !== "regular", {
+        onGame: (g, output) => games.push({ homeId: g.homeId, awayId: g.awayId, output }),
+      });
+      seasons.push(measureSeason(games));
+      advanceUntil(copy, (l) => l.calendar.stage === "complete");
+      expect(copy.history.at(-1)!.season).toBe(2026);
+    }
+    // One season is noisy (a team's points per game moves about 0.3 by chance), so average two, as CI does.
+    const averaged = Object.fromEntries(
+      Object.keys(seasons[0]!).map((k) => [
+        k,
+        seasons.reduce((a, v) => a + (v[k] ?? 0), 0) / seasons.length,
+      ]),
+    );
+    const misses = scorecard(averaged)
       .filter((line) => CORE_STATS.includes(line.key) && !line.pass)
       .map(
         (line) => `${line.key}: ${line.sim.toFixed(3)} (real ${line.range[0]} to ${line.range[1]})`,
       );
     expect(misses).toEqual([]);
-    advanceUntil(copy, (l) => l.calendar.stage === "complete");
-    expect(copy.history.at(-1)!.season).toBe(2026);
-  }, 120_000);
+  }, 240_000);
 
   it("the best players at each position are real 2025 regulars", () => {
     for (const position of ["QB", "RB", "WR", "TE", "EDGE", "DT", "LB", "CB", "S"] as const) {

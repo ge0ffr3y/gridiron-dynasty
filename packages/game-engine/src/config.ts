@@ -129,9 +129,9 @@ export const TUNING = {
    */
   baseline: {
     runQuantileShift: -0.006,
-    yacQuantileShift: 0.045,
+    yacQuantileShift: 0.06,
     completionLogit: 0.05,
-    sackRateScale: 0.8,
+    sackRateScale: 0.76,
     interceptionRateScale: 1.14,
     /**
      * Nudges to the real neutral-situation pass rates, per situation, so that
@@ -162,7 +162,7 @@ export const TUNING = {
     zoneCoverage: { zoneCoverage: 0.6, awareness: 0.4 },
   },
   /** A typical kicker's rating (kickers are compared to other kickers, not to all players). */
-  averageKicker: 77,
+  averageKicker: 76,
   /** Run game (Phase 4): sneaks, the box, the hole, the ball carrier against the tackler. */
   run: {
     /** QB sneak: per point of line edge at the snap, and the home edge. */

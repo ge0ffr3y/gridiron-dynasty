@@ -3,6 +3,7 @@
  * perception layer, so screens never see true ratings. Everything returned is
  * plain data that can cross from the worker to the page.
  */
+import { capHit, span, totalValue } from "./contracts/contract";
 import { ageOn } from "@fgm/foundation";
 import { STARTERS } from "./generate/config";
 import type { Coach, CoachRole, League, Player, Team } from "./league/schema";
@@ -125,7 +126,12 @@ export interface PlayerView {
     group: AttributeGroup;
     attributes: { key: string; label: string; value: number }[];
   }[];
-  contract: { team: string; expiresAfterSeason: number } | null;
+  contract: {
+    team: string;
+    expiresAfterSeason: number;
+    capHit: number;
+    averagePerYear: number;
+  } | null;
   injury: { description: string; gamesRemaining: number; since: string } | null;
   /** Season-by-season stats (one row per team played for), newest first, plus career totals. */
   stats: { season: number; team: string; line: StatLine }[];
@@ -456,7 +462,12 @@ export function playerView(league: League, playerId: number, viewer: Viewer): Pl
           team: contractTeam
             ? `${contractTeam.city} ${contractTeam.nickname}`
             : player.contract.teamId,
-          expiresAfterSeason: player.contract.expiresAfterSeason,
+          expiresAfterSeason: span(player.contract).lastReal,
+          capHit: capHit(player.contract, league.season, league.rules.cap),
+          averagePerYear: Math.round(
+            totalValue(player.contract) /
+              Math.max(1, player.contract.years.filter((y) => !y.void).length),
+          ),
         }
       : null,
     injury: player.injury,

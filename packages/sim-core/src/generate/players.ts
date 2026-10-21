@@ -18,7 +18,6 @@ import type { Rng } from "@fgm/foundation";
 import {
   AGE_SPREAD,
   ATTRIBUTE_NOISE,
-  CONTRACT_YEARS_LEFT,
   DEFAULT_MAX_AGE,
   ENTRY_AGE,
   GROWTH_PER_YEAR,
@@ -194,11 +193,8 @@ export function generatePlayer(
       temperament: score(rng, TRAIT_MEAN, TRAIT_SPREAD),
       priorities: { money, winning, role, location },
     },
-    contract: {
-      teamId,
-      expiresAfterSeason:
-        ctx.season + rng.intBetween(CONTRACT_YEARS_LEFT[0], CONTRACT_YEARS_LEFT[1]),
-    },
+    // Contracts are given to the whole league at once (contracts/generate.ts).
+    contract: null,
     stats: [],
     injury: null,
   };

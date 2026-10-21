@@ -24,6 +24,7 @@ import {
 import { gameDepthChart } from "./depthChart";
 import { applyInjuries } from "./injuries";
 import { conditionsFor, drawWeather } from "./weather";
+import { closeLeagueYear, openLeagueYear } from "../contracts/upkeep";
 import { rulesFor } from "../rules";
 import { generateDraftPicks } from "../generate/players";
 import { seasonDates } from "./calendar";
@@ -368,6 +369,8 @@ export function startNextSeason(league: League, options: { agePlayers: boolean }
   if (!last || last.season !== league.season)
     throw new Error("finish the season before starting the next one");
   const championship = seasonDates(league.rules, league.season).playoffs.championship;
+  // Money: record the year that ended (top salaries, cash, carried-over room).
+  closeLeagueYear(league);
   league.season += 1;
   league.rules = rulesFor(league.season);
   // Everyone heals over the offseason (the full injury model arrives in Phase 9).
@@ -394,6 +397,8 @@ export function startNextSeason(league: League, options: { agePlayers: boolean }
   }
 
   scheduleSeason(league, new Map(last.standings.map((s) => [s.teamId, s.divisionRank])));
+  // Contracts that ran out, fifth-year options, and getting every team under the new cap.
+  openLeagueYear(league);
 }
 
 /** Stages that count as "the season is under way". */

@@ -11,6 +11,7 @@ export {
   type RealPlayerInput,
 } from "./realLeague";
 export { NamePicker } from "./generate/people";
+export { TRAIT_MEAN, TRAIT_SPREAD } from "./generate/config";
 export { FIRST_NAMES, LAST_NAMES, COLLEGES } from "./generate/names";
 export * from "./perception";
 export * from "./decisions";

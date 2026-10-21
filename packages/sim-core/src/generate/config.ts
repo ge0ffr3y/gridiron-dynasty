@@ -83,6 +83,14 @@ export const UNRELATED_SKILL_SCALE = 0.15;
 /** Young players' room to grow: points of potential per year under the peak age. */
 export const PEAK_AGE = 27;
 export const GROWTH_PER_YEAR = 1.8;
+/**
+ * Real players (Phase 6b): growth room scaled by draft round, since early
+ * picks were taken for their ceiling. Later rounds and undrafted players
+ * have less expected growth (some still break out: the range is wide).
+ */
+export const DRAFT_PEDIGREE_GROWTH: Record<number, number> = { 1: 1.35, 2: 1.15, 3: 1.05 };
+export const DRAFT_PEDIGREE_GROWTH_LATER = 0.9;
+export const UNDRAFTED_GROWTH = 0.75;
 
 /** Hidden traits and personality scores: mean and spread. */
 export const TRAIT_MEAN = 55;

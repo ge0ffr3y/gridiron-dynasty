@@ -79,8 +79,9 @@ const EDGE_OLB_WEIGHT = 245;
  */
 export function mapPosition(raw: string, weightLb: number, archetype?: string): Position | null {
   if (raw === "DE" || raw === "DL") return weightLb >= INSIDE_END_WEIGHT ? "DT" : "EDGE";
-  if (raw === "OLB") {
-    if (archetype) return /Rusher/.test(archetype) ? "EDGE" : "LB";
+  if (raw === "OLB" || raw === "LB") {
+    // Madden calls every edge player a "DE" type or an OLB "Rusher".
+    if (archetype) return /- DE$|Rusher/.test(archetype) ? "EDGE" : "LB";
     return weightLb >= EDGE_OLB_WEIGHT ? "EDGE" : "LB";
   }
   return BASE_POSITION[raw] ?? null;

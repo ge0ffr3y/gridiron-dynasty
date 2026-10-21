@@ -21,6 +21,7 @@ import {
   type Position,
   type Ratings,
 } from "@fgm/sim-core";
+import { TUNING } from "@fgm/game-engine";
 import type { MaddenPlayer } from "./madden";
 import { rawAttributes } from "./madden";
 import type { RealPerson } from "./roster";
@@ -56,6 +57,15 @@ export const FALLBACK = {
     [0.3, 66],
     [0.05, 60],
     [0, 55],
+  ] as [number, number][],
+  /**
+   * Kickers, punters and snappers: anyone who did the job in 2025, even for
+   * part of the season after signing late, is an average starter (a team
+   * keeps one); someone who never did is a camp leg.
+   */
+  specialists: [
+    [0.01, 75],
+    [0, 60],
   ] as [number, number][],
   /** Extra overall for recent high draft picks (seasons in the league <= recentYears). */
   draftBonus: { 1: 6, 2: 4, 3: 2 } as Record<number, number>,
@@ -118,6 +128,8 @@ function referenceScale(): Record<Position, Stats> {
 
 export interface RatingResult {
   ratings: Map<string, Ratings | { targetOverall: number }>;
+  /** Generated leagues' starter averages and spreads, per position (the target scale). */
+  reference: Record<Position, Stats>;
   /** Players with Madden ratings vs. generated ones, for the report. */
   fromMadden: number;
   generated: number;
@@ -166,23 +178,55 @@ export function buildRatings(
       ratings.set(p.gsis, ours);
       fromMadden += 1;
     } else {
-      const side =
-        p.position === "K" || p.position === "P" || p.position === "LS"
-          ? p.snapShare.special
-          : Math.max(p.snapShare.offense, p.snapShare.defense);
-      let target = FALLBACK.byRole.find(([share]) => side >= share)![1];
+      const specialist = p.position === "K" || p.position === "P" || p.position === "LS";
+      const side = specialist
+        ? p.snapShare.special
+        : Math.max(p.snapShare.offense, p.snapShare.defense);
+      let target = (specialist ? FALLBACK.specialists : FALLBACK.byRole).find(
+        ([share]) => side >= share,
+      )![1];
       if (p.draft && p.yearsBefore + 1 <= FALLBACK.recentYears)
         target += FALLBACK.draftBonus[p.draft.round] ?? 0;
       ratings.set(p.gsis, { targetOverall: target });
       generated += 1;
     }
   }
-  return { ratings, fromMadden, generated };
+  return { ratings, reference, fromMadden, generated };
 }
 
-/** Our speed rating from a 40-yard dash time (the rating model's own conversion). */
-export function speedFromForty(seconds: number): number {
-  return Math.round(
-    Math.min(99, Math.max(1, (FORTY_AT_ZERO_SPEED - seconds) / FORTY_PER_SPEED_POINT)),
-  );
+/**
+ * Kickers and punters: the engine's kicking (touchbacks, field-goal range and
+ * accuracy, punt distance) is tuned around an average kicker of
+ * `TUNING.averageKicker`, which is what generated leagues' starters average.
+ * Madden's kicking numbers come in coarse steps and land real starters a few
+ * points lower, so line up the starters' leg and accuracy averages with it
+ * (everyone at the position moves alike, keeping Madden's order).
+ */
+export function alignSpecialists(
+  people: RealPerson[],
+  result: RatingResult,
+): Record<string, number> {
+  const moves: Record<string, number> = {};
+  for (const position of ["K", "P"] as const) {
+    const rated = people.filter((p) => p.position === position && p.teamId !== null);
+    const ratingsOf = (p: RealPerson) => result.ratings.get(p.gsis)!;
+    const full = rated.filter((p) => !("targetOverall" in ratingsOf(p)));
+    const top = starters(
+      full,
+      (p) => p.teamId,
+      (p) => overallAt(ratingsOf(p) as Ratings, position),
+      STARTERS[position],
+    );
+    for (const key of ["kickPower", "kickAccuracy"] as const) {
+      const mean =
+        top.reduce((a, p) => a + (ratingsOf(p) as Ratings)[key], 0) / Math.max(1, top.length);
+      const shift = Math.round(TUNING.averageKicker - mean);
+      moves[`${position} ${key}`] = shift;
+      for (const p of full) {
+        const r = ratingsOf(p) as Ratings;
+        r[key] = Math.min(99, Math.max(1, r[key] + shift));
+      }
+    }
+  }
+  return moves;
 }

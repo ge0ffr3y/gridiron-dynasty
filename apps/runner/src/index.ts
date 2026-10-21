@@ -6,8 +6,10 @@
  *   npm run sim -- --new-league --seed 42 --out l.json    also write the league file
  *   npm run sim -- --seasons 10 --seed 42                 simulate seasons, checking every schedule
  *   npm run sim -- --calibrate [--leagues 4 --seasons 2 --seed 42]   compare simulated seasons with real NFL ranges
+ *   npm run sim -- --calibrate --league pipeline/private/out/real-league-2026.json   the same, from the real league
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   GAME_ENGINE_VERSION,
   measurePlayers,
@@ -27,6 +29,9 @@ import {
   playersView,
   serializeLeague,
   teamView,
+  parseLeague,
+  startRealLeague,
+  type League,
 } from "@fgm/sim-core";
 
 function option(args: string[], name: string): string | undefined {
@@ -50,10 +55,17 @@ console.log(
 );
 
 if (args.includes("--calibrate")) {
+  const leagueFile = option(args, "--league");
   runCalibration(
     readSeed(args),
     Number(option(args, "--leagues") ?? 4),
     Number(option(args, "--seasons") ?? 2),
+    // npm runs this from apps/runner; paths are relative to where the command was typed.
+    leagueFile
+      ? parseLeague(
+          readFileSync(resolve(process.env["INIT_CWD"] ?? process.cwd(), leagueFile), "utf8"),
+        )
+      : null,
   );
   process.exit(0);
 }
@@ -168,13 +180,21 @@ function runSeasons(seed: number, count: number): void {
  * talent, like a different real season) and prints the calibration scorecard:
  * each stat is measured per season, then averaged, as the real targets were.
  */
-function runCalibration(seed: number, leagues: number, seasonsPerLeague: number): void {
+/** `base`: start every league from this file (the real league) instead of generating one. */
+function runCalibration(
+  seed: number,
+  leagues: number,
+  seasonsPerLeague: number,
+  base: League | null,
+): void {
   const started = process.hrtime.bigint();
   const perSeason: Record<string, number>[] = [];
   const perSeasonPlayers: Record<string, number>[] = [];
   let gameCount = 0;
   for (let l = 0; l < leagues; l++) {
-    const league = createLeague({ seed: seed + l, name: `League ${seed + l}` });
+    const league = base
+      ? startRealLeague(base, { name: `League ${seed + l}`, seed: seed + l })
+      : createLeague({ seed: seed + l, name: `League ${seed + l}` });
     for (let i = 0; i < seasonsPerLeague; i++) {
       const games: MeasuredGame[] = [];
       advanceUntil(league, (x) => x.calendar.stage === "regular");
@@ -204,7 +224,7 @@ function runCalibration(seed: number, leagues: number, seasonsPerLeague: number)
   const lines = scorecard(average(perSeason));
   const playerLines = playerScorecard(average(perSeasonPlayers));
   console.log(
-    `\nCalibration: ${perSeason.length} simulated regular seasons (${leagues} league${leagues === 1 ? "" : "s"} from seed ${seed}, ${gameCount} games) vs. real NFL 2022-2025\n`,
+    `\nCalibration: ${perSeason.length} simulated regular seasons (${leagues} ${base ? "real-roster " : ""}league${leagues === 1 ? "" : "s"} from seed ${seed}, ${gameCount} games) vs. real NFL 2022-2025\n`,
   );
   console.log("stat                          simulated        real     real range          ");
   const fmt = (v: number) => (Math.abs(v) < 1.5 ? v.toFixed(3) : v.toFixed(2));

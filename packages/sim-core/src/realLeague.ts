@@ -24,6 +24,8 @@ import {
   type CoachRole,
   type Game,
   type GameRound,
+  type HiddenTraits,
+  type SeasonStats,
   type League,
   type Player,
   type Team,
@@ -34,10 +36,13 @@ import { stadiumFor } from "./season/weather";
 import { generateCoach } from "./generate/coaches";
 import {
   COACH_AGE_FALLBACK,
+  DRAFT_PEDIGREE_GROWTH,
+  DRAFT_PEDIGREE_GROWTH_LATER,
   GROWTH_PER_YEAR,
   PEAK_AGE,
   TRAIT_MEAN,
   TRAIT_SPREAD,
+  UNDRAFTED_GROWTH,
 } from "./generate/config";
 import type { NamePicker } from "./generate/people";
 import { generateDraftPicks, generateRatings } from "./generate/players";
@@ -66,6 +71,10 @@ export interface RealPlayerInput {
   ratings: Ratings | { targetOverall: number };
   /** Last season of his contract (Phase 7 brings real contracts). */
   contractThrough: number | null;
+  /** Hidden traits the real data speaks to (the rest are generated). */
+  hidden?: Partial<HiddenTraits>;
+  /** Real season-by-season stats, oldest first. */
+  stats?: SeasonStats[];
 }
 
 export interface RealCoachInput {
@@ -131,8 +140,12 @@ function realPlayer(input: RealPlayerInput, id: number, date: LeagueDate, seed: 
     for (const alt of ALTERNATE_POSITIONS[input.position] ?? [])
       if (rng.chance(alt.chance))
         familiarity[alt.position] = Math.round(rng.range(0.4, 0.95) * 100) / 100;
-  // Young players have room to grow (Phase 6b refines this with draft pedigree).
-  const growthRoom = age < PEAK_AGE ? (PEAK_AGE - age) * GROWTH_PER_YEAR * rng.range(0.2, 1.3) : 0;
+  // Young players have room to grow, high draft picks more than most (scouts saw it in them).
+  const pedigree = input.drafted
+    ? (DRAFT_PEDIGREE_GROWTH[input.drafted.round] ?? DRAFT_PEDIGREE_GROWTH_LATER)
+    : UNDRAFTED_GROWTH;
+  const growthRoom =
+    age < PEAK_AGE ? (PEAK_AGE - age) * GROWTH_PER_YEAR * pedigree * rng.range(0.2, 1.3) : 0;
   const potential = bounded(overall + Math.max(0, growthRoom + rng.gaussian(0, 2)), overall, 99);
   const [money, winning, role, location] = randomShares(rng, 4) as [number, number, number, number];
   return {
@@ -151,13 +164,9 @@ function realPlayer(input: RealPlayerInput, id: number, date: LeagueDate, seed: 
     ratings,
     familiarity,
     hidden: {
+      ...generatedTraits(rng),
       potential,
-      workEthic: score(rng, TRAIT_MEAN, TRAIT_SPREAD),
-      consistency: score(rng, TRAIT_MEAN, TRAIT_SPREAD),
-      injuryProneness: score(rng, TRAIT_MEAN - 10, TRAIT_SPREAD),
-      durability: score(rng, TRAIT_MEAN, TRAIT_SPREAD),
-      coachability: score(rng, TRAIT_MEAN, TRAIT_SPREAD),
-      clutch: score(rng, TRAIT_MEAN - 5, TRAIT_SPREAD),
+      ...input.hidden,
     },
     personality: {
       ego: score(rng, TRAIT_MEAN - 5, TRAIT_SPREAD),
@@ -170,8 +179,20 @@ function realPlayer(input: RealPlayerInput, id: number, date: LeagueDate, seed: 
       input.teamId !== null && input.contractThrough !== null
         ? { teamId: input.teamId, expiresAfterSeason: input.contractThrough }
         : null,
-    stats: [],
+    stats: input.stats ?? [],
     injury: null,
+  };
+}
+
+/** Traits real data doesn't measure: drawn around league averages, as for generated players. */
+function generatedTraits(rng: Rng): Omit<HiddenTraits, "potential"> {
+  return {
+    workEthic: score(rng, TRAIT_MEAN, TRAIT_SPREAD),
+    consistency: score(rng, TRAIT_MEAN, TRAIT_SPREAD),
+    injuryProneness: score(rng, TRAIT_MEAN - 10, TRAIT_SPREAD),
+    durability: score(rng, TRAIT_MEAN, TRAIT_SPREAD),
+    coachability: score(rng, TRAIT_MEAN, TRAIT_SPREAD),
+    clutch: score(rng, TRAIT_MEAN - 5, TRAIT_SPREAD),
   };
 }
 

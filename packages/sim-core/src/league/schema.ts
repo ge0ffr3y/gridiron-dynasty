@@ -390,6 +390,8 @@ export const LeagueSchema = z.object({
 });
 
 export type Player = z.infer<typeof PlayerSchema>;
+export type SeasonStats = z.infer<typeof SeasonStatsSchema>;
+export type HiddenTraits = z.infer<typeof HiddenTraitsSchema>;
 export type Coach = z.infer<typeof CoachSchema>;
 export type CoachRole = z.infer<typeof CoachRoleSchema>;
 export type Team = z.infer<typeof TeamSchema>;

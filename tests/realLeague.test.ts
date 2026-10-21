@@ -9,7 +9,15 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { parse } from "csv-parse/sync";
-import { advanceUntil, parseLeague, serializeLeague, type League } from "@fgm/sim-core";
+import { CORE_STATS, measureSeason, scorecard, type MeasuredGame } from "@fgm/game-engine";
+import {
+  advanceUntil,
+  overallAt,
+  parseLeague,
+  serializeLeague,
+  startRealLeague,
+  type League,
+} from "@fgm/sim-core";
 import { describe, expect, it } from "vitest";
 
 const ROOT = join(import.meta.dirname, "..");
@@ -120,11 +128,58 @@ describe.skipIf(!ready)("the real league build", () => {
     expect(ours).toEqual(real);
   });
 
-  it("a season plays from start to finish", () => {
-    const copy = parseLeague(text);
+  it("a season with the real rosters keeps the core stats inside the real ranges", () => {
+    const copy = startRealLeague(league, { name: "Check", seed: 42 });
+    const games: MeasuredGame[] = [];
+    advanceUntil(copy, (l) => l.calendar.stage === "regular");
+    advanceUntil(copy, (l) => l.calendar.stage !== "regular", {
+      onGame: (g, output) => games.push({ homeId: g.homeId, awayId: g.awayId, output }),
+    });
+    const misses = scorecard(measureSeason(games))
+      .filter((line) => CORE_STATS.includes(line.key) && !line.pass)
+      .map(
+        (line) => `${line.key}: ${line.sim.toFixed(3)} (real ${line.range[0]} to ${line.range[1]})`,
+      );
+    expect(misses).toEqual([]);
     advanceUntil(copy, (l) => l.calendar.stage === "complete");
     expect(copy.history.at(-1)!.season).toBe(2026);
   }, 120_000);
+
+  it("the best players at each position are real 2025 regulars", () => {
+    for (const position of ["QB", "RB", "WR", "TE", "EDGE", "DT", "LB", "CB", "S"] as const) {
+      const top = league.players
+        .filter((p) => p.position === position && p.teamId !== null)
+        .sort((a, b) => overallAt(b.ratings, position) - overallAt(a.ratings, position))
+        .slice(0, 10);
+      const regulars = top.filter(
+        (p) => (p.stats.find((s) => s.season === 2025)?.line.gp ?? 0) >= 6,
+      );
+      expect(regulars.length, position).toBeGreaterThanOrEqual(7);
+    }
+  });
+
+  it("careers carry the real numbers: 2025 totals cover nearly all of the real league's", () => {
+    const real = csv("stats_player_reg_2025.csv.gz");
+    for (const [key, column] of [
+      ["passYds", "passing_yards"],
+      ["rushYds", "rushing_yards"],
+      ["recYds", "receiving_yards"],
+      ["sacks", "def_sacks"],
+    ] as const) {
+      const ours = league.players.reduce(
+        (sum, p) =>
+          sum +
+          p.stats.filter((s) => s.season === 2025).reduce((a, s) => a + (s.line[key] ?? 0), 0),
+        0,
+      );
+      const total = real.reduce((sum, r) => sum + (Number(r[column]) || 0), 0);
+      expect(ours / total, key).toBeGreaterThan(0.9);
+      expect(ours / total, key).toBeLessThanOrEqual(1);
+    }
+    // Long careers go back to 1999 (the first season in the data).
+    const seasons = league.players.flatMap((p) => p.stats.map((s) => s.season));
+    expect(Math.min(...seasons)).toBeLessThanOrEqual(2010);
+  });
 
   it.skipIf(!existsSync(MADDEN))(
     "rebuilding from the same inputs gives an identical file",

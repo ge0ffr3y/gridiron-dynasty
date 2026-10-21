@@ -281,12 +281,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] **Licensing guardrails first:** `pipeline/private/` (gitignored) holds Madden ratings and anything with restrictive terms; `docs/data-sources.md` lists every source, its license, and credits *(6a: plus a local test that no committed file contains a real 2025 player's or coach's name)*
 - [x] Decide whether the generated real-league file is committed publicly or built locally only (Decisions log) *(built locally only)*
 - [x] **Pipeline framework:** download → cache → transform → build, each step a script; reruns are reproducible; outputs versioned *(6a: `npm run pipeline -- league`; a rebuild is byte-identical, checked by a test)*
-- [ ] **nflverse import:** end-of-2025 rosters (including practice squads and injured players), bios (age, size, college, draft info, experience), snap counts, injuries *(6a: rosters, bios and snap counts done; injury history in 6b)*
+- [x] **nflverse import:** end-of-2025 rosters (including practice squads and injured players), bios (age, size, college, draft info, experience), snap counts, injuries *(6b: injury history 2023-25 from game-status reports and injured-reserve weeks)*
 - [x] **Player ID crosswalk** across sources, with an unmatched-players report; fixes go in a documented overrides file (data, not hand edits to outputs) *(6a: Madden matched by last name and birth date, then nickname-aware full name; 1,830 of 1,880 Madden players matched)*
-- [ ] **Ratings build:** Madden end-of-2025 ratings (private input) → mapped into our own rating model → adjusted with real performance data (play-by-play, Next Gen Stats, snap counts) *(6a: Madden 26 Week 1 ratings (no end-of-season file found) mapped onto our scale; 2025 performance adjustment in 6b)*
-- [ ] **Hidden traits** generated from age, draft pedigree, and injury history
-- [ ] **Sanity-check sheet:** top 10 at every position reviewed by hand
-- [ ] **Career stats** imported so careers continue from their real numbers
+- [x] **Ratings build:** Madden end-of-2025 ratings (private input) → mapped into our own rating model → adjusted with real performance data (play-by-play, Next Gen Stats, snap counts) *(Madden 26 Week 1, since no end-of-season file turned up; 6b moves regulars toward their 2025 production and teams' regulars with real 2025 point differential)*
+- [x] **Hidden traits** generated from age, draft pedigree, and injury history
+- [ ] **Sanity-check sheet:** top 10 at every position reviewed by hand *(6b: the sheet is built with every league build (private); I reviewed it; waiting on the owner's review)*
+- [x] **Career stats** imported so careers continue from their real numbers *(regular seasons since 1999)*
 - [ ] **Naming session:** league name, championship name, 32 team names, mascots, colors, simple generated logos/monograms
 - [x] **Fictional names** for every real person, one consistent mapping kept only inside the pipeline; automated check that no real name survives into any output *(names come from a hash of each person's id, so no lookup table is stored at all; colleges map to fictional schools)*
 - [x] **Coaching staffs** as of the end of the 2025 regular season (basic attributes; full traits in Phase 10) *(head coaches and coordinators from end-of-2025 team staff pages, interim coaches where teams had them; one job without a real holder is generated)*
@@ -299,7 +299,7 @@ Decisions that block a phase. Record the answer here when made.
 - [x] Unmatched-player report is at or near zero *(5 roster rows lack an id or birth date; 4 regular starters signed after the Madden update get ratings from public data)*
 - [x] The real-name check finds zero real names in any build output *(every build, plus a local test against all of nflverse's players)*
 - [x] Rebuilding from scratch produces an identical league file *(local test)*
-- [ ] A sim'd season with the real rosters still passes the calibration scorecard
+- [x] A sim'd season with the real rosters still passes the calibration scorecard *(62 of 63 on three seed sets, as good as generated leagues; the miss is the long-standing success-rate gap; core stats checked by a local test)*
 
 > [!example]- Kickoff prompt
 > "Phase 6: build the real-league data pipeline. Set up the licensing guardrails (private folder, data-sources doc) first. Import end-of-2025 rosters and bios from nflverse, build an ID crosswalk with an unmatched report, map Madden ratings (private input) into our rating model and adjust with real performance data, generate hidden traits, import career stats, generate fictional names with an automated real-name check, and build the starting league file. Plan first; flag any source licensing questions."

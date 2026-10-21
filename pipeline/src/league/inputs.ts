@@ -25,6 +25,11 @@ const FILES: Record<string, string> = {
   snaps: `snap_counts_${SEASON}.csv.gz`,
   games: "games.csv.gz",
   pbp: `play_by_play_${SEASON}.csv.gz`,
+  defense: "advstats_season_def.csv.gz",
+  ngsRushing: "ngs_rushing.csv.gz",
+  injuries2023: "injuries_2023.csv.gz",
+  injuries2024: "injuries_2024.csv.gz",
+  injuries2025: "injuries_2025.csv.gz",
 };
 const URLS: Record<string, string> = {
   rosters: `${RELEASE}/weekly_rosters/${FILES.rosters}`,
@@ -34,6 +39,11 @@ const URLS: Record<string, string> = {
   snaps: `${RELEASE}/snap_counts/${FILES.snaps}`,
   games: `${RELEASE}/schedules/${FILES.games}`,
   pbp: `${RELEASE}/pbp/${FILES.pbp}`,
+  defense: `${RELEASE}/pfr_advstats/${FILES.defense}`,
+  ngsRushing: `${RELEASE}/nextgen_stats/${FILES.ngsRushing}`,
+  injuries2023: `${RELEASE}/injuries/${FILES.injuries2023}`,
+  injuries2024: `${RELEASE}/injuries/${FILES.injuries2024}`,
+  injuries2025: `${RELEASE}/injuries/${FILES.injuries2025}`,
 };
 
 export async function download(): Promise<void> {

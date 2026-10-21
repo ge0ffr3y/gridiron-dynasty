@@ -35,6 +35,15 @@ import {
   capSheetView,
   contractView,
   makeCapMove,
+  calendarPageView,
+  campReportView,
+  makeRosterMove,
+  makeTrade,
+  previewTradeDeal,
+  rosterManagementView,
+  tradeAssetsView,
+  transactionsView,
+  type Position,
 } from "@fgm/sim-core";
 import type { Play } from "@fgm/game-engine";
 import { db, PLAY_LOG_SEASONS_KEPT, type PlayLog } from "./db";
@@ -282,6 +291,47 @@ const handlers: Handlers = {
 
   capSheetView({ teamId }) {
     return capSheetView(requireLeague(), teamId, VIEWER);
+  },
+
+  transactionsView({ teamId, group }) {
+    return transactionsView(requireLeague(), { teamId, group });
+  },
+
+  calendarPageView() {
+    return calendarPageView(requireLeague());
+  },
+
+  campReportView() {
+    return campReportView(requireLeague());
+  },
+
+  rosterManagementView({ teamId, freeAgentPosition }) {
+    return rosterManagementView(requireLeague(), teamId, VIEWER, {
+      freeAgentPosition: freeAgentPosition as Position | undefined,
+    });
+  },
+
+  async rosterMove({ teamId, playerId, kind }) {
+    const league = requireLeague();
+    const message = makeRosterMove(league, teamId, playerId, kind);
+    open = { saved: await save(league, open!.saved), league };
+    return { message };
+  },
+
+  tradeAssets({ teamId }) {
+    return tradeAssetsView(requireLeague(), teamId, VIEWER);
+  },
+
+  previewTrade({ a, b }) {
+    return previewTradeDeal(requireLeague(), a, b);
+  },
+
+  async makeTrade({ a, b }) {
+    const league = requireLeague();
+    makeTrade(league, a, b, "League office trade (any two teams, until GM Mode in Phase 14).");
+    const message = league.transactions.at(-1)!.text;
+    open = { saved: await save(league, open!.saved), league };
+    return { message };
   },
 
   async capMove({ playerId, kind }) {

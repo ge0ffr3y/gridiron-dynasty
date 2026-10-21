@@ -345,15 +345,15 @@ Decisions that block a phase. Record the answer here when made.
 - [x] **Practice squad:** size, eligibility, veteran exceptions, game-day elevations and their limits, signing players off other teams' practice squads *(8a: 16 + 1 international, six veterans, CBA weekly pay on the cap, two elevations a game and three a season, four protected a week; the three-week pay guarantee for a player signed away isn't modeled yet)*
 - [x] **Reserve lists:** injured reserve with minimum stay and return designations, preseason injury lists *(8a: four-game minimum, eight returns plus two in the playoffs, two named at cuts; PUP for players hurt in camp; NFI waits for non-football injuries in Phase 9)*
 - [x] **Waivers:** claim priority, waiver periods, vested-veteran rules *(8a: last season's draft order through Week 3, then standings; vested veterans skip waivers until the deadline; claims resolve at once instead of over 24 hours)*
-- [ ] **Trades:** players and picks (future picks several years out), cap checks, trade deadline
+- [x] **Trades:** players and picks (future picks several years out), cap checks, trade deadline *(8b: refused outside March–deadline, over the cap or roster limit, or for practice-squad players; the preview equals the result; AI trading is Phase 13)*
 - [x] **Preseason games** (optional per league) and **cutdown day**, with the waiver-claim rush after it *(8a: starters rest; a showcase grade per player counts at cuts, and standouts with room to grow get a small capped boost)*
 - [x] **Simple AI roster upkeep** (fill holes, cut the lowest, sign rookies) so AI teams stay legal until Phase 13 *(8a: placeholder draft and undrafted rush, weekly IR / returns / 53 / squad, futures deals, placeholder retirement until Phase 9)*
-- [ ] **UI:** transactions log, roster management (cut, IR, practice squad, elevations), basic trade builder with cap impact, calendar view of upcoming deadlines
+- [x] **UI:** transactions log, roster management (cut, IR, practice squad, elevations), basic trade builder with cap impact, calendar view of upcoming deadlines *(8b: plus a training camp report; checked in the browser)*
 
 ### Done when
 - [x] 10 headless seasons with every roster legal at every check *(8a: a test plays ten full League Years with the check after every move; the runner does it for any number)*
 - [x] Cutdown day happens, waiver claims go through in the right order, rookies get signed *(8a: tests, and seen in the browser: 53 + practice squads after cuts)*
-- [ ] You can make a trade and see both teams' cap impact before confirming
+- [x] You can make a trade and see both teams' cap impact before confirming *(checked in the browser: illegal trades are refused with the reason; a test checks preview = result)*
 
 > [!example]- Kickoff prompt
 > "Phase 8: build the full league-year calendar with live deadlines, roster limits with a legality validator, practice squad, reserve lists, waivers, trades, preseason and cutdown, and simple AI roster upkeep, all driven by the rules config. Add the transactions, roster management, trade builder, and calendar screens. Plan first."

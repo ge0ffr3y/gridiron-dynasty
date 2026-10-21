@@ -28,6 +28,7 @@ import { conditionsFor, drawWeather } from "./weather";
 import { closeLeagueYear, openLeagueYear } from "../contracts/upkeep";
 import { batch } from "../contracts/operations";
 import { runDraft } from "../roster/draft";
+import { assignJerseys } from "../roster/jerseys";
 import { gradePreseason, playPreseasonWeek, schedulePreseason } from "../roster/preseason";
 import {
   countReserveGames,
@@ -243,8 +244,8 @@ const NEXT_ROUND: Record<PlayoffRound, PlayoffRound | null> = {
   championship: null,
 };
 
-/** Takes one step forward. Returns a short description of what happened. */
-export function advance(league: League, hooks: SimHooks = {}): string {
+/** One step's events (see `advance`). */
+function advanceOnce(league: League, hooks: SimHooks): string {
   const cal = league.calendar;
   const dates = seasonDates(league.rules, league.season);
   switch (cal.stage) {
@@ -337,6 +338,16 @@ export function advance(league: League, hooks: SimHooks = {}): string {
       return `The ${league.season} offseason begins`;
     }
   }
+}
+
+/**
+ * Takes one step forward. Returns a short description of what happened. Afterwards, jersey
+ * numbers are kept unique on every team (new arrivals take a free number).
+ */
+export function advance(league: League, hooks: SimHooks = {}): string {
+  const label = advanceOnce(league, hooks);
+  if (!hooks.historyOnly) assignJerseys(league);
+  return label;
 }
 
 /** Advances until `stop` says so (checked before each step). */

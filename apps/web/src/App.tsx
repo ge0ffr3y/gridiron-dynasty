@@ -1,6 +1,10 @@
 import { RngStreams } from "@fgm/foundation";
 import {
+  ArrowLeftRight,
   BookOpen,
+  CalendarClock,
+  Dumbbell,
+  ScrollText,
   CalendarDays,
   ClipboardList,
   FolderOpen,
@@ -24,7 +28,11 @@ import { Button } from "@/components/ui/button";
 import { SessionProvider, useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { CalendarPage } from "@/pages/CalendarPage";
+import { CampPage } from "@/pages/CampPage";
 import { CoachPage } from "@/pages/CoachPage";
+import { TradePage } from "@/pages/TradePage";
+import { TransactionsPage } from "@/pages/TransactionsPage";
 import { GamePage } from "@/pages/GamePage";
 import { HistoryPage } from "@/pages/HistoryPage";
 import { HomePage } from "@/pages/HomePage";
@@ -58,6 +66,10 @@ const NAV: NavItem[] = [
   { label: "Leaders", icon: Medal, href: "/leaders", needsLeague: true },
   { label: "Playoffs", icon: Trophy, href: "/playoffs", needsLeague: true },
   { label: "History", icon: BookOpen, href: "/history", needsLeague: true },
+  { label: "Calendar", icon: CalendarClock, href: "/calendar", needsLeague: true },
+  { label: "Transactions", icon: ScrollText, href: "/transactions", needsLeague: true },
+  { label: "Trades", icon: ArrowLeftRight, href: "/trade", needsLeague: true },
+  { label: "Training camp", icon: Dumbbell, href: "/camp", needsLeague: true },
   { label: "Draft", icon: ClipboardList, phase: 11 },
   { label: "Free agency", icon: Handshake, phase: 12 },
 ];
@@ -158,6 +170,26 @@ function Shell() {
             <Route path="/playoffs">
               <NeedsLeague>
                 <PlayoffsPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/calendar">
+              <NeedsLeague>
+                <CalendarPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/transactions">
+              <NeedsLeague>
+                <TransactionsPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/trade">
+              <NeedsLeague>
+                <TradePage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/camp">
+              <NeedsLeague>
+                <CampPage />
               </NeedsLeague>
             </Route>
             <Route path="/history">

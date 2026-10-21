@@ -146,15 +146,20 @@ function teamName(league: League, teamId: string): string {
 }
 
 /**
- * A copy of the league that cap moves can change without touching the real one: the players,
- * teams' cap books and the transaction log are copied; everything else is shared (read only).
+ * A copy of the league that moves can change without touching the real one: players, draft
+ * picks, teams' cap books and roster lists, and the transaction log are copied; everything else
+ * is shared (read only).
  */
-function scratch(league: League): League {
+export function scratch(league: League): League {
   return {
     ...league,
-    players: league.players.map((p) => ({ ...p })),
+    draftPicks: league.draftPicks.map((d) => ({ ...d })),
+    // Nested pieces a move can change in place are copied too (reserve details, stats stay shared).
+    players: league.players.map((p) => ({ ...p, reserve: p.reserve ? { ...p.reserve } : null })),
     teams: league.teams.map((t) => ({
       ...t,
+      reserveReturns: [...t.reserveReturns],
+      elevated: [...t.elevated],
       cap: {
         ...t.cap,
         deadMoney: [...t.cap.deadMoney],

@@ -3,6 +3,14 @@
  * league; the page asks for screen data by name and gets plain data back.
  */
 import type {
+  CalendarPageView,
+  CampReportView,
+  RosterManagementView,
+  RosterMoveKind,
+  TradeAssets,
+  TradePreview,
+  TradeSide,
+  TransactionsView,
   CalendarView,
   CapMoveKind,
   CapSheetView,
@@ -86,6 +94,27 @@ export interface SimApi {
   capSheetView(params: { teamId: string }): CapSheetView;
   /** A league-office cap move (release, June 1 release, restructure), saved. Returns what happened. */
   capMove(params: { playerId: number; kind: CapMoveKind }): { message: string };
+  /** The transaction log, newest first (optionally one team's, or one kind). */
+  transactionsView(params: { teamId?: string; group?: string }): TransactionsView;
+  /** The League Year's dates and deadlines, and where the league is. */
+  calendarPageView(params: Record<string, never>): CalendarPageView;
+  /** Preseason standouts, who improved, and the waiver claims at final cuts. */
+  campReportView(params: Record<string, never>): CampReportView;
+  /** A team's roster by list, with the moves the league office can make; plus free agents. */
+  rosterManagementView(params: {
+    teamId: string;
+    freeAgentPosition?: string;
+  }): RosterManagementView;
+  /** A league-office roster move (saved). Returns what happened. */
+  rosterMove(params: { teamId: string; playerId: number; kind: RosterMoveKind }): {
+    message: string;
+  };
+  /** A team's tradable players and picks. */
+  tradeAssets(params: { teamId: string }): TradeAssets;
+  /** What a trade would do to both teams (changes nothing). */
+  previewTrade(params: { a: TradeSide; b: TradeSide }): TradePreview;
+  /** Makes a legal trade (saved). Returns what happened. */
+  makeTrade(params: { a: TradeSide; b: TradeSide }): { message: string };
 }
 
 export type Method = keyof SimApi;

@@ -30,6 +30,7 @@ const TYPE_NAMES: Record<string, string> = {
   tag: "Franchise or transition tag",
   tender: "Restricted free agent tender",
   minimum: "Minimum deal",
+  "practice-squad": "Practice-squad deal (weekly pay)",
 };
 
 /** Money, with a dash for nothing. */

@@ -219,15 +219,17 @@ export function rookieContract(
   const rules = league.rules;
   const slot = rookieSlot(rules, draftSeason, overallPick);
   const years = rules.cap.rookieScale.years;
-  // Year one at the minimum, then equal raises (each year at least that year's minimum).
+  // Each year's minimum, plus the rest of the salary money spread as rising raises (later years
+  // get more), so the deal totals the slot exactly; if the minimums alone exceed it, they win.
   const salaryTotal = slot.total - slot.signingBonus;
-  const firstYear = slot.minimums[0]!;
-  const step = Math.max(
-    0,
-    Math.round((salaryTotal - years * firstYear) / ((years * (years - 1)) / 2)),
-  );
+  const floor = slot.minimums.reduce((a, b) => a + b, 0);
+  const extra = Math.max(0, salaryTotal - floor);
+  const weights = Array.from({ length: years }, (_, i) => i);
+  const weightSum = weights.reduce((a, b) => a + b, 0) || 1;
+  const raises = weights.map((w) => Math.floor((extra * w) / weightSum));
+  raises[years - 1]! += extra - raises.reduce((a, b) => a + b, 0);
   const yearsOut = Array.from({ length: years }, (_, i) =>
-    blankYear(draftSeason + i, Math.max(slot.minimums[i]!, firstYear + step * i)),
+    blankYear(draftSeason + i, slot.minimums[i]! + raises[i]!),
   );
   // Rookie deals for early picks are fully guaranteed; later picks get the bonus only.
   if (overallPick <= 64)

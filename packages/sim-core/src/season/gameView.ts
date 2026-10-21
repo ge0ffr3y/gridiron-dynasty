@@ -305,7 +305,8 @@ function teamStatRows(box: BoxScore): GameView["teamStats"] {
 }
 
 export function gameView(league: League, gameId: number, plays: Play[] | null): GameView {
-  const g = league.games.find((x) => x.id === gameId);
+  const g =
+    league.games.find((x) => x.id === gameId) ?? league.preseasonGames.find((x) => x.id === gameId);
   if (!g) throw new Error(`no game ${gameId} this season`);
   const players = new Map(league.players.map((p) => [p.id, p]));
   const name = (id: number | undefined) => {

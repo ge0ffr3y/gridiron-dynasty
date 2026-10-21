@@ -30,6 +30,12 @@ export {
 export * from "./contracts/team";
 export * from "./contracts/operations";
 export * from "./contracts/views";
+export * from "./roster/lists";
+export * from "./roster/legality";
+export * from "./roster/moves";
+export { runDraft } from "./roster/draft";
+export { gradePreseason, preseasonGame } from "./roster/preseason";
+export { calendarEvents, type CalendarEvent } from "./season/calendar";
 export { tagTender, fifthYearOptionSalary } from "./contracts/tags";
 export { TRAIT_MEAN, TRAIT_SPREAD } from "./generate/config";
 export { FIRST_NAMES, LAST_NAMES, COLLEGES } from "./generate/names";
@@ -54,4 +60,4 @@ export { validateSchedule } from "./season/validate";
 export { seasonDates } from "./season/calendar";
 
 /** Bumped when the league save format or simulation rules change in a breaking way. */
-export const SIM_CORE_VERSION = "0.8.1";
+export const SIM_CORE_VERSION = "0.9.0";

@@ -97,9 +97,10 @@ describe("assembling a real league", () => {
   });
 
   it("keeps given ratings exactly and generates the rest near their target", () => {
-    const byName = new Map(league.players.map((p) => [`${p.firstName} ${p.lastName}`, p]));
+    // Players are assembled in key order (the source's id order); generated fill-ins come after.
     played.players.forEach((source, i) => {
-      const p = byName.get(`${source.firstName} ${source.lastName}`)!;
+      const p = league.players[i]!;
+      expect(p.lastName).toBe(source.lastName);
       if (i % 10 === 0) expect(Math.abs(overallAt(p.ratings, p.position) - 64)).toBeLessThan(8);
       else expect(p.ratings).toEqual(source.ratings);
     });

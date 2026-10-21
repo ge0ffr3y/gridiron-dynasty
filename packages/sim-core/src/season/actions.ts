@@ -5,7 +5,18 @@ import type { League } from "../league/schema";
 import { advance, advanceUntil, type SimHooks } from "./flow";
 
 export type SimActionId =
-  "start-season" | "week" | "deadline" | "regular-end" | "round" | "season-end" | "next-season";
+  | "league-year"
+  | "draft"
+  | "camp"
+  | "preseason-week"
+  | "cutdown"
+  | "start-season"
+  | "week"
+  | "deadline"
+  | "regular-end"
+  | "round"
+  | "season-end"
+  | "next-season";
 
 export interface SimAction {
   id: SimActionId;
@@ -19,13 +30,47 @@ const ROUND_NAMES = {
   championship: "championship game",
 } as const;
 
+/** The offseason stops, in order, and the stage each one leaves the league in. */
+const OFFSEASON_STOPS: { id: SimActionId; label: string; reaches: League["calendar"]["stage"] }[] =
+  [
+    { id: "league-year", label: "Sim to the new League Year", reaches: "free-agency" },
+    { id: "draft", label: "Sim through the draft", reaches: "after-draft" },
+    { id: "camp", label: "Sim to training camp", reaches: "preseason" },
+  ];
+const STAGE_ORDER: League["calendar"]["stage"][] = [
+  "offseason",
+  "free-agency",
+  "after-draft",
+  "preseason",
+  "cutdown",
+  "regular",
+];
+
 export function availableActions(league: League): SimAction[] {
   const { stage, week } = league.calendar;
   const deadline = league.rules.schedule.tradeDeadlineAfterWeek;
+  const start = { id: "start-season" as const, label: `Sim to the ${league.season} season opener` };
   switch (stage) {
     case "offseason":
+    case "free-agency":
+    case "after-draft": {
+      const here = STAGE_ORDER.indexOf(stage);
+      return [
+        ...OFFSEASON_STOPS.filter((s) => STAGE_ORDER.indexOf(s.reaches) > here),
+        { id: "cutdown", label: "Sim through final cuts" },
+        start,
+      ];
+    }
     case "preseason":
-      return [{ id: "start-season", label: `Start the ${league.season} season` }];
+      return [
+        ...(league.settings.preseasonGames
+          ? [{ id: "preseason-week" as const, label: `Sim preseason week ${week}` }]
+          : []),
+        { id: "cutdown", label: "Sim through final cuts" },
+        start,
+      ];
+    case "cutdown":
+      return [{ id: "cutdown", label: "Make final cuts" }, start];
     case "regular":
       return [
         { id: "week", label: `Sim week ${week}` },
@@ -44,7 +89,7 @@ export function availableActions(league: League): SimAction[] {
           : []),
       ];
     case "complete":
-      return [{ id: "next-season", label: `Start the ${league.season + 1} league year` }];
+      return [{ id: "next-season", label: `Start the ${league.season + 1} offseason` }];
   }
 }
 
@@ -52,10 +97,24 @@ export function availableActions(league: League): SimAction[] {
 export function runAction(league: League, id: SimActionId, hooks: SimHooks = {}): void {
   const deadline = league.rules.schedule.tradeDeadlineAfterWeek;
   const step = () => hooks.onStep?.(advance(league, hooks));
+  const until = (stage: League["calendar"]["stage"]) =>
+    advanceUntil(
+      league,
+      (l) => STAGE_ORDER.indexOf(l.calendar.stage) >= STAGE_ORDER.indexOf(stage),
+      hooks,
+    );
   switch (id) {
+    case "league-year":
+      return until("free-agency");
+    case "draft":
+      return until("after-draft");
+    case "camp":
+      return until("preseason");
+    case "cutdown":
     case "start-season":
-      advanceUntil(league, (l) => l.calendar.stage === "regular", hooks);
-      return;
+      // Final cuts leave the league at Week 1, ready to play.
+      return until("regular");
+    case "preseason-week":
     case "week":
     case "round":
     case "next-season":

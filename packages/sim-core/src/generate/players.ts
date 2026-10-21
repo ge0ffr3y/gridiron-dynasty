@@ -36,6 +36,7 @@ import {
   type Tier,
 } from "./config";
 import type { NamePicker } from "./people";
+import { NEW_PLAYER_ROSTER } from "../roster/defaults";
 import { bounded, randomShares, score } from "./util";
 
 /** Which depth tier the n-th player (0-based) at a position falls in. */
@@ -197,6 +198,7 @@ export function generatePlayer(
     contract: null,
     stats: [],
     injury: null,
+    ...NEW_PLAYER_ROSTER,
   };
 }
 

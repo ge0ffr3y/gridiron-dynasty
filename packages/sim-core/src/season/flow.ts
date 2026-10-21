@@ -1,7 +1,8 @@
 /**
- * Moving through the season, one step at a time:
- * offseason -> preseason -> Weeks 1-18 -> wild card -> divisional ->
- * conference -> championship -> season complete -> next league year.
+ * Moving through the League Year, one dated event at a time (Phase 8):
+ * offseason -> new League Year (March: contracts expire, free agency) -> draft
+ * -> training camp -> preseason weeks -> final cuts -> Weeks 1-18 -> wild card
+ * -> divisional -> conference -> championship -> season complete -> next year.
  */
 import { STARTERS } from "../generate/config";
 import { addDays, POSITIONS, overallAt, Rng, RngStreams, streamSeed } from "@fgm/foundation";
@@ -25,6 +26,17 @@ import { gameDepthChart } from "./depthChart";
 import { applyInjuries } from "./injuries";
 import { conditionsFor, drawWeather } from "./weather";
 import { closeLeagueYear, openLeagueYear } from "../contracts/upkeep";
+import { batch } from "../contracts/operations";
+import { runDraft } from "../roster/draft";
+import { gradePreseason, playPreseasonWeek, schedulePreseason } from "../roster/preseason";
+import {
+  countReserveGames,
+  cutdownDay,
+  retirePlayers,
+  seasonEnds,
+  trainingCampOpens,
+  weeklyRosterUpkeep,
+} from "../roster/upkeep";
 import { rulesFor } from "../rules";
 import { generateDraftPicks } from "../generate/players";
 import { seasonDates } from "./calendar";
@@ -106,6 +118,8 @@ export function scheduleSeason(league: League, finish: Map<string, number>): voi
 export interface SimHooks {
   onStep?: (label: string) => void;
   onGame?: (game: Game, output: GameOutput) => void;
+  /** The placeholder season a new fictional league plays before it has contracts: no roster moves. */
+  historyOnly?: boolean;
 }
 
 /** Each game's own random seed: games don't depend on the order they're played in. */
@@ -141,8 +155,11 @@ function recordStats(
 function playGames(league: League, games: Game[], hooks: SimHooks): void {
   // Depth charts are set before the week's games, so this week's injuries count from next week.
   const playing = new Set(games.flatMap((g) => [g.homeId, g.awayId]));
+  // Practice-squad players elevated for the game (decided before the week).
   const depth = new Map(
-    league.teams.filter((t) => playing.has(t.id)).map((t) => [t.id, gameDepthChart(league, t.id)]),
+    league.teams
+      .filter((t) => playing.has(t.id))
+      .map((t) => [t.id, gameDepthChart(league, t.id, t.elevated)]),
   );
   const players = new Map(league.players.map((p) => [p.id, p]));
   for (const g of games) {
@@ -170,6 +187,9 @@ function playGames(league: League, games: Game[], hooks: SimHooks): void {
     // Season totals are regular-season stats, as in real record books; playoff box scores stay on the games.
     if (g.round === "regular") recordStats(league, g, output.box, players);
     applyInjuries(league, g, output.injuries, players);
+    if (!hooks.historyOnly) countReserveGames(league, [g.homeId, g.awayId]);
+    // Elevated players go back to the practice squad after the game.
+    for (const t of league.teams) if (t.id === g.homeId || t.id === g.awayId) t.elevated = [];
     hooks.onGame?.(g, output);
   }
 }
@@ -229,14 +249,46 @@ export function advance(league: League, hooks: SimHooks = {}): string {
   const dates = seasonDates(league.rules, league.season);
   switch (cal.stage) {
     case "offseason":
+      // The new League Year: last season's deals run out, re-signings, free agency, the cap.
+      league.date = dates.leagueYear;
+      batch(league, () => openLeagueYear(league));
+      cal.stage = "free-agency";
+      return "The new League Year opens: free agency";
+    case "free-agency": {
+      league.date = dates.draft;
+      const { drafted, undrafted } = batch(league, () => runDraft(league));
+      cal.stage = "after-draft";
+      return `Draft: ${drafted} picks, ${undrafted} undrafted signings`;
+    }
+    case "after-draft":
+      league.date = dates.trainingCamp;
+      batch(league, () => trainingCampOpens(league));
+      if (league.settings.preseasonGames) schedulePreseason(league);
+      else league.preseasonGames = [];
       cal.stage = "preseason";
-      league.date = dates.preseasonStart;
-      return "Preseason begins";
-    case "preseason":
-      cal.stage = "regular";
       cal.week = 1;
-      league.date = dates.kickoff;
-      return "The regular season begins";
+      return "Training camp opens";
+    case "preseason": {
+      const weeks = dates.preseasonSaturdays.length;
+      if (!league.settings.preseasonGames) {
+        league.date = dates.preseasonSaturdays[weeks - 1]!;
+        cal.stage = "cutdown";
+        return "Training camp (no preseason games)";
+      }
+      const week = cal.week;
+      league.date = dates.preseasonSaturdays[week - 1]!;
+      batch(league, () => playPreseasonWeek(league, week, hooks));
+      if (week >= weeks) {
+        batch(league, () => gradePreseason(league));
+        cal.stage = "cutdown";
+      } else cal.week = week + 1;
+      return `Preseason week ${week} played`;
+    }
+    case "cutdown":
+      cutdownDay(league);
+      // Week 1's roster moves (injured reserve, elevations) are made now too.
+      weeklyRosterUpkeep(league);
+      return "Final cuts to 53; practice squads formed";
     case "regular": {
       const week = cal.week;
       playGames(
@@ -250,6 +302,9 @@ export function advance(league: League, hooks: SimHooks = {}): string {
         cal.stage = "wildcard";
         addPlayoffRound(league, "wildcard");
       } else cal.week = week + 1;
+      // Next week's roster moves happen now, so every game next week sees the same rosters
+      // whether it's simmed with the week or played early.
+      if (!hooks.historyOnly) weeklyRosterUpkeep(league);
       return `Week ${week} played`;
     }
     case "wildcard":
@@ -267,15 +322,20 @@ export function advance(league: League, hooks: SimHooks = {}): string {
       if (next) {
         cal.stage = next;
         addPlayoffRound(league, next);
+        if (!hooks.historyOnly) weeklyRosterUpkeep(league);
       } else {
         cal.stage = "complete";
         completeSeason(league);
       }
       return `${round === "championship" ? "Championship" : round[0]!.toUpperCase() + round.slice(1) + " round"} played`;
     }
-    case "complete":
+    case "complete": {
+      const ended = league.season;
+      seasonEnds(league);
       startNextSeason(league, { agePlayers: true });
-      return `The ${league.season} league year begins`;
+      retirePlayers(league, ended);
+      return `The ${league.season} offseason begins`;
+    }
   }
 }
 
@@ -295,7 +355,7 @@ export function advanceUntil(
 export function playoffExits(league: League): Map<string, PlayoffExit> {
   const exits = new Map<string, PlayoffExit>(league.teams.map((t) => [t.id, "missed"]));
   for (const g of league.games) {
-    if (g.round === "regular" || !g.result) continue;
+    if (g.round === "regular" || g.round === "preseason" || !g.result) continue;
     const loser = loserOf(g) as string;
     if (g.round === "championship") {
       exits.set(loser, "runner-up");
@@ -397,11 +457,8 @@ export function startNextSeason(league: League, options: { agePlayers: boolean }
   }
 
   scheduleSeason(league, new Map(last.standings.map((s) => [s.teamId, s.divisionRank])));
-  // Contracts that ran out, fifth-year options, and getting every team under the new cap.
-  openLeagueYear(league);
+  league.preseasonGames = [];
+  // Contracts that ran out, fifth-year options and re-signings wait for the new League Year in March.
 }
 
-/** Stages that count as "the season is under way". */
-export function isPlaying(stage: CalendarStage): boolean {
-  return stage !== "offseason" && stage !== "preseason" && stage !== "complete";
-}
+export { isPlaying } from "./calendar";

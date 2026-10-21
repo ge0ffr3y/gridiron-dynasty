@@ -459,6 +459,7 @@ export function resolvePass(ctx: ScrimmageContext, opts: PassOptions): Scrimmage
     const blocker = protectors[i];
     return {
       rusher,
+      blocker,
       edge: blocker ? rusher.ratings.passRush - blocker.ratings.passBlocking : T.pass.unblockedEdge,
     };
   });
@@ -479,9 +480,10 @@ export function resolvePass(ctx: ScrimmageContext, opts: PassOptions): Scrimmage
           T.baseline.pressureLogit,
       );
   const underPressure = rng.chance(pressureChance);
-  const pressurer = underPressure
-    ? weightedPick(rng, edges, (e) => Math.max(1, e.edge + 30)).rusher
-    : undefined;
+  const won = underPressure ? weightedPick(rng, edges, (e) => Math.max(1, e.edge + 30)) : undefined;
+  const pressurer = won?.rusher;
+  // Who lost the rep (recorded only: it draws nothing, so games play out the same).
+  const beaten = won?.blocker ? { beaten: won.blocker.id } : {};
   const timeToThrow =
     Math.round(
       fromQuantiles(
@@ -492,7 +494,7 @@ export function resolvePass(ctx: ScrimmageContext, opts: PassOptions): Scrimmage
         rng.next(),
       ) * 10,
     ) / 10;
-  const pressureInfo = underPressure && pressurer ? { pressure: pressurer.id } : {};
+  const pressureInfo = underPressure && pressurer ? { pressure: pressurer.id, ...beaten } : {};
 
   // 2. Sack or scramble?
   if (underPressure && pressurer) {
@@ -509,6 +511,7 @@ export function resolvePass(ctx: ScrimmageContext, opts: PassOptions): Scrimmage
         kind: "sack" as const,
         passer: qb.id,
         defender: pressurer.id,
+        ...beaten,
         ...scheme,
         ...note,
       };

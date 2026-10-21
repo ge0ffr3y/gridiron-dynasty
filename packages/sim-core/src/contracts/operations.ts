@@ -13,9 +13,13 @@
  *   of the contract.
  * - A restructure turns salary into a bonus spread over this and later years
  *   (at most five, void years included).
+ * - Salary is paid in weekly installments over the regular season (Article 13,
+ *   Section 6(b)(ii)): what's been paid by a release or trade stays on the
+ *   team's cap, and the new team (in a trade or waiver claim) takes the rest.
  */
 import type { Dollars } from "@fgm/foundation";
 import type { Bonus, Contract, ContractYear, League, Player } from "../league/schema";
+import { seasonDates } from "../season/calendar";
 import { minimumSalary } from "./cap";
 import {
   capHit,
@@ -39,11 +43,88 @@ function findPlayer(league: League, playerId: number): Player & { contract: Cont
   return p as Player & { contract: Contract };
 }
 
+/**
+ * Called after every recorded transaction when set (tests use it to check the league stays
+ * legal after every move; see roster/legality.ts).
+ */
+let audit: ((league: League) => void) | null = null;
+export function setTransactionAudit(check: ((league: League) => void) | null): void {
+  audit = check;
+}
+
+/**
+ * Moves that happen together (a team's cuts, a claim and the cut that makes room for it,
+ * cutdown day across the league): the audit runs once when the batch ends, not in between.
+ */
+let batchDepth = 0;
+export function batch<T>(league: League, moves: () => T): T {
+  batchDepth += 1;
+  try {
+    return moves();
+  } finally {
+    batchDepth -= 1;
+    if (batchDepth === 0) audit?.(league);
+  }
+}
+
 export function recordTransaction(
   league: League,
   entry: Omit<League["transactions"][number], "id" | "date">,
 ): void {
   league.transactions.push({ id: league.nextIds.transaction++, date: league.date, ...entry });
+  if (batchDepth === 0) audit?.(league);
+}
+
+/**
+ * This League Year's regular-season paydays for a contract: how many weekly installments it
+ * pays (fewer if signed after Week 1 began) and how many are already paid as of today.
+ */
+export function paydays(league: League, c: Contract): { weeks: number; paid: number } {
+  const sundays = seasonDates(league.rules, league.season).weekSundays;
+  const after = sundays.filter((d) => d > c.signedOn);
+  return { weeks: after.length, paid: after.filter((d) => d <= league.date).length };
+}
+
+/**
+ * What this League Year's contract has already paid once the season is under way: salary
+ * (and per-game bonuses) in weekly installments, plus the roster and workout bonuses, which
+ * are paid before the season. Nothing counts as paid before the first payday.
+ */
+export function earnedSoFar(
+  league: League,
+  c: Contract,
+): { salary: Dollars; perGame: Dollars; bonuses: Dollars; total: Dollars } {
+  const y = yearOf(c, league.season);
+  const { weeks, paid } = paydays(league, c);
+  if (!y || y.void || weeks === 0 || paid === 0)
+    return { salary: 0, perGame: 0, bonuses: 0, total: 0 };
+  const salary = Math.round((y.base * paid) / weeks);
+  const perGame = Math.round((y.perGameBonus * paid) / weeks);
+  const bonuses = y.rosterBonus + y.workoutBonus;
+  return { salary, perGame, bonuses, total: salary + perGame + bonuses };
+}
+
+/** The rest of the contract after this year's paid part (for a trade or waiver claim). */
+function unpaidPart(league: League, c: Contract): Contract {
+  const earned = earnedSoFar(league, c);
+  if (earned.total === 0) return c;
+  return {
+    ...c,
+    // Paydays count from here on, so the paid part isn't counted twice later.
+    signedOn: league.date,
+    years: c.years.map((y) =>
+      y.season === league.season
+        ? {
+            ...y,
+            base: y.base - earned.salary,
+            guaranteed: Math.max(0, y.guaranteed - earned.salary),
+            perGameBonus: y.perGameBonus - earned.perGame,
+            rosterBonus: 0,
+            workoutBonus: 0,
+          }
+        : y,
+    ),
+  };
 }
 
 function addDeadMoney(
@@ -90,12 +171,19 @@ export function previewRelease(
   const p = findPlayer(league, playerId);
   const season = league.season;
   const afterJuneFirst = league.date > juneFirst(season) || !!options.juneFirstDesignation;
-  const guarantees = remainingGuarantees(p.contract, season, league.date);
+  // Salary already paid stays on the cap; guarantees still owed are what's left of them.
+  const earned = earnedSoFar(league, p.contract);
+  const thisYear = yearOf(p.contract, season);
+  const guarantees =
+    remainingGuarantees(p.contract, season, league.date) -
+    Math.min(thisYear?.guaranteed ?? 0, earned.salary);
   const capHitNow = capHit(p.contract, season, league.rules.cap);
   const deadThisYear =
     (afterJuneFirst
       ? remainingProration(p.contract, season) - remainingProration(p.contract, season + 1)
-      : remainingProration(p.contract, season)) + guarantees;
+      : remainingProration(p.contract, season)) +
+    guarantees +
+    earned.total;
   const deadNextYear = afterJuneFirst ? remainingProration(p.contract, season + 1) : 0;
   return {
     afterJuneFirst,
@@ -142,6 +230,9 @@ export function releasePlayer(
   );
   p.teamId = null;
   (p as Player).contract = null;
+  // A free agent belongs to no list: whoever signs him next decides where he goes.
+  p.roster = "active";
+  p.reserve = null;
   recordTransaction(league, {
     type: "released",
     teamIds: [teamId],
@@ -164,9 +255,12 @@ export interface TradeEffects {
   newTeamCapHit: Dollars;
 }
 
-/** The contract the new team takes over: same years, no bonus money (Article 13, Section 6(b)(ii)(3)). */
-function contractAfterTrade(c: Contract, toTeamId: string): Contract {
-  return { ...c, teamId: toTeamId, bonuses: [] };
+/**
+ * The contract the new team takes over: same years, no bonus money (Article 13, Section
+ * 6(b)(ii)(3)), and in the season only what hasn't been paid yet.
+ */
+export function contractAfterTrade(league: League, c: Contract, toTeamId: string): Contract {
+  return { ...unpaidPart(league, c), teamId: toTeamId, bonuses: [] };
 }
 
 export function previewTrade(league: League, playerId: number, toTeamId: string): TradeEffects {
@@ -174,15 +268,21 @@ export function previewTrade(league: League, playerId: number, toTeamId: string)
   const season = league.season;
   const afterJuneFirst = league.date > juneFirst(season);
   const capHitNow = capHit(p.contract, season, league.rules.cap);
-  const deadThisYear = afterJuneFirst
-    ? remainingProration(p.contract, season) - remainingProration(p.contract, season + 1)
-    : remainingProration(p.contract, season);
+  // The old team keeps what it already paid him this season.
+  const deadThisYear =
+    (afterJuneFirst
+      ? remainingProration(p.contract, season) - remainingProration(p.contract, season + 1)
+      : remainingProration(p.contract, season)) + earnedSoFar(league, p.contract).total;
   const deadNextYear = afterJuneFirst ? remainingProration(p.contract, season + 1) : 0;
   return {
     deadThisYear,
     deadNextYear,
     savingsThisYear: capHitNow - deadThisYear,
-    newTeamCapHit: capHit(contractAfterTrade(p.contract, toTeamId), season, league.rules.cap),
+    newTeamCapHit: capHit(
+      contractAfterTrade(league, p.contract, toTeamId),
+      season,
+      league.rules.cap,
+    ),
   };
 }
 
@@ -192,18 +292,20 @@ export function tradePlayer(
   playerId: number,
   toTeamId: string,
   reason: string,
+  options: { claim?: boolean; record?: boolean } = {},
 ): TradeEffects {
   const p = findPlayer(league, playerId);
   const fromTeamId = p.teamId!;
   if (fromTeamId === toTeamId) throw new Error("he's already on that team");
   const effects = previewTrade(league, playerId, toTeamId);
+  const how = options.claim ? "Claimed off waivers:" : "Traded";
   addDeadMoney(
     league,
     fromTeamId,
     league.season,
     playerId,
     effects.deadThisYear,
-    `Traded ${name(p)}`,
+    `${how} ${name(p)}`,
   );
   addDeadMoney(
     league,
@@ -211,15 +313,18 @@ export function tradePlayer(
     league.season + 1,
     playerId,
     effects.deadNextYear,
-    `Traded ${name(p)} (after June 1)`,
+    `${how} ${name(p)} (after June 1)`,
   );
-  p.contract = contractAfterTrade(p.contract, toTeamId);
+  p.contract = contractAfterTrade(league, p.contract, toTeamId);
   p.teamId = toTeamId;
+  if (options.record === false) return effects;
   recordTransaction(league, {
-    type: "traded",
+    type: options.claim ? "claimed" : "traded",
     teamIds: [fromTeamId, toTeamId],
     playerIds: [playerId],
-    text: `${fromTeamId} traded ${name(p)} to ${toTeamId}: ${money(effects.deadThisYear)} dead money for ${fromTeamId}, ${money(effects.newTeamCapHit)} on ${toTeamId}'s cap.`,
+    text: options.claim
+      ? `${toTeamId} claimed ${name(p)} off waivers from ${fromTeamId}: ${money(effects.newTeamCapHit)} on ${toTeamId}'s cap, ${money(effects.deadThisYear)} dead money for ${fromTeamId}.`
+      : `${fromTeamId} traded ${name(p)} to ${toTeamId}: ${money(effects.deadThisYear)} dead money for ${fromTeamId}, ${money(effects.newTeamCapHit)} on ${toTeamId}'s cap.`,
     reason,
   });
   return effects;

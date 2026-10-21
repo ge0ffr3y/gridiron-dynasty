@@ -60,12 +60,46 @@
     ]
   },
   "roster": {
-    "source": "2025 season roster rules as reported by NBC Sports (Aug 2025): 90 in the offseason, 53 from cutdown day on, 48 active on game day, practice squad of 16 plus one International Player Pathway slot. Enforced from Phase 8; re-check against the CBA then.",
+    "source": "2020 CBA Article 33 (practice squad eligibility, Section 4; weekly salaries, Section 3) and the league's 2025-26 roster rules as reported by team sites and NFL.com: 90 in the offseason, 53 from the final cutdown, 48 active on game day (47 with fewer than eight offensive linemen), a 16-player practice squad plus one International Player Pathway exemption with up to six players of any experience (2022 on), two game-day elevations per game and three per player per season, four protected practice-squad players a week. Injured reserve: at least four games out, eight designated returns a season (two more in the playoffs), up to two designated at the final cutdown. Reserve/PUP and Reserve/NFI: out at least four games (2024 on). Waivers: players with fewer than four accrued seasons (vested veterans) go on waivers until the trade deadline, everyone after it; claim order follows last season's draft order through Week 3, then current standings (NFL.com 2026-27 calendar).",
     "offseasonMax": 90,
     "regularSeasonMax": 53,
     "gameDayActives": 48,
-    "practiceSquadMax": 16,
-    "practiceSquadInternationalExemption": 1
+    "gameDayActivesFewOffensiveLinemen": 47,
+    "gameDayMinOffensiveLinemen": 8,
+    "practiceSquad": {
+      "max": 16,
+      "internationalExemption": 1,
+      "veteransMax": 6,
+      "restrictedMaxAccruedSeasons": 2,
+      "elevationsPerGame": 2,
+      "elevationsPerPlayerPerSeason": 3,
+      "protectedPerWeek": 4,
+      "weeklySalary": {
+        "2020": [8400, 12000, 12000],
+        "2021": [9200, 14000, 14000],
+        "2022": [11500, 15400, 19900],
+        "2023": [12000, 16100, 20600],
+        "2024": [12500, 16800, 21300],
+        "2025": [13000, 17500, 22000],
+        "2026": [13750, 18350, 22850],
+        "2027": [14500, 19200, 23700],
+        "2028": [15250, 20050, 24550],
+        "2029": [16000, 20900, 25400],
+        "2030": [16750, 21750, 26250]
+      },
+      "weeklySalaryNote": "[players with two or fewer accrued seasons, veteran minimum, veteran maximum] per week (CBA Art. 33 Sec. 3). After 2030 the last step's growth continues."
+    },
+    "reserve": {
+      "injuredMinGames": 4,
+      "returnsPerSeason": 8,
+      "returnsPlayoffExtra": 2,
+      "returnsAtCutdown": 2,
+      "pupMinGames": 4
+    },
+    "waivers": {
+      "vestedVeteranSeasons": 4,
+      "draftOrderThroughWeek": 3
+    }
   },
   "draft": {
     "source": "Seven rounds; teams hold their picks for the current draft and the next two. Verify trading-window rules in Phase 8.",
@@ -73,11 +107,27 @@
     "seasonsOfPicksHeld": 3
   },
   "calendar": {
-    "source": "Week 1 of the 2026 season starts Thursday Sept 10 (the league opened Wed Sept 9); other seasons start the Thursday after Labor Day. Playoff rounds are a week apart with an open week before the championship, which puts the 2025 championship on Feb 8, 2026, as in reality. Preseason dates are stubs.",
+    "source": "NFL.com 2026 and 2026-27 important dates: tag window Feb 17 to Mar 3, combine Feb 23 to Mar 2, negotiating period from Mar 9, League Year and free agency Mar 11 (4 p.m.), draft Apr 23-25, fifth-year option deadline May 1, preseason weekends Aug 13-15, 20-23 and 27-29, final cutdown to 53 on Sunday Aug 30 (new in 2026: the Sunday after the last preseason game), waiver claims and practice squads Aug 31, Week 1 from Sept 9-10, trade deadline Nov 10 (the Tuesday after Week 9), Week 18 Jan 9-10, championship Feb 14, 2027. Later seasons follow the same rules (2027: draft Apr 29). Training camp opening is approximate (veterans report in late July).",
     "kickoffThursday": "2026-09-10",
-    "preseasonStartDaysBeforeKickoff": 35,
     "playoffRoundGapDays": 7,
-    "championshipGapDays": 14
+    "championshipGapDays": 14,
+    "tagWindow": {
+      "opens": "02-17",
+      "closes": "03-03"
+    },
+    "combineDaysAfterChampionship": 15,
+    "negotiatingPeriodOpens": "03-09",
+    "leagueYearOpens": "03-11",
+    "draftDates": {
+      "2026": "2026-04-23",
+      "2027": "2027-04-29"
+    },
+    "fifthYearOptionDeadline": "05-01",
+    "trainingCampDaysBeforeFirstPreseasonSaturday": 24,
+    "preseasonWeeks": 3,
+    "lastPreseasonSaturdayDaysBeforeKickoff": 12,
+    "cutdownDaysAfterLastPreseasonSaturday": 1,
+    "tradeDeadlineDaysAfterWeekSunday": 2
   },
   "schedule": {
     "source": "NFL scheduling formula (operations.nfl.com, 2021 17-game announcement). Rotation tables: index 0 is the 2026 season, read from NFL.com's 2026 opponent lists; the other years follow the 3-year (same conference) and 4-year (other conference) cycles. Each other-conference pair is [Conference A division, Conference B division]. The 17th game pairs same-place finishers using the other-conference pairing from two seasons earlier; Conference B hosts it in even years (NFC hosts in 2026). Byes in Weeks 5-14 with at most 6 teams off per week (2025 schedule); Week 18 all division games; trade deadline after Week 9 (2025 deadline Nov 4).",

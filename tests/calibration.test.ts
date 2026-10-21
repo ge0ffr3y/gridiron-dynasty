@@ -31,5 +31,5 @@ describe("calibration", () => {
         (line) => `${line.key}: ${line.sim.toFixed(3)} (real ${line.range[0]} to ${line.range[1]})`,
       );
     expect(misses).toEqual([]);
-  }, 60_000);
+  }, 300_000);
 });

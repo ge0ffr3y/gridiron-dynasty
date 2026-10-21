@@ -28,7 +28,12 @@ export function GamePage({ gameId, watch = false }: { gameId: number; watch?: bo
   if (!view.data) return <Loading />;
   const g = view.data;
   const played = g.homeScore !== null;
-  const when = g.round === "regular" ? `Week ${g.week}` : `${ROUND_LABELS[g.round]} round`;
+  const when =
+    g.round === "regular"
+      ? `Week ${g.week}`
+      : g.round === "preseason"
+        ? `Preseason week ${g.week}`
+        : `${ROUND_LABELS[g.round]} round`;
   const quarterName = (q: number) => (q <= 4 ? `Quarter ${q}` : "Overtime");
   const header = (
     <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">

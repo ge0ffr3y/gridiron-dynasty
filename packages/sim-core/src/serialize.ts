@@ -97,6 +97,26 @@ function upgrade(data: Record<string, unknown>): void {
     data["formatVersion"] = 7;
     data[NEEDS_CONTRACTS] = true;
   }
+  // Version 7 -> 8: the full calendar and roster rules. Everyone on a team is on its active
+  // roster; no preseason games yet; the rules gain the roster and calendar blocks.
+  if (data["formatVersion"] === 7) {
+    for (const p of (data["players"] as Record<string, unknown>[]) ?? [])
+      Object.assign(p, {
+        roster: "active",
+        reserve: null,
+        elevations: 0,
+        retiredAfter: null,
+        preseason: null,
+      });
+    for (const t of (data["teams"] as Record<string, unknown>[]) ?? [])
+      Object.assign(t, { reserveReturns: [], elevated: [] });
+    data["preseasonGames"] = [];
+    data["settings"] = { preseasonGames: true };
+    const fresh = rulesFor(Number(data["season"]));
+    const rules = data["rules"] as Record<string, unknown> | undefined;
+    if (rules) Object.assign(rules, { roster: fresh.roster, calendar: fresh.calendar });
+    data["formatVersion"] = 8;
+  }
 }
 
 /** Set on an upgraded save whose players still need contracts (removed before validation). */

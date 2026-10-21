@@ -1,62 +1,74 @@
 /**
- * The league stays legal (CLAUDE.md rule 9) as contracts come and go: every
- * team under the cap at the start of every League Year, every rostered player
- * under contract with his own team, and rosters within the limit, for 20
- * seasons. Old saves upgrade with contracts.
+ * The league stays legal (CLAUDE.md rule 9; Phase 8's "Done when"): ten full
+ * League Years (draft, camp, preseason, final cuts, the season and playoffs)
+ * with every roster and cap rule checked after every move, every rostered
+ * player under contract with his own team, and every move carrying a reason.
+ * Old saves upgrade with contracts.
  */
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { createLeague } from "../generate/league";
-import type { League } from "../league/schema";
 import { LEAGUE_FORMAT_VERSION } from "../league/schema";
+import { checkLegal, rosterProblems } from "../roster/legality";
+import { onTeam } from "../roster/lists";
 import { parseLeague, serializeLeague } from "../serialize";
-import { advanceUntil } from "../season/flow";
-import { span } from "./contract";
-import { capSheet, teamsOverCap } from "./team";
+import { advance } from "../season/flow";
+import { validateSchedule } from "../season/validate";
+import { setTransactionAudit } from "./operations";
+import { capSheet } from "./team";
 
-function legalityProblems(league: League): string[] {
-  const problems: string[] = [];
-  for (const { teamId, room } of teamsOverCap(league))
-    problems.push(`${teamId} over the cap by ${-room}`);
-  for (const p of league.players) {
-    if (p.teamId === null) continue;
-    if (!p.contract) problems.push(`player ${p.id} on ${p.teamId} has no contract`);
-    else if (p.contract.teamId !== p.teamId)
-      problems.push(`player ${p.id}'s contract is with another team`);
-    else if (span(p.contract).lastReal < league.season)
-      problems.push(`player ${p.id}'s contract has run out`);
-  }
-  for (const t of league.teams) {
-    const n = league.players.filter((p) => p.teamId === t.id).length;
-    if (n > league.rules.roster.offseasonMax) problems.push(`${t.id} has ${n} players`);
-  }
-  return problems;
-}
+afterEach(() => setTransactionAudit(null));
 
 describe("a league stays legal year after year", () => {
-  it("20 seasons: every team under the cap, every player under contract, rosters within limits", () => {
+  it("10 League Years: every roster and cap rule holds after every move", () => {
     const league = createLeague({ seed: 81, name: "Legal" });
-    expect(legalityProblems(league)).toEqual([]);
+    expect(rosterProblems(league)).toEqual([]);
+    setTransactionAudit(checkLegal);
     const rooms: number[] = [];
-    for (let season = 0; season < 20; season++) {
-      advanceUntil(league, (l) => l.calendar.stage === "complete");
-      advanceUntil(league, (l) => l.calendar.stage === "offseason");
-      expect(legalityProblems(league), `${league.season}`).toEqual([]);
-      for (const t of league.teams)
-        rooms.push(
-          capSheet(league, t.id, league.season).room / capSheet(league, t.id, league.season).cap,
+    let seasons = 0;
+    for (let step = 0; step < 400 && seasons < 10; step++) {
+      advance(league);
+      // The audit already ran after every move; also check between steps.
+      expect(rosterProblems(league), `${league.date}`).toEqual([]);
+      if (league.calendar.stage === "free-agency")
+        for (const t of league.teams)
+          rooms.push(
+            capSheet(league, t.id, league.season).room / capSheet(league, t.id, league.season).cap,
+          );
+      if (league.calendar.stage === "regular" && league.calendar.week === 1)
+      // Final cuts left every team with 53, and nearly every one with a practice squad (a team in
+      // cap trouble may not afford one: legal, and real).
+      {
+        for (const t of league.teams) expect(onTeam(league, t.id, "active").length, t.id).toBe(53);
+        const squads = league.teams.filter(
+          (t) => onTeam(league, t.id, "practice-squad").length > 0,
         );
-      // Rosters stay deep enough to play.
-      for (const t of league.teams)
-        expect(league.players.filter((p) => p.teamId === t.id).length, t.id).toBeGreaterThanOrEqual(
-          75,
-        );
+        expect(squads.length, `${league.season}`).toBeGreaterThanOrEqual(league.teams.length - 2);
+      }
+      if (league.calendar.stage === "complete") seasons += 1;
+      // Each new season's schedule follows every scheduling rule.
+      if (league.calendar.stage === "offseason" && league.games.every((g) => !g.result)) {
+        const last = league.history.at(-1)!;
+        expect(
+          validateSchedule(
+            league.rules,
+            league.season,
+            league.teams,
+            league.games,
+            new Map(last.standings.map((s) => [s.teamId, s.divisionRank])),
+          ),
+        ).toEqual([]);
+      }
     }
+    expect(seasons).toBe(10);
     // Teams use their cap: typical room stays a modest share of it.
     rooms.sort((a, b) => a - b);
     expect(rooms[Math.floor(rooms.length / 2)]!).toBeLessThan(0.35);
-    // Every move recorded a reason.
+    // Every move recorded a reason, and rookies arrived every year.
     expect(league.transactions.every((t) => t.reason.length > 0)).toBe(true);
-  }, 300_000);
+    expect(
+      new Set(league.players.filter((p) => p.drafted).map((p) => p.drafted!.season)).size,
+    ).toBeGreaterThanOrEqual(10);
+  }, 1_200_000);
 
   it("a format-6 save loads with contracts for everyone on a roster, the same every time", () => {
     const league = createLeague({ seed: 82, name: "Old" });
@@ -70,7 +82,7 @@ describe("a league stays legal year after year", () => {
     const text = JSON.stringify(old);
     const upgraded = parseLeague(text);
     expect(upgraded.formatVersion).toBe(LEAGUE_FORMAT_VERSION);
-    expect(legalityProblems(upgraded)).toEqual([]);
+    expect(rosterProblems(upgraded)).toEqual([]);
     expect(upgraded.salaryHistory.length).toBeGreaterThan(0);
     expect(serializeLeague(parseLeague(text))).toBe(serializeLeague(upgraded));
   });

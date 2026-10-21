@@ -25,6 +25,8 @@ import {
   advanceUntil,
   createLeague,
   validateSchedule,
+  checkLegal,
+  setTransactionAudit,
   fingerprint,
   playersView,
   serializeLeague,
@@ -131,12 +133,14 @@ function runSeasons(seed: number, count: number): void {
   const started = process.hrtime.bigint();
   const league = createLeague({ seed, name: `League ${seed}` });
   console.log(
-    `\nSeed ${seed}: simulating ${count} season${count === 1 ? "" : "s"} snap by snap. No player development or roster moves yet, so the same teams stay strong.\n`,
+    `\nSeed ${seed}: simulating ${count} full League Year${count === 1 ? "" : "s"} (draft, camp, preseason, cuts, 18 weeks, playoffs) snap by snap, checking every roster rule after every move.\n`,
   );
   console.log(
-    "season  champion  runner-up  score    best record     pts/team/game  home win%  ties  schedule",
+    "season  champion  runner-up  score    best record     pts/team/game  home win%  ties  schedule  drafted  cut  claimed  IR  retired",
   );
   const totals = { points: 0, games: 0, homeWins: 0, ties: 0, problems: 0 };
+  // Every transaction is checked against the roster and cap rules; a break stops the run.
+  setTransactionAudit(checkLegal);
   for (let i = 0; i < count; i++) {
     const last = league.history.at(-1)!;
     const finish = new Map(last.standings.map((s) => [s.teamId, s.divisionRank]));
@@ -148,6 +152,7 @@ function runSeasons(seed: number, count: number): void {
       finish,
     );
     totals.problems += problems.length;
+    const before = league.transactions.length;
     advanceUntil(league, (l) => l.calendar.stage === "complete");
     const h = league.history.at(-1)!;
     const regular = league.games.filter((g) => g.round === "regular" && g.result);
@@ -161,15 +166,18 @@ function runSeasons(seed: number, count: number): void {
     const best = [...h.standings].sort((a, b) => b.wins + b.ties / 2 - (a.wins + a.ties / 2))[0]!;
     const final = h.playoffGames.find((g) => g.round === "championship")!;
     const score = `${Math.max(final.homeScore, final.awayScore)}-${Math.min(final.homeScore, final.awayScore)}`;
+    advance(league); // next offseason (retirements happen here)
+    const moves = league.transactions.slice(before);
+    const count = (type: string) => moves.filter((m) => m.type === type).length;
     console.log(
-      `${h.season}    ${h.championId.padEnd(8)}  ${h.runnerUpId.padEnd(9)}  ${score.padEnd(7)}  ${`${best.teamId} ${best.wins}-${best.losses}-${best.ties}`.padEnd(14)}  ${(points / regular.length / 2).toFixed(1).padStart(13)}  ${((homeWins / regular.length) * 100).toFixed(1).padStart(9)}  ${String(ties).padStart(4)}  ${problems.length === 0 ? "valid" : `${problems.length} problems`}`,
+      `${h.season}    ${h.championId.padEnd(8)}  ${h.runnerUpId.padEnd(9)}  ${score.padEnd(7)}  ${`${best.teamId} ${best.wins}-${best.losses}-${best.ties}`.padEnd(14)}  ${(points / regular.length / 2).toFixed(1).padStart(13)}  ${((homeWins / regular.length) * 100).toFixed(1).padStart(9)}  ${String(ties).padStart(4)}  ${problems.length === 0 ? "valid   " : `${problems.length} problems`}  ${String(count("drafted")).padStart(7)}  ${String(count("released") + count("claimed")).padStart(4)}  ${String(count("claimed")).padStart(7)}  ${String(moves.filter((m) => m.type === "reserve" && m.text.includes("injured reserve")).length).padStart(3)}  ${String(count("retired")).padStart(7)}`,
     );
     if (problems.length > 0) for (const p of problems.slice(0, 5)) console.log(`        ${p}`);
-    advance(league); // next league year
   }
+  setTransactionAudit(null);
   const seconds = Number(process.hrtime.bigint() - started) / 1e9;
   console.log(
-    `\n${count} seasons in ${seconds.toFixed(1)} s (${((seconds / count) * 1000).toFixed(0)} ms per season). ` +
+    `\n${count} seasons in ${seconds.toFixed(1)} s (${((seconds / count) * 1000).toFixed(0)} ms per season), every roster legal after every move. ` +
       `Average ${(totals.points / totals.games / 2).toFixed(1)} points per team per game, home teams won ${((totals.homeWins / totals.games) * 100).toFixed(1)}%, ` +
       `${totals.ties} ties, ${totals.problems} schedule problems.`,
   );

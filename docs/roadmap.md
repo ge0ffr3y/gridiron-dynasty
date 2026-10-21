@@ -340,19 +340,19 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** The complete league year runs with every roster rule enforced, and rosters stay legal through every transaction.
 
 ### Steps
-- [ ] **Full calendar:** new league year, re-signing and tag windows, combine, legal tampering, free agency, draft, undrafted signings, minicamps, training camp, preseason, cutdown, regular season, trade deadline, playoffs; all deadlines live (tag deadline, fifth-year option deadline, June 1…)
-- [ ] **Roster limits** (offseason, regular season, game-day actives) from rules config, with a legality validator after every transaction
-- [ ] **Practice squad:** size, eligibility, veteran exceptions, game-day elevations and their limits, signing players off other teams' practice squads
-- [ ] **Reserve lists:** injured reserve with minimum stay and return designations, preseason injury lists
-- [ ] **Waivers:** claim priority, waiver periods, vested-veteran rules
+- [x] **Full calendar:** new league year, re-signing and tag windows, combine, legal tampering, free agency, draft, undrafted signings, minicamps, training camp, preseason, cutdown, regular season, trade deadline, playoffs; all deadlines live (tag deadline, fifth-year option deadline, June 1…) *(8a: every 2026 date checked against the NFL's calendars; contracts now expire at the March League Year; minicamps are dates only until players' moods arrive in Phase 12)*
+- [x] **Roster limits** (offseason, regular season, game-day actives) from rules config, with a legality validator after every transaction *(8a: 90 / 53 / 48, or 47 with fewer than eight linemen; the check runs after every move in tests and the runner)*
+- [x] **Practice squad:** size, eligibility, veteran exceptions, game-day elevations and their limits, signing players off other teams' practice squads *(8a: 16 + 1 international, six veterans, CBA weekly pay on the cap, two elevations a game and three a season, four protected a week; the three-week pay guarantee for a player signed away isn't modeled yet)*
+- [x] **Reserve lists:** injured reserve with minimum stay and return designations, preseason injury lists *(8a: four-game minimum, eight returns plus two in the playoffs, two named at cuts; PUP for players hurt in camp; NFI waits for non-football injuries in Phase 9)*
+- [x] **Waivers:** claim priority, waiver periods, vested-veteran rules *(8a: last season's draft order through Week 3, then standings; vested veterans skip waivers until the deadline; claims resolve at once instead of over 24 hours)*
 - [ ] **Trades:** players and picks (future picks several years out), cap checks, trade deadline
-- [ ] **Preseason games** (optional per league) and **cutdown day**, with the waiver-claim rush after it
-- [ ] **Simple AI roster upkeep** (fill holes, cut the lowest, sign rookies) so AI teams stay legal until Phase 13
+- [x] **Preseason games** (optional per league) and **cutdown day**, with the waiver-claim rush after it *(8a: starters rest; a showcase grade per player counts at cuts, and standouts with room to grow get a small capped boost)*
+- [x] **Simple AI roster upkeep** (fill holes, cut the lowest, sign rookies) so AI teams stay legal until Phase 13 *(8a: placeholder draft and undrafted rush, weekly IR / returns / 53 / squad, futures deals, placeholder retirement until Phase 9)*
 - [ ] **UI:** transactions log, roster management (cut, IR, practice squad, elevations), basic trade builder with cap impact, calendar view of upcoming deadlines
 
 ### Done when
-- [ ] 10 headless seasons with every roster legal at every check
-- [ ] Cutdown day happens, waiver claims go through in the right order, rookies get signed
+- [x] 10 headless seasons with every roster legal at every check *(8a: a test plays ten full League Years with the check after every move; the runner does it for any number)*
+- [x] Cutdown day happens, waiver claims go through in the right order, rookies get signed *(8a: tests, and seen in the browser: 53 + practice squads after cuts)*
 - [ ] You can make a trade and see both teams' cap impact before confirming
 
 > [!example]- Kickoff prompt

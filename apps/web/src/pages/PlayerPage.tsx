@@ -1,7 +1,15 @@
 import { Link } from "wouter";
 import { ContractPanel } from "@/components/ContractPanel";
 import { StatTables } from "@/components/StatTables";
-import { ErrorNote, Facts, Loading, OverallBadge, RatingBar, TeamChip } from "@/components/shared";
+import {
+  ErrorNote,
+  Facts,
+  listName,
+  Loading,
+  OverallBadge,
+  RatingBar,
+  TeamChip,
+} from "@/components/shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatHeight, formatLeagueDate, ordinal } from "@/lib/format";
 import { useLeagueKey } from "@/lib/session";
@@ -9,6 +17,27 @@ import { useSim } from "@/sim/client";
 import { formatShort } from "@fgm/sim-core";
 
 const GROUP_TITLES = { physical: "Physical", technical: "Technical", mental: "Mental" } as const;
+
+/** The preseason stats worth showing, in plain words. */
+const PRESEASON_STATS: Record<string, string> = {
+  passCmp: "Completions",
+  passAtt: "Pass attempts",
+  passYds: "Passing yards",
+  passTd: "Passing TDs",
+  passInt: "Interceptions thrown",
+  rushAtt: "Carries",
+  rushYds: "Rushing yards",
+  rec: "Catches",
+  recYds: "Receiving yards",
+  tackles: "Tackles",
+  sacks: "Sacks",
+  pressures: "Pressures",
+  pressuresAllowed: "Pressures allowed",
+  defInt: "Interceptions",
+  passDef: "Passes defended",
+  fgm: "Field goals made",
+  punts: "Punts",
+};
 
 export function PlayerPage({ playerId }: { playerId: number }) {
   const view = useSim("playerView", { id: playerId }, useLeagueKey(String(playerId)));
@@ -67,6 +96,12 @@ export function PlayerPage({ playerId }: { playerId: number }) {
                   : "None",
               ],
               [
+                "Roster",
+                p.retiredAfter !== null
+                  ? `Retired after the ${p.retiredAfter} season`
+                  : `${listName(p.list)}${p.reserve ? ` since ${formatLeagueDate(p.reserve.since)}, ${p.reserve.gamesMissed} game${p.reserve.gamesMissed === 1 ? "" : "s"} missed${p.reserve.designatedToReturn ? ", designated to return" : ""}` : ""}${p.list === "practice-squad" ? ` · elevated ${p.elevations} of 3 times this season` : ""}`,
+              ],
+              [
                 "Health",
                 p.injury ? (
                   <span className="text-destructive">
@@ -104,6 +139,33 @@ export function PlayerPage({ playerId }: { playerId: number }) {
           ))}
         </CardContent>
       </Card>
+
+      {p.preseason && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{p.preseason.season} preseason</CardTitle>
+            <CardDescription>
+              Preseason games are a showcase for players fighting for a roster spot (starters rest).
+              The grade compares his production per snap with other preseason players at his
+              position: 50 is typical, and few snaps pull it toward 50.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Facts
+              items={[
+                [
+                  "Showcase grade",
+                  p.preseason.grade === null ? "Not graded yet" : p.preseason.grade,
+                ],
+                ["Snaps", (p.preseason.line.offSnaps ?? 0) + (p.preseason.line.defSnaps ?? 0)],
+                ...(Object.entries(p.preseason.line)
+                  .filter(([k, v]) => PRESEASON_STATS[k] && v)
+                  .map(([k, v]) => [PRESEASON_STATS[k]!, v]) as [string, number][]),
+              ]}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <ContractPanel playerId={playerId} />
 

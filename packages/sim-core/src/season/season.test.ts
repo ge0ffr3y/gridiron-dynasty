@@ -1,9 +1,11 @@
+import { Rng } from "@fgm/foundation";
 import { describe, expect, it } from "vitest";
+import { rulesFor } from "../rules";
 import { createLeague } from "../generate/league";
-import type { League } from "../league/schema";
+import { CALENDAR_STAGES, type League } from "../league/schema";
 import { parseLeague, serializeLeague } from "../serialize";
 import { seasonDates, thursdayAfterLaborDay } from "./calendar";
-import { advance, advanceUntil, currentStandings, playoffExits } from "./flow";
+import { advance, advanceUntil, currentStandings, playoffExits, scheduleSeason } from "./flow";
 import { pctOf } from "./standings";
 import { seasonPairings } from "./schedule";
 import { RULES } from "./testHelpers";
@@ -46,9 +48,12 @@ describe("schedule", () => {
     expect(p.seventeenthHost).toBe("B");
   });
 
-  it("passes the validator for 20 straight seasons, from two different seeds", () => {
+  it("builds valid schedules for 20 straight seasons, from two different seeds", () => {
+    // The schedule only depends on the rotation and last season's division finishes, so each
+    // season here gets seeded finishes instead of being played (the legality test plays ten).
     for (const seed of [7, 2026]) {
       const league = createLeague({ seed, name: "Validator" });
+      const rng = new Rng(seed);
       for (let i = 0; i < 20; i++) {
         expect(
           validateSchedule(
@@ -59,12 +64,23 @@ describe("schedule", () => {
             finishes(league),
           ),
         ).toEqual([]);
-        advanceUntil(league, (l) => l.calendar.stage === "complete");
-        advance(league); // next league year
+        const finish = new Map<string, number>();
+        for (const c of league.rules.structure.conferences)
+          for (const d of c.divisions)
+            rng.shuffle([...d.teams]).forEach((id, n) => finish.set(id, n + 1));
+        league.season += 1;
+        league.rules = rulesFor(league.season);
+        league.history.push({
+          ...league.history.at(-1)!,
+          season: league.season - 1,
+          standings: league.history
+            .at(-1)!
+            .standings.map((s) => ({ ...s, divisionRank: finish.get(s.teamId)! })),
+        });
+        scheduleSeason(league, finish);
       }
     }
-    // 40 full seasons of snap-by-snap games: about a minute here, longer on CI.
-  }, 240_000);
+  });
 
   it("the validator catches a broken schedule", () => {
     const league = createLeague({ seed: 3, name: "Broken" });
@@ -179,17 +195,19 @@ describe("determinism and saving", () => {
       advance(b);
     }
     expect(serializeLeague(a)).toBe(serializeLeague(b));
-  });
+  }, 180_000);
 
   it("save -> load -> save is identical at every stage of a season", () => {
     const league = createLeague({ seed: 9, name: "Stages" });
     const seen = new Set<string>();
-    for (let i = 0; i < 26; i++) {
+    // Through the whole League Year: offseason, free agency, the draft, camp and preseason,
+    // final cuts, the season and playoffs, and the season's end.
+    for (let i = 0; i < 31; i++) {
       const text = serializeLeague(league);
       expect(serializeLeague(parseLeague(text))).toBe(text);
       seen.add(league.calendar.stage);
       advance(league);
     }
-    expect(seen.size).toBe(8);
-  });
+    expect(seen.size).toBe(CALENDAR_STAGES.length);
+  }, 300_000);
 });

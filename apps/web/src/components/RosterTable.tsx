@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatHeight } from "@/lib/format";
-import { InjuryTag, OverallBadge } from "./shared";
+import { InjuryTag, ListTag, OverallBadge } from "./shared";
 
 const POSITION_ORDER = new Map<Position, number>(POSITIONS.map((p, i) => [p, i]));
 
@@ -80,6 +80,7 @@ export function RosterTable({
             <Link href={`/player/${c.row.original.id}`} className="font-medium hover:underline">
               {c.getValue<string>()}
             </Link>
+            <ListTag list={c.row.original.list} />
             <InjuryTag injury={c.row.original.injury} />
           </>
         ),

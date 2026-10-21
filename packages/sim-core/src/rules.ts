@@ -163,8 +163,35 @@ export const RulesSchema = z
       offseasonMax: z.number().int().positive(),
       regularSeasonMax: z.number().int().positive(),
       gameDayActives: z.number().int().positive(),
-      practiceSquadMax: z.number().int().nonnegative(),
-      practiceSquadInternationalExemption: z.number().int().nonnegative(),
+      gameDayActivesFewOffensiveLinemen: z.number().int().positive(),
+      gameDayMinOffensiveLinemen: z.number().int().nonnegative(),
+      practiceSquad: z.object({
+        max: z.number().int().nonnegative(),
+        internationalExemption: z.number().int().nonnegative(),
+        /** Players with any number of accrued seasons. */
+        veteransMax: z.number().int().nonnegative(),
+        /** Everyone else may have at most this many accrued seasons. */
+        restrictedMaxAccruedSeasons: z.number().int().nonnegative(),
+        elevationsPerGame: z.number().int().nonnegative(),
+        elevationsPerPlayerPerSeason: z.number().int().nonnegative(),
+        protectedPerWeek: z.number().int().nonnegative(),
+        /** Season -> [restricted players' weekly pay, veteran minimum, veteran maximum]. */
+        weeklySalary: z.record(z.string(), z.tuple([Dollars, Dollars, Dollars])),
+        weeklySalaryNote: z.string(),
+      }),
+      reserve: z.object({
+        injuredMinGames: z.number().int().positive(),
+        returnsPerSeason: z.number().int().nonnegative(),
+        returnsPlayoffExtra: z.number().int().nonnegative(),
+        returnsAtCutdown: z.number().int().nonnegative(),
+        pupMinGames: z.number().int().positive(),
+      }),
+      waivers: z.object({
+        /** Players with at least this many accrued seasons skip waivers until the trade deadline. */
+        vestedVeteranSeasons: z.number().int().positive(),
+        /** Claim order follows last season's draft order through this week, then current standings. */
+        draftOrderThroughWeek: z.number().int().nonnegative(),
+      }),
     }),
     draft: z.object({
       source: z.string(),
@@ -174,9 +201,24 @@ export const RulesSchema = z
     calendar: z.object({
       source: z.string(),
       kickoffThursday: IsoDate,
-      preseasonStartDaysBeforeKickoff: z.number().int().positive(),
       playoffRoundGapDays: z.number().int().positive(),
       championshipGapDays: z.number().int().positive(),
+      /** Month-day dates ("MM-DD") that repeat every year. */
+      tagWindow: z.object({
+        opens: z.string().regex(/^\d{2}-\d{2}$/),
+        closes: z.string().regex(/^\d{2}-\d{2}$/),
+      }),
+      combineDaysAfterChampionship: z.number().int().nonnegative(),
+      negotiatingPeriodOpens: z.string().regex(/^\d{2}-\d{2}$/),
+      leagueYearOpens: z.string().regex(/^\d{2}-\d{2}$/),
+      /** Known draft dates; other years use the last Thursday of April. */
+      draftDates: z.record(z.string(), IsoDate),
+      fifthYearOptionDeadline: z.string().regex(/^\d{2}-\d{2}$/),
+      trainingCampDaysBeforeFirstPreseasonSaturday: z.number().int().positive(),
+      preseasonWeeks: z.number().int().nonnegative(),
+      lastPreseasonSaturdayDaysBeforeKickoff: z.number().int().positive(),
+      cutdownDaysAfterLastPreseasonSaturday: z.number().int().nonnegative(),
+      tradeDeadlineDaysAfterWeekSunday: z.number().int().nonnegative(),
     }),
     schedule: z.object({
       source: z.string(),

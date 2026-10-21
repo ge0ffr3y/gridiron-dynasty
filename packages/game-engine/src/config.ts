@@ -130,7 +130,10 @@ export const TUNING = {
   baseline: {
     runQuantileShift: -0.006,
     yacQuantileShift: 0.06,
-    completionLogit: 0.05,
+    // Phase 8: 0.05 -> 0.09. Teams now dress 48 from a 53-man roster instead of all 90, so the
+    // receivers and linemen who rotate in are thinner; completion and yards per attempt fell
+    // about 0.006 and 0.15 below the real rates, and this restores them (5 scorecard runs).
+    completionLogit: 0.09,
     sackRateScale: 0.76,
     interceptionRateScale: 1.14,
     /**

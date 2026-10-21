@@ -13,8 +13,7 @@ import { CORE_STATS, measureSeason, scorecard, type MeasuredGame } from "@fgm/ga
 import {
   advanceUntil,
   overallAt,
-  span,
-  teamsOverCap,
+  rosterProblems,
   parseLeague,
   serializeLeague,
   startRealLeague,
@@ -29,19 +28,8 @@ const MADDEN = join(ROOT, "pipeline", "private", "madden", "ratings-2025.csv");
 const ready = existsSync(LEAGUE_FILE) && existsSync(join(CACHE, "players.csv.gz"));
 const CAP_VALIDATION = join(ROOT, "pipeline", "private", "out", "cap-validation.json");
 
-/** Cap and roster legality (CLAUDE.md rule 9). */
-function capProblems(league: League): string[] {
-  const problems = teamsOverCap(league).map((t) => `${t.teamId} over the cap by ${-t.room}`);
-  for (const p of league.players) {
-    if (p.teamId === null) continue;
-    if (!p.contract) problems.push(`player ${p.id} on ${p.teamId} has no contract`);
-    else if (p.contract.teamId !== p.teamId)
-      problems.push(`player ${p.id}'s contract is elsewhere`);
-    else if (span(p.contract).lastReal < league.season)
-      problems.push(`player ${p.id}'s contract has run out`);
-  }
-  return problems;
-}
+/** Cap and roster legality (CLAUDE.md rule 9): every rule, as the sim checks it. */
+const capProblems = (league: League) => rosterProblems(league);
 
 type Row = Record<string, string>;
 const csv = (file: string): Row[] =>
@@ -164,9 +152,9 @@ describe.skipIf(!ready)("the real league build", () => {
     expect(ours).toEqual(real);
   });
 
-  it("seasons with the real rosters keep the core stats inside the real ranges (two leagues averaged)", () => {
+  it("seasons with the real rosters keep the core stats inside the real ranges (four leagues averaged)", () => {
     const seasons: Record<string, number>[] = [];
-    for (const seed of [42, 43]) {
+    for (const seed of [42, 43, 44, 45]) {
       const copy = startRealLeague(league, { name: "Check", seed });
       const games: MeasuredGame[] = [];
       advanceUntil(copy, (l) => l.calendar.stage === "regular");
@@ -183,7 +171,8 @@ describe.skipIf(!ready)("the real league build", () => {
       expect(copy.season).toBe(2027);
       expect(capProblems(copy), `seed ${seed}`).toEqual([]);
     }
-    // One season is noisy (a team's points per game moves about 0.3 by chance), so average two, as CI does.
+    // One season is noisy (a team's points per game moves about 0.3 by chance; the sack rate about
+    // 0.002), so average four.
     const averaged = Object.fromEntries(
       Object.keys(seasons[0]!).map((k) => [
         k,

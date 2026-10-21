@@ -94,8 +94,15 @@ export function defaultSelection(league: League): ScheduleSelection {
   const { stage, week } = league.calendar;
   if (stage === "regular") return { kind: "week", week };
   if (stage === "complete") return { kind: "round", round: "championship" };
-  if (stage === "offseason" || stage === "preseason") return { kind: "week", week: 1 };
-  return { kind: "round", round: stage };
+  if (
+    stage === "wildcard" ||
+    stage === "divisional" ||
+    stage === "conference" ||
+    stage === "championship"
+  )
+    return { kind: "round", round: stage };
+  // Before the season: Week 1.
+  return { kind: "week", week: 1 };
 }
 
 export function scheduleView(league: League, selection?: ScheduleSelection): ScheduleView {
@@ -226,7 +233,13 @@ export interface PlayoffsView {
 export function playoffsView(league: League): PlayoffsView {
   const s = currentStandings(league);
   const stage = league.calendar.stage;
-  const seedsFinal = stage !== "regular" && stage !== "offseason" && stage !== "preseason";
+  // Seeds are settled once the regular season is over (the playoffs, or the season complete).
+  const seedsFinal =
+    stage === "wildcard" ||
+    stage === "divisional" ||
+    stage === "conference" ||
+    stage === "championship" ||
+    stage === "complete";
   const record = (id: string) => formatWLT(s.table.record(id));
   const final = league.games.find((g) => g.round === "championship" && g.result);
   const winner = final

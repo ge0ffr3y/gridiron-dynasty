@@ -6,7 +6,8 @@
 import { capHit, span, totalValue } from "./contracts/contract";
 import { ageOn } from "@fgm/foundation";
 import { STARTERS } from "./generate/config";
-import type { Coach, CoachRole, League, Player, Team } from "./league/schema";
+import { stageLabel } from "./season/calendar";
+import type { Coach, CoachRole, League, Player, RosterList, Team } from "./league/schema";
 import { perceivePlayer, type Viewer } from "./perception";
 import {
   ATTRIBUTES,
@@ -45,6 +46,8 @@ export interface RosterRow {
   teamAbbreviation: string | null;
   /** Out injured: how many more of his team's games he'll miss. */
   injury: { description: string; gamesRemaining: number } | null;
+  /** Where he's listed on his team (null for free agents). */
+  list: RosterList | null;
 }
 
 export interface StaffRow {
@@ -62,6 +65,8 @@ export interface LeagueSummary {
   kind: "fictional" | "real";
   date: string;
   season: number;
+  /** Where the League Year stands, in words ("Free agency", "Week 3"). */
+  stage: string;
   counts: { teams: number; players: number; coaches: number; draftPicks: number };
   conferences: {
     id: string;
@@ -133,6 +138,14 @@ export interface PlayerView {
     averagePerYear: number;
   } | null;
   injury: { description: string; gamesRemaining: number; since: string } | null;
+  /** Where he's listed with his team (null for free agents), and since when on a reserve list. */
+  list: RosterList | null;
+  reserve: { since: string; gamesMissed: number; designatedToReturn: boolean } | null;
+  /** Game-day elevations from the practice squad this season. */
+  elevations: number;
+  retiredAfter: number | null;
+  /** This year's preseason: his stat line and showcase grade (50 = typical). */
+  preseason: { season: number; line: StatLine; grade: number | null } | null;
   /** Season-by-season stats (one row per team played for), newest first, plus career totals. */
   stats: { season: number; team: string; line: StatLine }[];
   career: StatLine;
@@ -206,11 +219,14 @@ function rosterRow(league: League, player: Player, viewer: Viewer): RosterRow {
     injury: player.injury
       ? { description: player.injury.description, gamesRemaining: player.injury.gamesRemaining }
       : null,
+    list: player.teamId ? player.roster : null,
   };
 }
 
 /** Average overall of a team's starters (by the viewer's perception), one decimal. */
-function starterOverall(rows: RosterRow[]): number {
+function starterOverall(all: RosterRow[]): number {
+  // Starters come from the active roster (not the practice squad or reserve lists).
+  const rows = all.filter((r) => r.list === "active" || r.list === null);
   let sum = 0;
   let count = 0;
   for (const position of POSITIONS) {
@@ -237,6 +253,7 @@ export function leagueSummary(league: League, viewer: Viewer): LeagueSummary {
     kind: league.meta.kind,
     date: league.date,
     season: league.season,
+    stage: stageLabel(league.calendar.stage, league.calendar.week),
     counts: {
       teams: league.teams.length,
       players: league.players.length,
@@ -415,7 +432,9 @@ function teamSeason(league: League, teamId: string): TeamView["season"] {
 }
 
 export function playersView(league: League, viewer: Viewer): RosterRow[] {
-  return league.players.map((p) => rosterRow(league, p, viewer));
+  return league.players
+    .filter((p) => p.retiredAfter === null)
+    .map((p) => rosterRow(league, p, viewer));
 }
 
 export function playerView(league: League, playerId: number, viewer: Viewer): PlayerView {
@@ -471,6 +490,11 @@ export function playerView(league: League, playerId: number, viewer: Viewer): Pl
         }
       : null,
     injury: player.injury,
+    list: player.teamId ? player.roster : null,
+    reserve: player.reserve,
+    elevations: player.elevations,
+    retiredAfter: player.retiredAfter,
+    preseason: player.preseason,
     stats: [...player.stats]
       .sort((a, b) => b.season - a.season)
       .map((s) => ({ season: s.season, team: s.teamId, line: s.line })),

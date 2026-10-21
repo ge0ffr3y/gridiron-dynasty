@@ -16,7 +16,10 @@ export function LeaguePage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={s.name} subtitle={`${s.season} offseason · ${formatLeagueDate(s.date)}`} />
+      <PageHeader
+        title={s.name}
+        subtitle={`${s.season} · ${s.stage} · ${formatLeagueDate(s.date)}`}
+      />
 
       <Card>
         <CardContent>

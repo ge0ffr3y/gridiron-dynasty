@@ -122,8 +122,38 @@ export function resolveDepthChart(team: Team, roster: Player[]): DepthSlots {
   return chart;
 }
 
+/** The players a team can play: its active roster (not the practice squad or reserve lists). */
 export function teamRoster(league: League, teamId: string): Player[] {
-  return league.players.filter((p) => p.teamId === teamId);
+  return league.players.filter((p) => p.teamId === teamId && p.roster === "active");
+}
+
+const OFFENSIVE_LINE = new Set<Position>(["OT", "OG", "C"]);
+
+/**
+ * Game-day actives (rules.roster): 48, or 47 with fewer than eight offensive linemen. When more
+ * healthy players are available, the ones deepest on the chart sit out (the inactives).
+ */
+function gameDayActives(league: League, chart: DepthSlots, healthy: Player[]): Player[] {
+  const r = league.rules.roster;
+  if (healthy.length <= r.gameDayActivesFewOffensiveLinemen) return healthy;
+  // How early each player appears on any spot, relative to that spot's starters.
+  const need = new Map<number, number>();
+  for (const slot of DEPTH_SLOTS) {
+    const starters = Math.max(1, DEPTH_CHART.starters[slot]);
+    chart[slot].forEach((id, i) => need.set(id, Math.min(need.get(id) ?? Infinity, i / starters)));
+  }
+  const order = [...healthy].sort(
+    (a, b) => (need.get(a.id) ?? Infinity) - (need.get(b.id) ?? Infinity) || a.id - b.id,
+  );
+  const line = order.filter((p) => OFFENSIVE_LINE.has(p.position));
+  const limit =
+    line.length >= r.gameDayMinOffensiveLinemen
+      ? r.gameDayActives
+      : r.gameDayActivesFewOffensiveLinemen;
+  // Dress enough linemen first, then the rest in order of need.
+  const dressed = new Set(line.slice(0, r.gameDayMinOffensiveLinemen).map((p) => p.id));
+  for (const p of order) if (dressed.size < limit) dressed.add(p.id);
+  return order.filter((p) => dressed.has(p.id));
 }
 
 /** How injury-prone a player is compared with a typical one (hidden traits). */
@@ -148,19 +178,33 @@ function asLineupPlayer(p: Player, slot: DepthSlot): LineupPlayer {
   };
 }
 
-/** The depth chart a team takes into a game: injured players sit out. */
-export function gameDepthChart(league: League, teamId: string): DepthChart {
+/**
+ * The depth chart a team takes into a game: injured players sit out, practice-squad players
+ * elevated for the game join, and only the game-day actives dress.
+ */
+export function gameDepthChart(
+  league: League,
+  teamId: string,
+  elevated: number[] = [],
+): DepthChart {
   const team = league.teams.find((t) => t.id === teamId);
   if (!team) throw new Error(`no team ${teamId}`);
-  const roster = teamRoster(league, teamId);
+  const extra = league.players.filter((p) => elevated.includes(p.id));
+  const roster = [...teamRoster(league, teamId), ...extra];
   const byId = new Map(roster.map((p) => [p.id, p]));
   const chart = resolveDepthChart(team, roster);
+  const dressed = new Set(
+    gameDayActives(
+      league,
+      chart,
+      roster.filter((p) => p.injury === null),
+    ).map((p) => p.id),
+  );
   const depth = {} as DepthChart;
   for (const slot of DEPTH_SLOTS) {
     depth[slot] = chart[slot]
-      .map((id) => byId.get(id)!)
-      .filter((p) => p.injury === null)
-      .map((p) => asLineupPlayer(p, slot));
+      .filter((id) => dressed.has(id))
+      .map((id) => asLineupPlayer(byId.get(id)!, slot));
   }
   return depth;
 }

@@ -17,7 +17,7 @@ import { overallAt, Rng, streamSeed, type Dollars } from "@fgm/foundation";
 import { POSITIONS } from "@fgm/foundation";
 import type { Contract, League, Player } from "../league/schema";
 import { ROSTER_MIX, STARTERS } from "../generate/config";
-import { minimumSalary, salaryCap } from "./cap";
+import { minimumSalary, practiceSquadWeeklyRate, salaryCap } from "./cap";
 import { capHit, cashIn, remainingProration, span, yearOf, yearsLeft } from "./contract";
 import { MARKET, marketRanks, marketValue, veteranContract, yearsForAge } from "./generate";
 import {
@@ -242,7 +242,7 @@ export function settleUnsigned(
 
   const offseasonMax = league.rules.roster.offseasonMax;
   const freeAgents = league.players
-    .filter((p) => p.teamId === null && ranks.has(p.id))
+    .filter((p) => p.teamId === null && p.retiredAfter === null && ranks.has(p.id))
     .sort((a, b) => priceOf(b) - priceOf(a) || a.id - b.id);
   for (const p of freeAgents) {
     const apy = priceOf(p);
@@ -322,7 +322,15 @@ function canAfford(league: League, teamId: string, capCharge: Dollars, adding: n
     season,
     league.rules.cap.veteranSalaryBenefit.minCreditedSeasons - 1,
   );
-  const reserve = stillNeeded * perSpot;
+  // In the offseason, room for the season too: every contract counts from final cuts, with two
+  // more roster spots than the top 51 and a full practice squad.
+  const inSeason = offseasonRuleApplies(league, season)
+    ? (league.rules.roster.regularSeasonMax - league.rules.cap.offseasonTopContracts) * perSpot +
+      league.rules.roster.practiceSquad.max *
+        practiceSquadWeeklyRate(league.rules, season, false) *
+        league.rules.schedule.regularSeasonWeeks
+    : 0;
+  const reserve = stillNeeded * perSpot + inSeason;
   return capSheet(league, teamId, season).room - capCharge >= reserve;
 }
 
@@ -398,7 +406,7 @@ export function fillRoster(league: League, teamId: string): number {
     let pick: Player | undefined;
     for (const { pos } of deficits) {
       pick = league.players
-        .filter((p) => p.teamId === null && p.position === pos)
+        .filter((p) => p.teamId === null && p.retiredAfter === null && p.position === pos)
         .sort(
           (a, b) =>
             overallAt(b.ratings, b.position) - overallAt(a.ratings, a.position) || a.id - b.id,
@@ -502,10 +510,19 @@ function restructureForRoom(
   }
 }
 
-export function getUnderCap(league: League, teamId: string): number {
+export function getUnderCap(
+  league: League,
+  teamId: string,
+  roomFor?: { amount: Dollars; what: string; releases?: boolean },
+): number {
   const season = league.season;
   let moves = 0;
-  while (capSheet(league, teamId, season).room < 0 && moves < MAX_COMPLIANCE_MOVES) {
+  // Restructures may also make room for something the team needs (`roomFor`); releases happen
+  // to get under the cap, or for room the team can't do without (`roomFor.releases`).
+  const target = roomFor?.amount ?? 0;
+  for (;;) {
+    const room = capSheet(league, teamId, season).room;
+    if (room >= target || moves >= MAX_COMPLIANCE_MOVES) break;
     moves += 1;
     const players = playersOn(league, teamId);
     const restructure = bestRestructure(league, teamId);
@@ -513,10 +530,13 @@ export function getUnderCap(league: League, teamId: string): number {
       restructureContract(
         league,
         restructure.id,
-        `${teamId} was over the ${season} cap; turning salary into bonus frees room now.`,
+        room < 0
+          ? `${teamId} was over the ${season} cap; turning salary into bonus frees room now.`
+          : `${teamId} needed room for ${roomFor!.what}; turning salary into bonus frees it now.`,
       );
       continue;
     }
+    if (room >= 0 && !roomFor?.releases) break;
     // Never cut so deep that a position can't field its starters plus a backup.
     const count = (pos: string) => players.filter((x) => x.position === pos).length;
     const releasable = players
@@ -533,7 +553,9 @@ export function getUnderCap(league: League, teamId: string): number {
     releasePlayer(
       league,
       p.id,
-      `${teamId} was over the ${season} cap ($${(salaryCap(league.rules.cap, season) / 1_000_000).toFixed(1)}M) after restructuring; releasing him saves $${(savings / 1_000_000).toFixed(2)}M for the least football value.`,
+      room < 0
+        ? `${teamId} was over the ${season} cap ($${(salaryCap(league.rules.cap, season) / 1_000_000).toFixed(1)}M) after restructuring; releasing him saves $${(savings / 1_000_000).toFixed(2)}M for the least football value.`
+        : `${teamId} needed room for ${roomFor!.what}; releasing him saves $${(savings / 1_000_000).toFixed(2)}M for the least football value.`,
     );
   }
   return moves;

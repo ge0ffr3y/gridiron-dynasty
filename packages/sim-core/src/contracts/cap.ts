@@ -113,3 +113,22 @@ export function rookieSlot(
   const total = floor + Math.round(above * salaryCap(cap, draftSeason));
   return { total, signingBonus: Math.round(total * bonusShare), minimums };
 }
+
+/**
+ * Weekly practice-squad pay (CBA Art. 33 Sec. 3): the fixed rate for players with two or fewer
+ * accrued seasons, or the veteran minimum. After the table ends it keeps growing by its last step.
+ */
+export function practiceSquadWeeklyRate(rules: Rules, season: number, veteran: boolean): Dollars {
+  const table = rules.roster.practiceSquad.weeklySalary;
+  const years = Object.keys(table).map(Number);
+  const first = Math.min(...years);
+  const last = Math.max(...years);
+  const year = Math.min(Math.max(season, first), last);
+  let [restricted, veteranMin] = table[String(year)]!;
+  if (season > last) {
+    const [r0, v0] = table[String(last - 1)]!;
+    restricted += (restricted - r0) * (season - last);
+    veteranMin += (veteranMin - v0) * (season - last);
+  }
+  return veteran ? veteranMin : restricted;
+}

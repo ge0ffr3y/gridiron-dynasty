@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 7;
+export const LEAGUE_FORMAT_VERSION = 8;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -86,6 +86,8 @@ export const CONTRACT_TYPES = [
   "transition",
   "tender",
   "minimum",
+  /** A practice-squad deal: weekly pay at the CBA scale (Phase 8). */
+  "practice-squad",
 ] as const;
 
 export const ContractSchema = z.object({
@@ -165,6 +167,14 @@ const statLinesMatch: Same<z.infer<typeof StatLineSchema>, StatLine> = true;
 void boxScoresMatch;
 void statLinesMatch;
 
+/**
+ * Where a player on a team is listed (Phase 8): the active roster (90 in the offseason, 53 from
+ * cutdown day), the practice squad, or a reserve list (injured reserve, physically unable to
+ * perform, non-football injury). Reserve players don't count against the roster limit.
+ */
+export const ROSTER_LISTS = ["active", "practice-squad", "injured-reserve", "pup", "nfi"] as const;
+export type RosterList = (typeof ROSTER_LISTS)[number];
+
 export const PlayerSchema = z.object({
   id: z.number().int().nonnegative(),
   firstName: z.string(),
@@ -194,6 +204,28 @@ export const PlayerSchema = z.object({
       description: z.string(),
       gamesRemaining: z.number().int().positive(),
       since: IsoDate,
+    })
+    .nullable(),
+  /** Which list he's on with his team (meaningless without a team). */
+  roster: z.enum(ROSTER_LISTS),
+  /** Time on a reserve list: team games missed since placed, and whether designated to return. */
+  reserve: z
+    .object({
+      since: IsoDate,
+      gamesMissed: z.number().int().nonnegative(),
+      designatedToReturn: z.boolean(),
+    })
+    .nullable(),
+  /** Game-day elevations from the practice squad this season. */
+  elevations: z.number().int().nonnegative(),
+  /** The season after which he retired (placeholder until Phase 9); retired players stay for history. */
+  retiredAfter: z.number().int().nullable(),
+  /** This year's preseason: his stats and showcase grade (0-100, 50 = typical), if he played. */
+  preseason: z
+    .object({
+      season: z.number().int(),
+      line: StatLineSchema,
+      grade: z.number().nullable(),
     })
     .nullable(),
 });
@@ -295,6 +327,10 @@ export const TeamSchema = z.object({
       z.object({ season: z.number().int(), playerId: z.number().int() }),
     ),
   }),
+  /** Players designated to return from a reserve list, by season (Phase 8; limited per season). */
+  reserveReturns: z.array(z.object({ season: z.number().int(), playerId: z.number().int() })),
+  /** Practice-squad players elevated for this week's game (set before the week, cleared after). */
+  elevated: z.array(z.number().int()),
 });
 
 export const DraftPickSchema = z.object({
@@ -308,6 +344,7 @@ export const DraftPickSchema = z.object({
 });
 
 export const GAME_ROUNDS = [
+  "preseason",
   "regular",
   "wildcard",
   "divisional",
@@ -345,9 +382,18 @@ export const GameSchema = z.object({
   weather: WeatherSchema.nullable(),
 });
 
+/**
+ * Where the League Year stands (Phase 8). Each stage is the stretch before the next dated
+ * event: "offseason" runs from the championship to the new League Year (March), "free-agency"
+ * to the draft, "after-draft" to training camp, "preseason" through the preseason weeks
+ * (`week` is the next one), "cutdown" until final cuts, then the regular season and playoffs.
+ */
 export const CALENDAR_STAGES = [
   "offseason",
+  "free-agency",
+  "after-draft",
   "preseason",
+  "cutdown",
   "regular",
   "wildcard",
   "divisional",
@@ -421,6 +467,16 @@ export const TransactionSchema = z.object({
     "tagged",
     "expired",
     "cash-shortfall",
+    // Phase 8: roster moves.
+    "waived",
+    "claimed",
+    "drafted",
+    "retired",
+    "reserve",
+    "activated",
+    "practice-squad",
+    "elevated",
+    "development",
   ]),
   teamIds: z.array(z.string()),
   playerIds: z.array(z.number().int()),
@@ -464,6 +520,13 @@ export const LeagueSchema = z.object({
   draftPicks: z.array(DraftPickSchema),
   /** This season's games (regular season and playoffs). */
   games: z.array(GameSchema),
+  /** This season's preseason games (Phase 8), kept apart so nothing counts them as real games. */
+  preseasonGames: z.array(GameSchema),
+  /** League settings chosen when it was made (Phase 8). */
+  settings: z.object({
+    /** Play the three preseason weeks (a showcase for players fighting for a roster spot). */
+    preseasonGames: z.boolean(),
+  }),
   /** One summary per completed season, oldest first. */
   history: z.array(SeasonHistorySchema),
   transactions: z.array(TransactionSchema),

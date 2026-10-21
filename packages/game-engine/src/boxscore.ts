@@ -112,6 +112,7 @@ export function buildBoxScore(
       if (p.pressure !== undefined) off.pressured += 1;
     }
     add(p.pressure, "pressures");
+    add(p.beaten, "pressuresAllowed");
     for (const m of p.missedTackles ?? []) add(m, "missedTkl");
     if (SCRIMMAGE.has(p.kind)) {
       off.plays += 1;

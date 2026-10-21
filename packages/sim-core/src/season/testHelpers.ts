@@ -17,6 +17,8 @@ export function rulesTeams(rules: Rules = RULES): Team[] {
         divisionId: d.id,
         colors: { primary: "#000000", secondary: "#ffffff" },
         controller: "ai" as const,
+        reserveReturns: [],
+        elevated: [],
         depthChart: { auto: true, slots: {} },
         stadium: { roof: "outdoor" as const, surface: "grass" as const, elevationMeters: 0 },
         cap: { deadMoney: [], carryover: [], cashPaid: [], juneFirstDesignations: [] },

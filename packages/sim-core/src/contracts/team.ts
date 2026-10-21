@@ -13,10 +13,15 @@ export function emptyTeamCap(): Team["cap"] {
 
 /** Between the start of the League Year and the first regular-season game, only the top 51 count in full. */
 export function offseasonRuleApplies(league: League, season: number): boolean {
-  return (
-    season === league.season &&
-    (league.calendar.stage === "offseason" || league.calendar.stage === "preseason")
-  );
+  // From the new League Year (and the offseason before it) until final cuts.
+  const offseason: League["calendar"]["stage"][] = [
+    "offseason",
+    "free-agency",
+    "after-draft",
+    "preseason",
+    "cutdown",
+  ];
+  return season === league.season && offseason.includes(league.calendar.stage);
 }
 
 export interface CapSheetLine {

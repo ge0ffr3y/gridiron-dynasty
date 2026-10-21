@@ -235,6 +235,8 @@ export interface Play {
   gap?: string;
   /** Who got pressure on the quarterback. */
   pressure?: number;
+  /** The blocker who gave up that pressure or sack (Phase 8, for player grades). */
+  beaten?: number;
   throwAway?: boolean;
   drop?: boolean;
   breakup?: boolean;
@@ -316,6 +318,8 @@ export const STAT_KEYS = [
   "pressures",
   "passDef",
   "missedTkl",
+  // Phase 8: pressures and sacks a blocker gave up.
+  "pressuresAllowed",
 ] as const;
 
 export type StatKey = (typeof STAT_KEYS)[number];

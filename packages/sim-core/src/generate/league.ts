@@ -29,6 +29,8 @@ export interface NewLeagueOptions {
   seed: number;
   name: string;
   season?: number;
+  /** Play preseason games (on unless turned off). */
+  preseasonGames?: boolean;
 }
 
 export function createLeague(options: NewLeagueOptions): League {
@@ -57,6 +59,8 @@ export function createLeague(options: NewLeagueOptions): League {
           divisionId: division.id,
           colors: { primary: identity.colors[0], secondary: identity.colors[1] },
           controller: "ai",
+          reserveReturns: [],
+          elevated: [],
           depthChart: { auto: true, slots: {} },
           stadium: stadiumFor(id),
           cap: emptyTeamCap(),
@@ -122,6 +126,8 @@ export function createLeague(options: NewLeagueOptions): League {
     coaches,
     draftPicks,
     games: [],
+    preseasonGames: [],
+    settings: { preseasonGames: options.preseasonGames ?? true },
     history: [],
     salaryHistory: [],
     transactions: [
@@ -159,7 +165,7 @@ export function createLeague(options: NewLeagueOptions): League {
   }
   league.rng = streams.getState();
   scheduleSeason(league, finish);
-  advanceUntil(league, (l) => l.calendar.stage === "complete");
+  advanceUntil(league, (l) => l.calendar.stage === "complete", { historyOnly: true });
   startNextSeason(league, { agePlayers: false });
   // Money: everyone on a roster gets a contract, and the tag history starts from them.
   generateContracts(league, new Rng(streamSeed(options.seed, "contracts")));

@@ -80,6 +80,33 @@ export function InjuryTag({
   );
 }
 
+const LIST_TAGS: Record<string, { short: string; long: string }> = {
+  "practice-squad": { short: "PS", long: "Practice squad" },
+  "injured-reserve": { short: "IR", long: "Injured reserve" },
+  pup: { short: "PUP", long: "Physically unable to perform" },
+  nfi: { short: "NFI", long: "Non-football injury" },
+};
+
+/** Where a player is listed, when it isn't the active roster (practice squad, a reserve list). */
+export function ListTag({ list }: { list: string | null }) {
+  const tag = list ? LIST_TAGS[list] : undefined;
+  if (!tag) return null;
+  return (
+    <span
+      title={tag.long}
+      className="ml-2 inline-flex items-center rounded border px-1.5 text-[11px] font-medium text-muted-foreground"
+    >
+      {tag.short}
+    </span>
+  );
+}
+
+/** Plain-English name of a roster list. */
+export function listName(list: string | null): string {
+  if (list === null) return "Free agent";
+  return LIST_TAGS[list]?.long ?? "Active roster";
+}
+
 /** A 0-100 value as a labeled bar. */
 export function RatingBar({ label, value }: { label: string; value: number }) {
   return (

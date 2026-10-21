@@ -8,6 +8,7 @@
  * attributes, ratings for players with no rating source) is generated here
  * from a seed per person, so rebuilding gives the same league.
  */
+import { NEW_PLAYER_ROSTER } from "./roster/defaults";
 import {
   ALTERNATE_POSITIONS,
   overallAt,
@@ -200,6 +201,7 @@ function realPlayer(input: RealPlayerInput, id: number, date: LeagueDate, seed: 
     contract: null,
     stats: input.stats ?? [],
     injury: null,
+    ...NEW_PLAYER_ROSTER,
   };
 }
 
@@ -254,6 +256,8 @@ export function assembleRealLeague(input: RealLeagueInput): League {
           divisionId: division.id,
           colors: { primary: identity.colors[0], secondary: identity.colors[1] },
           controller: "ai",
+          reserveReturns: [],
+          elevated: [],
           depthChart: { auto: true, slots: {} },
           stadium: stadiumFor(id),
           cap: emptyTeamCap(),
@@ -328,6 +332,8 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     coaches,
     draftPicks,
     games,
+    preseasonGames: [],
+    settings: { preseasonGames: true },
     history: [],
     salaryHistory: [],
     transactions: [

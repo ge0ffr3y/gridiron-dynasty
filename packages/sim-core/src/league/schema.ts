@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 12;
+export const LEAGUE_FORMAT_VERSION = 14;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -182,6 +182,24 @@ export const INJURY_KINDS = ["game", "practice", "camp", "non-football"] as cons
 /** The injury report's game statuses. */
 export const REPORT_STATUSES = ["Out", "Doubtful", "Questionable"] as const;
 
+export const SCOUTING_BUDGETS = ["low", "normal", "high"] as const;
+
+/** The six combine drills (Phase 11), in their real units. */
+export const MeasurablesSchema = z.object({
+  /** 40-yard dash, seconds. */
+  forty: z.number().nullable(),
+  /** Bench press reps at 225 lb. */
+  bench: z.number().nullable(),
+  /** Vertical jump, inches. */
+  vertical: z.number().nullable(),
+  /** Broad jump, inches. */
+  broadJump: z.number().nullable(),
+  /** 3-cone drill, seconds. */
+  cone: z.number().nullable(),
+  /** 20-yard shuttle, seconds. */
+  shuttle: z.number().nullable(),
+});
+
 export const PlayerSchema = z.object({
   id: z.number().int().nonnegative(),
   firstName: z.string(),
@@ -267,6 +285,8 @@ export const PlayerSchema = z.object({
       grade: z.number().nullable(),
     })
     .nullable(),
+  /** His combine or pro-day results (Phase 11), if he was a prospect in this league. */
+  measurables: MeasurablesSchema.nullable(),
 });
 
 /**
@@ -447,6 +467,60 @@ export const TeamSchema = z.object({
   reserveReturns: z.array(z.object({ season: z.number().int(), playerId: z.number().int() })),
   /** Practice-squad players elevated for this week's game (set before the week, cleared after). */
   elevated: z.array(z.number().int()),
+  /**
+   * Scouting (Phase 11): the department's budget, where each scout is assigned (a region of
+   * colleges and/or a position group; null = anywhere), and the points of study each prospect
+   * (and each young player, by id) has had: more points, a clearer read.
+   */
+  scouting: z.object({
+    budget: z.enum(SCOUTING_BUDGETS),
+    assignments: z.array(
+      z.object({
+        scoutId: z.number().int(),
+        region: z.string().nullable(),
+        group: z.string().nullable(),
+      }),
+    ),
+    points: z.record(z.string(), z.number()),
+    /**
+     * A board set by hand (Phase 11b): prospect ids, best first. Null = the scouts' own board.
+     * The team drafts from it on draft day (unranked prospects follow, by the scouts' board).
+     */
+    board: z.array(z.number().int()).nullable(),
+  }),
+});
+
+/**
+ * A draft prospect (Phase 11): a college player in an upcoming draft class. Not on any team and
+ * not a free agent; he becomes a player when drafted (or signed after the draft). Ratings and
+ * hidden traits are the truth, seen only through scouting.
+ */
+export const ProspectSchema = z.object({
+  id: z.number().int().nonnegative(),
+  firstName: z.string(),
+  lastName: z.string(),
+  position: PositionSchema,
+  college: z.string(),
+  region: z.string(),
+  birthDate: IsoDate,
+  heightIn: z.number().int(),
+  weightLb: z.number().int(),
+  draftYear: z.number().int(),
+  ratings: RatingsSchema,
+  familiarity: z.partialRecord(PositionSchema, z.number().min(0).max(1)),
+  hidden: HiddenTraitsSchema,
+  personality: PersonalitySchema,
+  /** His true drill results (null: he doesn't run that drill), revealed when he's tested. */
+  measurables: MeasurablesSchema,
+  /** Invited to the combine (else measured at his pro day). */
+  invited: z.boolean(),
+  /** Measured yet (the combine or his pro day has happened). */
+  tested: z.boolean(),
+  /**
+   * HIDDEN: the class rank his true talent was drawn around (the real draft slot for the real
+   * class). Never shown; the calibration measures how drafts track it.
+   */
+  anchorRank: z.number().int().positive(),
 });
 
 export const DraftPickSchema = z.object({
@@ -457,6 +531,14 @@ export const DraftPickSchema = z.object({
   ownerTeamId: z.string(),
   /** Overall pick number, once the draft order is known (after the previous season). */
   overall: z.number().int().positive().nullable(),
+  /**
+   * Compensatory picks (Phase 11b, CBA Article 6 and Appendix V): for a net loss of free agents
+   * ("formula"), an equal loss by value ("equal-loss"), or filling the draft to one per club
+   * ("supplemental"). Null for a regular pick.
+   */
+  compensatory: z.enum(["formula", "equal-loss", "supplemental"]).nullable(),
+  /** The player taken with it, once used on draft day. */
+  selection: z.number().int().nullable(),
 });
 
 export const GAME_ROUNDS = [
@@ -507,6 +589,7 @@ export const GameSchema = z.object({
 export const CALENDAR_STAGES = [
   "offseason",
   "free-agency",
+  "draft",
   "after-draft",
   "preseason",
   "cutdown",
@@ -593,6 +676,8 @@ export const TransactionSchema = z.object({
     "practice-squad",
     "elevated",
     "development",
+    // Phase 11b: compensatory picks awarded.
+    "compensatory",
   ]),
   teamIds: z.array(z.string()),
   playerIds: z.array(z.number().int()),
@@ -658,7 +743,30 @@ export const LeagueSchema = z.object({
   settings: z.object({
     /** Play the three preseason weeks (a showcase for players fighting for a roster spot). */
     preseasonGames: z.boolean(),
+    /** Whose eyes the screens use (Phase 11): a team's scouts, or null for the league office's consensus. */
+    viewingAs: z.string().nullable(),
   }),
+  /** Upcoming draft classes' prospects (Phase 11). */
+  prospects: z.array(ProspectSchema),
+  /**
+   * Unrestricted free agents who signed with a new club (Phase 11b): the compensatory-pick
+   * formula (CBA Appendix V) weighs them a year later. Kept for two League Years.
+   */
+  freeAgentMoves: z.array(
+    z.object({
+      season: z.number().int(),
+      date: IsoDate,
+      playerId: z.number().int(),
+      fromTeamId: z.string(),
+      toTeamId: z.string(),
+      position: PositionSchema,
+      /** Average yearly compensation: total value over the maximum possible term. */
+      averagePerYear: z.number().int().nonnegative(),
+      years: z.number().int().positive(),
+      /** Accrued seasons when he signed (10+ non-quarterbacks can't bring a pick before round 5). */
+      accruedSeasons: z.number().int().nonnegative(),
+    }),
+  ),
   /** One summary per completed season, oldest first. */
   history: z.array(SeasonHistorySchema),
   transactions: z.array(TransactionSchema),
@@ -694,6 +802,8 @@ export type HiddenTraits = z.infer<typeof HiddenTraitsSchema>;
 export type Coach = z.infer<typeof CoachSchema>;
 export type CoachRole = z.infer<typeof CoachRoleSchema>;
 export type CoachingMove = z.infer<typeof CoachingMoveSchema>;
+export type Prospect = z.infer<typeof ProspectSchema>;
+export type Measurables = z.infer<typeof MeasurablesSchema>;
 export type Team = z.infer<typeof TeamSchema>;
 export type Stadium = z.infer<typeof StadiumSchema>;
 export type Weather = z.infer<typeof WeatherSchema>;

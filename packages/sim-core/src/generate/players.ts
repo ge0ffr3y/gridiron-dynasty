@@ -225,6 +225,8 @@ export function generateDraftPicks(
           originalTeamId: teamId,
           ownerTeamId: teamId,
           overall: null,
+          compensatory: null,
+          selection: null,
         });
     }
   }

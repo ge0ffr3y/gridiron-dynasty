@@ -2,6 +2,7 @@
  * Creates a complete fictional league from a seed: 32 teams, 90-man rosters,
  * coaching staffs, and draft picks. Same seed -> byte-identical league.
  */
+import { emptyScouting } from "../scouting/config";
 import {
   LEAGUE_FORMAT,
   LEAGUE_FORMAT_VERSION,
@@ -16,7 +17,12 @@ import { emptyTeamCap } from "../contracts/team";
 import { generateContracts } from "../contracts/generate";
 import { seedSalaryHistory } from "../contracts/tags";
 import { RULES_BY_SEASON, rulesFor, teamIdsInOrder, type Rules } from "../rules";
-import { advanceUntil, scheduleSeason, startNextSeason } from "../season/flow";
+import {
+  advanceUntil,
+  ensureClassAndScouts,
+  scheduleSeason,
+  startNextSeason,
+} from "../season/flow";
 import { stadiumFor } from "../season/weather";
 import { generateCoach } from "./coaches";
 import { STAFF_ROLES } from "../coaches/config";
@@ -61,6 +67,7 @@ export function createLeague(options: NewLeagueOptions): League {
           colors: { primary: identity.colors[0], secondary: identity.colors[1] },
           controller: "ai",
           reserveReturns: [],
+          scouting: emptyScouting(),
           elevated: [],
           depthChart: { auto: true, slots: {} },
           stadium: stadiumFor(id),
@@ -128,10 +135,12 @@ export function createLeague(options: NewLeagueOptions): League {
     draftPicks,
     games: [],
     preseasonGames: [],
-    settings: { preseasonGames: options.preseasonGames ?? true },
+    settings: { preseasonGames: options.preseasonGames ?? true, viewingAs: null },
     history: [],
     salaryHistory: [],
     coachingMoves: [],
+    prospects: [],
+    freeAgentMoves: [],
     development: [],
     transactions: [
       {
@@ -173,5 +182,7 @@ export function createLeague(options: NewLeagueOptions): League {
   // Money: everyone on a roster gets a contract, and the tag history starts from them.
   generateContracts(league, new Rng(streamSeed(options.seed, "contracts")));
   seedSalaryHistory(league);
+  // The 2026 draft class, with scouts assigned to it (Phase 11).
+  ensureClassAndScouts(league);
   return league;
 }

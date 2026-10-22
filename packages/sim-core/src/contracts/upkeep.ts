@@ -18,7 +18,15 @@ import { POSITIONS } from "@fgm/foundation";
 import type { Contract, League, Player } from "../league/schema";
 import { ROSTER_MIX, STARTERS } from "../generate/config";
 import { minimumSalary, practiceSquadWeeklyRate, salaryCap } from "./cap";
-import { capHit, cashIn, remainingProration, span, yearOf, yearsLeft } from "./contract";
+import {
+  capHit,
+  cashIn,
+  remainingProration,
+  span,
+  totalValue,
+  yearOf,
+  yearsLeft,
+} from "./contract";
 import { MARKET, marketRanks, marketValue, veteranContract, yearsForAge } from "./generate";
 import {
   decideFifthYearOption,
@@ -192,6 +200,8 @@ export function settleUnsigned(
         overallAt(x.ratings, x.position) >= overallAt(p.ratings, p.position),
     ).length < (STARTERS[p.position] ?? 1);
   const scale = reSigningScale(league, expiring, ranks);
+  // Who left which team when his deal ran out (unrestricted free agents, for compensatory picks).
+  const formerTeam = new Map<number, string>();
   const priceOf = (p: Player) => {
     const r = ranks.get(p.id)!;
     return marketValue(league, season, r.category, r.rank, p.experience, scale);
@@ -225,6 +235,7 @@ export function settleUnsigned(
         });
       } else {
         p.teamId = null;
+        formerTeam.set(p.id, team.id);
         recordTransaction(league, {
           type: "expired",
           teamIds: [team.id],
@@ -287,6 +298,7 @@ export function settleUnsigned(
       }
       p.teamId = t.id;
       p.contract = contract;
+      recordFreeAgentMove(league, p, formerTeam.get(p.id) ?? null, contract);
       recordTransaction(league, {
         type: "signed",
         teamIds: [t.id],
@@ -299,6 +311,33 @@ export function settleUnsigned(
     }
   }
   for (const team of league.teams) fillRoster(league, team.id);
+}
+
+/**
+ * An unrestricted free agent signing with a new club (CBA Appendix V): kept for the
+ * compensatory-pick formula a year later (draft/compensatory.ts).
+ */
+function recordFreeAgentMove(
+  league: League,
+  p: Player,
+  fromTeamId: string | null,
+  contract: Contract,
+): void {
+  const C = league.rules.draft.compensatory;
+  if (!fromTeamId || fromTeamId === contract.teamId || p.experience < C.unrestrictedAccruedSeasons)
+    return;
+  league.freeAgentMoves.push({
+    season: league.season,
+    date: league.date,
+    playerId: p.id,
+    fromTeamId,
+    toTeamId: contract.teamId,
+    position: p.position,
+    // Average yearly compensation: everything over the maximum possible term (void years too).
+    averagePerYear: Math.round(totalValue(contract) / contract.years.length),
+    years: contract.years.length,
+    accruedSeasons: p.experience,
+  });
 }
 
 /**

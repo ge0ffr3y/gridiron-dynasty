@@ -209,6 +209,29 @@ export const RulesSchema = z
       source: z.string(),
       rounds: z.number().int().positive(),
       seasonsOfPicksHeld: z.number().int().positive(),
+      /** Minutes on the clock per pick, round by round. */
+      pickClockMinutes: z.array(z.number().positive()),
+      compensatory: z.object({
+        source: z.string(),
+        unrestrictedAccruedSeasons: z.number().int().positive(),
+        qualifyingTopShare: z.number(),
+        /** [top share of players, round the pick follows], best first. */
+        roundsByTopShare: z.array(z.tuple([z.number(), z.number().int()])),
+        maxPerClub: z.number().int().positive(),
+        minimumSnapShare: z.number(),
+        honorPoints: z.object({ allPro: z.number(), allConference: z.number() }),
+        kickerPoints: z.object({ perAttempt: z.number(), perMade: z.number() }),
+        punterPoints: z.object({ perPunt: z.number(), perInside20: z.number() }),
+        equalLossPoints: z.number(),
+        veteranAccruedSeasons: z.number().int(),
+        veteranEarliestRound: z.number().int(),
+        oneYearExclusion: z.object({
+          from: z.number().int(),
+          amount: z.number().int(),
+          step: z.number().int(),
+          everyYears: z.number().int().positive(),
+        }),
+      }),
     }),
     calendar: z.object({
       source: z.string(),

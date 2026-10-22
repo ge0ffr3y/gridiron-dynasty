@@ -11,8 +11,10 @@
  *   npm run sim -- --coaching 2 [--seed 42] [--league file]   how much teams differ in style, sim vs. real
  *   npm run sim -- --injuries 3 [--seed 42] [--league file]   injuries, report statuses and reserve lists vs. real
  *   npm run sim -- --lifecycle 30 [--seed 42] [--league file] [--out file]   long run: age mix, starter quality, stars, careers
+ *   npm run sim -- --draft 20 [--seed 42] [--league file]   how drafts turn out by round vs. real hit rates
  */
 import { readFileSync, writeFileSync } from "node:fs";
+import REAL_DRAFT from "../../../calibration/draft.json";
 import { resolve } from "node:path";
 import {
   GAME_ENGINE_VERSION,
@@ -28,6 +30,9 @@ import {
   advance,
   advanceUntil,
   createLeague,
+  draftOutcomes,
+  draftOutcomesByPick,
+  seasonsStarted,
   validateSchedule,
   checkLegal,
   setTransactionAudit,
@@ -105,6 +110,12 @@ if (coachingArg !== undefined) {
 const injuriesArg = option(args, "--injuries");
 if (injuriesArg !== undefined) {
   runInjuries(readSeed(args), Number(injuriesArg), option(args, "--league"));
+  process.exit(0);
+}
+
+const draftArg = option(args, "--draft");
+if (draftArg !== undefined) {
+  runDraftReport(readSeed(args), Number(draftArg), option(args, "--league"));
   process.exit(0);
 }
 
@@ -369,6 +380,115 @@ function runLifecycle(seed: number, count: number, file?: string, out?: string):
     writeFileSync(fromCaller(out), serializeLeague(league));
     console.log(`Wrote ${out}`);
   }
+}
+
+/**
+ * Drafts (Phase 11): simulates seasons, then compares how each round's picks turned out with
+ * real drafts (calibration/draft.json): starters for 3+ seasons, never started, seasons started.
+ * Only classes with long enough careers count: at least `minSeasons` seasons since the draft.
+ */
+function runDraftReport(seed: number, count: number, file?: string): void {
+  if (!Number.isInteger(count) || count < 8)
+    throw new Error("--draft needs at least 8 seasons, so classes have careers to judge");
+  const started = process.hrtime.bigint();
+  const league = file
+    ? fromFile(parseLeague(readFileSync(fromCaller(file), "utf8")), seed)
+    : createLeague({ seed, name: `League ${seed}` });
+  const first = league.season;
+  console.log(`\nDrafts: ${count} seasons from seed ${seed}${file ? " (real league)" : ""}\n`);
+  console.log(
+    "season  picks  compensatory  draft-day trades  price (median)   first-round busts so far",
+  );
+  const prices: number[] = [];
+  let trades = 0;
+  let drafts = 0;
+  for (let i = 0; i < count; i++) {
+    // Draft day: count the picks, compensatory picks and trades.
+    advanceUntil(league, (l) => l.calendar.stage === "draft" || l.calendar.stage === "complete");
+    const draftLine = { picks: 0, comp: 0, trades: 0, price: "  -" };
+    if (league.calendar.stage === "draft") {
+      const before = league.transactions.length;
+      const day = league.date;
+      advance(league);
+      const deals = league.transactions
+        .slice(before)
+        .filter((t) => t.type === "traded" && t.date === day && t.reason.includes("moved up"));
+      const ratios = deals
+        .map((t) => Number(/worth ([\d.]+) times/.exec(t.reason)?.[1]))
+        .filter((x) => x > 0)
+        .sort((a, b) => a - b);
+      prices.push(...ratios);
+      trades += deals.length;
+      drafts += 1;
+      const picks = league.draftPicks.filter((p) => p.season === league.season);
+      draftLine.picks = picks.length;
+      draftLine.comp = picks.filter((p) => p.compensatory !== null).length;
+      draftLine.trades = deals.length;
+      draftLine.price = ratios.length ? ratios[Math.floor(ratios.length / 2)]!.toFixed(2) : "  -";
+    }
+    advanceUntil(league, (l) => l.calendar.stage === "complete");
+    advance(league);
+    const busts = league.players.filter(
+      (p) =>
+        p.drafted?.round === 1 &&
+        p.drafted.season >= first &&
+        p.drafted.season <= league.season - 4 &&
+        seasonsStarted(p) === 0,
+    ).length;
+    console.log(
+      `${league.season - 1}    ${String(draftLine.picks).padStart(5)}  ${String(draftLine.comp).padStart(12)}  ${String(draftLine.trades).padStart(16)}  ${draftLine.price.padStart(14)}   ${String(busts).padStart(8)}`,
+    );
+  }
+  prices.sort((a, b) => a - b);
+  const q = (p: number) => prices[Math.floor(p * (prices.length - 1))]?.toFixed(2) ?? "-";
+  console.log(
+    `\nDraft-day trades: ${(trades / Math.max(1, drafts)).toFixed(1)} a draft (real ${REAL_DRAFT.trades.perDraft}); price median ${q(0.5)}, middle half ${q(0.25)}-${q(0.75)} (real ${REAL_DRAFT.trades.pickOnlyPrice.median}, ${REAL_DRAFT.trades.pickOnlyPrice.p25}-${REAL_DRAFT.trades.pickOnlyPrice.p75}).`,
+  );
+  const last = league.season - 1;
+  const report = (from: number, to: number, label: string) => {
+    console.log(`\n${label}: classes ${from}-${to}`);
+    console.log(
+      "round  picks   starter 3+ (sim / real)   never started (sim / real)   seasons started (sim / real)",
+    );
+    for (const r of draftOutcomes(league, from, to))
+      console.log(
+        `${String(r.round).padStart(5)}  ${String(r.players).padStart(5)}   ${pct(r.starter3Plus)} / ${pct(r.real?.starter3Plus)}             ${pct(r.neverStarted)} / ${pct(r.real?.neverStarted)}                ${r.meanSeasonsStarted.toFixed(2)} / ${r.real?.meanSeasonsStarted.toFixed(2) ?? "-"}`,
+      );
+  };
+  report(first, last - 6, "Hit rates by round (6+ seasons since the draft)");
+  console.log(`\nBy overall pick (the fairer comparison): classes ${first}-${last - 6}`);
+  console.log(
+    "picks     players  starter 3+ (sim / real)   never started (sim / real)   seasons started (sim / real)",
+  );
+  for (const r of draftOutcomesByPick(league, first, last - 6))
+    console.log(
+      `${r.picks.padEnd(8)}  ${String(r.players).padStart(6)}   ${pct(r.starter3Plus)} / ${pct(r.real?.starter3Plus)}             ${pct(r.neverStarted)} / ${pct(r.real?.neverStarted)}                ${r.meanSeasonsStarted.toFixed(2)} / ${r.real?.meanSeasonsStarted.toFixed(2) ?? "-"}`,
+    );
+  if (last - 10 >= first) report(first, last - 10, "Full careers (10+ seasons since the draft)");
+  const gems = league.players.filter(
+    (p) =>
+      p.drafted &&
+      p.drafted.season >= first &&
+      p.drafted.round >= 5 &&
+      p.drafted.season <= last - 6 &&
+      seasonsStarted(p) >= 3,
+  ).length;
+  const busts = league.players.filter(
+    (p) =>
+      p.drafted?.round === 1 &&
+      p.drafted.season >= first &&
+      p.drafted.season <= last - 6 &&
+      seasonsStarted(p) === 0,
+  ).length;
+  console.log(
+    `\nFirst-round busts (never started): ${busts}. Late-round gems (rounds 5-7, started 3+ seasons): ${gems}.`,
+  );
+  const seconds = Number(process.hrtime.bigint() - started) / 1e9;
+  console.log(`${count} seasons in ${seconds.toFixed(0)} s.`);
+}
+
+function pct(x: number | undefined): string {
+  return x === undefined ? "  -" : `${(x * 100).toFixed(0).padStart(3)}%`;
 }
 
 /**

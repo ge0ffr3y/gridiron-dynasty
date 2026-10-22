@@ -3,6 +3,15 @@
  * league; the page asks for screen data by name and gets plain data back.
  */
 import type {
+  BigBoardView,
+  DraftAction,
+  DraftHistoryView,
+  DraftRoomView,
+  MockDraftView,
+  DraftClassView,
+  ProspectView,
+  ScoutingDepartmentView,
+  ScoutingMove,
   CalendarPageView,
   CampReportView,
   CarouselView,
@@ -131,7 +140,33 @@ export interface SimApi {
   previewTrade(params: { a: TradeSide; b: TradeSide }): TradePreview;
   /** Makes a legal trade (saved). Returns what happened. */
   makeTrade(params: { a: TradeSide; b: TradeSide }): { message: string };
+  /** Whose eyes the screens see through, and the teams to choose from. */
+  viewingOptions(params: Record<string, never>): ViewingOptions;
+  /** Switches "Viewing as" (null: the league office's consensus). Saved. */
+  setViewingAs(params: { teamId: string | null }): ViewingOptions;
+  /** The upcoming draft class, as the viewer's scouts rank it. */
+  draftClassView(params: Record<string, never>): DraftClassView;
+  /** One prospect's scouting report. */
+  prospectView(params: { id: number }): ProspectView;
+  /** A team's scouting department: budget, scouts and assignments. */
+  scoutingDepartmentView(params: { teamId: string }): ScoutingDepartmentView;
+  /** A league-office scouting move (saved): a team's budget or a scout's assignment. */
+  scoutingMove(params: ScoutingMove): { message: string };
+  /** The draft room: the pick on the clock, its team's board and needs, trade offers, the log. */
+  draftRoomView(params: Record<string, never>): DraftRoomView;
+  /** A draft-room action (saved): make the pick, sim picks, or accept a trade offer. */
+  draftAction(params: DraftAction): { message: string };
+  /** A team's big board for the upcoming draft. */
+  bigBoardView(params: { teamId: string }): BigBoardView;
+  /** Sets a team's board by hand (prospect ids, best first), or back to its scouts' (null). Saved. */
+  setBoard(params: { teamId: string; ids: number[] | null }): BigBoardView;
+  /** A mock draft as the viewer's scouts see it. */
+  mockDraftView(params: Record<string, never>): MockDraftView;
+  /** A past draft class with retro grades. */
+  draftHistoryView(params: { season?: number }): DraftHistoryView;
 }
+
+export type ViewingOptions = { current: string | null; teams: { id: string; name: string }[] };
 
 export type Method = keyof SimApi;
 export type Params<M extends Method> = Parameters<SimApi[M]>[0];

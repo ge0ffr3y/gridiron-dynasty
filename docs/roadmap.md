@@ -68,7 +68,7 @@ Decisions that block a phase. Record the answer here when made.
 | Working title / app name | Phase 0 (placeholder ok) | "FootballGM Sim" as placeholder (rename before going public: "Football GM" is ZenGM's game) |
 | League name, championship name, 32 team names, mascots, colors | Phase 6 | Deferred by the owner (Phase 6 planning): placeholder names stay; the naming session happens later |
 | Is the generated real-league file published in the public repo, or built locally only? | Phase 6 | Built locally only (git-ignored), rebuilt by `npm run pipeline -- league`; revisit when the repo goes public (decided in Phase 6) |
-| Real college names for prospects, or fictional schools? | Phase 11 | |
+| Real college names for prospects, or fictional schools? | Phase 11 | Fictional schools, the same mapping as players' colleges; each school has a scouting region (decided in Phase 11a) |
 | Can more than one team be human-controlled? | Phase 14 | |
 | How far back imported history goes (since 1920 vs. championship era + all-time record books) | Phase 15 | |
 | Fully fictional league as an alternative start? | Phase 1 | *Effectively yes: it's how we build Phases 1–5* (built in Phase 1) |
@@ -417,23 +417,23 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** You never see true ratings. Your scouts' accuracy decides how clearly you see prospects, and drafts produce real busts and gems.
 
 ### Steps
-- [ ] **Perception for real:** scouted ratings = truth + noise; noise shrinks with scout quality, scouting budget and time spent, and the player's experience (veterans are clear, prospects aren't); confidence ranges shown in the UI
-- [ ] **Real 2026 draft class import:** prospects (renamed) with combine measurables and profiles
-- [ ] **Draft class generator** for 2027 on: class size, position mix, measurables, potentials; calibrated so value by draft slot matches real hit rates by round
-- [ ] **Combine and pro days** as calendar events that reveal measurables
-- [ ] **Scouting assignments:** send scouts by region and position; reports arrive over the season
-- [ ] **Big boards:** yours (editable) and each AI team's (needs + philosophy; deepened in Phase 13)
-- [ ] **Draft day:** pick clock, AI picks, trading up and down with pick values, draft log
-- [ ] **Compensatory picks** approximating the real formula (free agents lost vs. signed, by contract size and playing time), awarded before the draft
-- [ ] Rookie contracts signed on the wage scale; **undrafted free-agent** signing rush
-- [ ] **Retro draft grades:** truth revealed over time; bust and steal tracking
-- [ ] **UI:** draft room, big board, prospect pages (scouting report, combine results, confidence), mock drafts
+- [x] **Perception for real:** scouted ratings = truth + noise; noise shrinks with scout quality, scouting budget and time spent, and the player's experience (veterans are clear, prospects aren't); confidence ranges shown in the UI *(11a: hash-based, no dice on screens; mostly a league-wide shared error plus each team's own; "Viewing as" switch, league office by default)*
+- [x] **Real 2026 draft class import:** prospects (renamed) with combine measurables and profiles *(11a: 345 real prospects ranked by the real draft, physicals from real drills, hidden spread redrawn per game; private)*
+- [x] **Draft class generator** for 2027 on: class size, position mix, measurables, potentials; calibrated so value by draft slot matches real hit rates by round *(11a: picks 1-150 within about 3-6 points of real start rates; picks 151-224 about 6 high)*
+- [x] **Combine and pro days** as calendar events that reveal measurables *(11a: ~337 invitees on the combine date, pro days spread March to April; drills match the real distributions by position)*
+- [x] **Scouting assignments:** send scouts by region and position; reports arrive over the season *(11a: weekly study September to April; AI assigns by need, the league office can set any team's and its budget)*
+- [x] **Big boards:** yours (editable) and each AI team's (needs + philosophy; deepened in Phase 13) *(11b: scouts' grades plus needs read by the team's own staff and a philosophy fixed per team; boards set by hand are followed on draft day)*
+- [x] **Draft day:** pick clock, AI picks, trading up and down with pick values, draft log *(11b: a draft-day stage, pick by pick; real 2026 clock times; 33-35 trades a draft at a median 1.41-1.42 times career value vs. real 31.7 and 1.42; every pick and trade logged with its reason)*
+- [x] **Compensatory picks** approximating the real formula (free agents lost vs. signed, by contract size and playing time), awarded before the draft *(11b: CBA Appendix V in the rules file, a worked example in CI; honors wait for Phase 15's All-Pros; about half are supplemental until Phase 12's free agency moves more players)*
+- [x] Rookie contracts signed on the wage scale; **undrafted free-agent** signing rush *(rookie scale from Phase 7b; 11b: the rush follows each team's board)*
+- [x] **Retro draft grades:** truth revealed over time; bust and steal tracking *(11b: seasons started vs. real picks at the slot, steal/hit/fair/miss/bust, team grades per class)*
+- [x] **UI:** draft room, big board, prospect pages (scouting report, combine results, confidence), mock drafts *(11a-11b, checked in the browser: draft room with offers and live play, big board editing, mock drafts, draft history)*
 
 ### Done when
-- [ ] In a 20-season sim, early first-rounders are far better on average than late-rounders, with real busts and late-round gems
-- [ ] Hit rates by round fall in real ranges
-- [ ] A better scout visibly tightens the confidence ranges
-- [ ] Draft-day trades happen at sensible prices
+- [x] In a 20-season sim, early first-rounders are far better on average than late-rounders, with real busts and late-round gems *(11a: `--draft 20`, picks 1-10 start 3+ seasons 85% vs. 15% for picks 201-224; about 6% of first-rounders never start; undrafted players hold about a fifth of starting seasons)*
+- [ ] Hit rates by round fall in real ranges *(partly: with compensatory picks, rounds 1-3 within about 4 points of real and picks 1-100 within about 7; rounds 4-7 start 1-11 points more often, mostly while supplemental picks stand in for formula ones until Phase 12)*
+- [x] A better scout visibly tightens the confidence ranges *(11a: test in CI; switch "Viewing as" on the Draft and prospect pages to see it)*
+- [x] Draft-day trades happen at sensible prices *(11b: median 1.41-1.42 times career value, middle half 1.34-1.48, vs. real 1.42 and 1.30-1.56; a CI test keeps every trade in the band)*
 
 > [!example]- Kickoff prompt
 > "Phase 11: make the perception layer real (scouted ratings with noise driven by scouts, budget, and experience), import the real 2026 draft class, build a calibrated draft class generator, combine and pro days, scouting assignments, big boards, draft day with trades, compensatory picks, rookie and undrafted signings, and retro draft grades. Add the draft room and prospect screens. Plan first."

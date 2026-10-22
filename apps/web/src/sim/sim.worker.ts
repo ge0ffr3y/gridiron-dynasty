@@ -25,6 +25,7 @@ import {
   teamView,
   type League,
   type Viewer,
+  screenViewer,
   depthChartView,
   leadersView,
   moveOnDepthChart,
@@ -38,6 +39,18 @@ import {
   calendarPageView,
   campReportView,
   carouselView,
+  bigBoardView,
+  draftAction,
+  draftHistoryView,
+  draftRoomView,
+  mockDraftView,
+  setBoard,
+  draftClassView,
+  makeScoutingMove,
+  prospectView,
+  scoutingDepartmentView,
+  setViewingAs,
+  viewingOptions,
   officeFire,
   officeHire,
   developmentReportView,
@@ -57,8 +70,10 @@ import type { FromWorker, Method, SavedLeague, SimApi, ToWorker } from "./protoc
 
 declare const self: DedicatedWorkerGlobalScope;
 
-/** Until GM Mode (Phase 14) everyone views the league as the neutral league office. */
-const VIEWER: Viewer = { kind: "league" };
+/** Whose eyes the screens see through: the league's "Viewing as" setting (the league office by default). */
+function viewer(): Viewer {
+  return screenViewer(requireLeague());
+}
 
 let open: { saved: SavedLeague; league: League } | null = null;
 
@@ -207,19 +222,19 @@ const handlers: Handlers = {
 
   leagueSummary() {
     const league = requireLeague();
-    return { ...leagueSummary(league, VIEWER), saved: open!.saved };
+    return { ...leagueSummary(league, viewer()), saved: open!.saved };
   },
 
   teamView({ teamId }) {
-    return teamView(requireLeague(), teamId, VIEWER);
+    return teamView(requireLeague(), teamId, viewer());
   },
 
   playersView() {
-    return playersView(requireLeague(), VIEWER);
+    return playersView(requireLeague(), viewer());
   },
 
   playerView({ id }) {
-    return playerView(requireLeague(), id, VIEWER);
+    return playerView(requireLeague(), id, viewer());
   },
 
   coachView({ id }) {
@@ -269,21 +284,21 @@ const handlers: Handlers = {
   },
 
   depthChartView({ teamId }) {
-    return depthChartView(requireLeague(), teamId, VIEWER);
+    return depthChartView(requireLeague(), teamId, viewer());
   },
 
   async moveOnDepthChart({ teamId, slot, playerId, toIndex }) {
     const league = requireLeague();
     moveOnDepthChart(league, teamId, slot, playerId, toIndex);
     open = { saved: await save(league, open!.saved), league };
-    return depthChartView(league, teamId, VIEWER);
+    return depthChartView(league, teamId, viewer());
   },
 
   async resetDepthChart({ teamId }) {
     const league = requireLeague();
     resetDepthChart(league, teamId);
     open = { saved: await save(league, open!.saved), league };
-    return depthChartView(league, teamId, VIEWER);
+    return depthChartView(league, teamId, viewer());
   },
 
   leadersView({ season }) {
@@ -295,7 +310,7 @@ const handlers: Handlers = {
   },
 
   capSheetView({ teamId }) {
-    return capSheetView(requireLeague(), teamId, VIEWER);
+    return capSheetView(requireLeague(), teamId, viewer());
   },
 
   transactionsView({ teamId, group }) {
@@ -315,11 +330,11 @@ const handlers: Handlers = {
   },
 
   developmentReportView() {
-    return developmentReportView(requireLeague(), VIEWER);
+    return developmentReportView(requireLeague(), viewer());
   },
 
   rosterManagementView({ teamId, freeAgentPosition }) {
-    return rosterManagementView(requireLeague(), teamId, VIEWER, {
+    return rosterManagementView(requireLeague(), teamId, viewer(), {
       freeAgentPosition: freeAgentPosition as Position | undefined,
     });
   },
@@ -329,6 +344,66 @@ const handlers: Handlers = {
     const message = makeRosterMove(league, teamId, playerId, kind);
     open = { saved: await save(league, open!.saved), league };
     return { message };
+  },
+
+  viewingOptions() {
+    return viewingOptions(requireLeague());
+  },
+
+  async setViewingAs({ teamId }) {
+    const league = requireLeague();
+    setViewingAs(league, teamId);
+    open = { saved: await save(league, open!.saved), league };
+    return viewingOptions(league);
+  },
+
+  draftClassView() {
+    return draftClassView(requireLeague(), viewer());
+  },
+
+  prospectView({ id }) {
+    return prospectView(requireLeague(), id, viewer());
+  },
+
+  scoutingDepartmentView({ teamId }) {
+    return scoutingDepartmentView(requireLeague(), teamId);
+  },
+
+  async scoutingMove(move) {
+    const league = requireLeague();
+    const message = makeScoutingMove(league, move);
+    open = { saved: await save(league, open!.saved), league };
+    return { message };
+  },
+
+  draftRoomView() {
+    return draftRoomView(requireLeague());
+  },
+
+  async draftAction(action) {
+    const league = requireLeague();
+    const message = draftAction(league, action);
+    open = { saved: await save(league, open!.saved), league };
+    return { message };
+  },
+
+  bigBoardView({ teamId }) {
+    return bigBoardView(requireLeague(), teamId);
+  },
+
+  async setBoard({ teamId, ids }) {
+    const league = requireLeague();
+    setBoard(league, teamId, ids);
+    open = { saved: await save(league, open!.saved), league };
+    return bigBoardView(league, teamId);
+  },
+
+  mockDraftView() {
+    return mockDraftView(requireLeague(), viewer());
+  },
+
+  draftHistoryView({ season }) {
+    return draftHistoryView(requireLeague(), viewer(), season);
   },
 
   carouselView({ season }) {
@@ -347,7 +422,7 @@ const handlers: Handlers = {
   },
 
   tradeAssets({ teamId }) {
-    return tradeAssetsView(requireLeague(), teamId, VIEWER);
+    return tradeAssetsView(requireLeague(), teamId, viewer());
   },
 
   previewTrade({ a, b }) {

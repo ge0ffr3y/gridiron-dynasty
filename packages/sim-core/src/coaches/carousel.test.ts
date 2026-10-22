@@ -61,7 +61,10 @@ describe("the coaching carousel", () => {
   it("careers record each season's job and the head coach above it", () => {
     const league = copy();
     for (const c of league.coaches.filter((x) => x.teamId !== null && x.role === "OC")) {
-      const line = c.career.find((e) => e.season === league.season && e.teamId === c.teamId);
+      // His latest line this season (an interim head coach also has a head-coach line).
+      const line = [...c.career]
+        .reverse()
+        .find((e) => e.season === league.season && e.teamId === c.teamId && e.role === "OC");
       if (!line) continue; // hired after the season
       expect(line.underId).not.toBeNull();
     }

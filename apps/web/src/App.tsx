@@ -28,11 +28,14 @@ import { useHashLocation } from "wouter/use-hash-location";
 import { SimControls } from "@/components/SimControls";
 import { Loading } from "@/components/shared";
 import { Button } from "@/components/ui/button";
-import { SessionProvider, useSession } from "@/lib/session";
+import { SessionProvider, useLeagueKey, useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { CalendarPage } from "@/pages/CalendarPage";
 import { CampPage } from "@/pages/CampPage";
+import { DraftPage } from "@/pages/DraftPage";
+import { ProspectPage } from "@/pages/ProspectPage";
+import { Select } from "@/components/ui/input";
 import { CoachingPage } from "@/pages/CoachingPage";
 import { DevelopmentPage } from "@/pages/DevelopmentPage";
 import { InjuriesPage } from "@/pages/InjuriesPage";
@@ -51,7 +54,7 @@ import { SchedulePage } from "@/pages/SchedulePage";
 import { StandingsPage } from "@/pages/StandingsPage";
 import { TeamPage } from "@/pages/TeamPage";
 import { TeamsPage } from "@/pages/TeamsPage";
-import { useSim } from "@/sim/client";
+import { call, useSim } from "@/sim/client";
 
 type NavItem = {
   label: string;
@@ -79,7 +82,7 @@ const NAV: NavItem[] = [
   { label: "Injuries", icon: HeartPulse, href: "/injuries", needsLeague: true },
   { label: "Development", icon: TrendingUp, href: "/development", needsLeague: true },
   { label: "Coaching", icon: BriefcaseBusiness, href: "/coaching", needsLeague: true },
-  { label: "Draft", icon: ClipboardList, phase: 11 },
+  { label: "Draft", icon: ClipboardList, href: "/draft", needsLeague: true },
   { label: "Free agency", icon: Handshake, phase: 12 },
 ];
 
@@ -120,14 +123,17 @@ function Shell() {
               "FootballGM Sim"
             )}
           </h1>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-          >
-            {theme === "dark" ? <Sun /> : <Moon />}
-          </Button>
+          <div className="flex items-center gap-2">
+            {league && <ViewingAsSwitch />}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            >
+              {theme === "dark" ? <Sun /> : <Moon />}
+            </Button>
+          </div>
         </header>
         {league && (
           <div className="border-b px-4 py-2 md:px-6">
@@ -232,6 +238,18 @@ function Shell() {
               {(params) => (
                 <NeedsLeague>
                   <GamePage gameId={Number(params.id)} />
+                </NeedsLeague>
+              )}
+            </Route>
+            <Route path="/draft">
+              <NeedsLeague>
+                <DraftPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/prospect/:id">
+              {(params) => (
+                <NeedsLeague>
+                  <ProspectPage prospectId={Number(params.id)} />
                 </NeedsLeague>
               )}
             </Route>
@@ -350,5 +368,35 @@ function WorkerStatus() {
       {text}
       {hello.data && <div>sim-core {hello.data.simCoreVersion}</div>}
     </div>
+  );
+}
+
+/**
+ * Whose eyes the screens see through (Phase 11): the league office's consensus, or any team's
+ * scouts. Every rating on every screen is that staff's read, never the truth.
+ */
+function ViewingAsSwitch() {
+  const { bump } = useSession();
+  const options = useSim("viewingOptions", {}, useLeagueKey());
+  if (!options.data) return null;
+  return (
+    <label className="flex items-center gap-2 text-sm">
+      <span className="hidden text-muted-foreground sm:inline">Viewing as</span>
+      <Select
+        value={options.data.current ?? ""}
+        aria-label="Viewing as"
+        className="max-w-48"
+        onChange={(e) => {
+          void call("setViewingAs", { teamId: e.target.value || null }).then(bump);
+        }}
+      >
+        <option value="">League office (consensus)</option>
+        {options.data.teams.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.name}
+          </option>
+        ))}
+      </Select>
+    </label>
   );
 }

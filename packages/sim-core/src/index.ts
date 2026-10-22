@@ -33,7 +33,7 @@ export * from "./contracts/views";
 export * from "./roster/lists";
 export * from "./roster/legality";
 export * from "./roster/moves";
-export { runDraft } from "./roster/draft";
+
 export * from "./roster/trades";
 export * from "./roster/office";
 export * from "./roster/views";
@@ -73,6 +73,22 @@ export {
 } from "./coaches/carousel";
 export { DEVELOPMENT } from "./lifecycle/config";
 export { seasonDates } from "./season/calendar";
+// Scouting and draft classes (Phase 11).
+export type { RealProspectInput } from "./scouting/classes";
+export { draftClass, upcomingDraftYear } from "./scouting/classes";
+export { DRILLS } from "./scouting/measurables";
+export { REGIONS, SCOUT_GROUPS, SCOUTING } from "./scouting/config";
+export * from "./scouting/views";
+// Draft day (Phase 11b).
+export * from "./draft/views";
+export { draftAction, tradeOffers, type DraftAction, type TradeOffer } from "./draft/day";
+export { compensatoryAwards } from "./draft/compensatory";
+export {
+  draftOutcomes,
+  draftOutcomesByPick,
+  seasonsStarted,
+  DRAFT_REPORT,
+} from "./scouting/report";
 
 /** Bumped when the league save format or simulation rules change in a breaking way. */
-export const SIM_CORE_VERSION = "0.12.0";
+export const SIM_CORE_VERSION = "0.13.0";

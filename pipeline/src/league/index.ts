@@ -10,7 +10,8 @@
  * names; the report does, and never leaves this machine.
  */
 import { realCoachCareer, realCoachStyle } from "./coachStyles";
-import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import draftData from "../../../calibration/draft.json";
 import { join } from "node:path";
 import {
   assembleRealLeague,
@@ -28,6 +29,8 @@ import {
   type League,
   type RealCoachInput,
   type RealPlayerInput,
+  type RealProspectInput,
+  type Position,
 } from "@fgm/sim-core";
 import { readCsv, ROOT } from "../matchups";
 import { CACHE } from "../matchups";
@@ -252,6 +255,16 @@ export async function buildLeague(): Promise<{
     `${coachInputs.length} real coaches (head coaches and coordinators) from end-of-2025 staffs; ${coachInputs.filter((c) => c.style).length} with tendencies measured from their real teams.`,
   );
 
+  // The real 2026 draft class (npm run pipeline -- draft), renamed like everyone else, and the
+  // real 2026 draft order (who owned each pick on draft day, compensatory picks included).
+  const prospectInputs = realProspects(renamer);
+  const draftOrder2026 = realDraftOrder();
+  report.push(
+    prospectInputs.length > 0
+      ? `Draft class: ${prospectInputs.length} real 2026 prospects (${prospectInputs.filter((p) => p.pick).length} drafted, ${prospectInputs.filter((p) => p.invited).length} at the combine); the rest of the pool is generated.`
+      : "Draft class: no class-2026.json (run npm run pipeline -- draft); the class is generated.",
+  );
+
   const league = assembleRealLeague({
     name: "Real league",
     seed: REAL_LEAGUE_SEED,
@@ -263,6 +276,8 @@ export async function buildLeague(): Promise<{
     coaches: coachInputs,
     games: seasonGames(games, touchdowns),
     names: new NamePicker(new Rng(streamSeed(REAL_LEAGUE_SEED, "generated-names"))),
+    prospects: prospectInputs,
+    draftOrder: draftOrder2026,
     ...(snapshot
       ? {
           teamCaps: Object.fromEntries(
@@ -284,15 +299,17 @@ export async function buildLeague(): Promise<{
 
   // The real-name check: generated people (special teams coaches, scouts) too.
   let fixed = 0;
-  for (const person of [...league.players, ...league.coaches]) {
+  for (const person of [...league.players, ...league.coaches, ...league.prospects]) {
     if (!renamer.isReal(person.firstName, person.lastName)) continue;
     Object.assign(
       person,
-      renamer.name(`fix:${"role" in person ? "coach" : "player"}:${person.id}`),
+      renamer.name(
+        `fix:${"role" in person ? "coach" : "draftYear" in person ? "prospect" : "player"}:${person.id}`,
+      ),
     );
     fixed += 1;
   }
-  const stillReal = [...league.players, ...league.coaches].filter((p) =>
+  const stillReal = [...league.players, ...league.coaches, ...league.prospects].filter((p) =>
     renamer.isReal(p.firstName, p.lastName),
   );
   if (stillReal.length > 0) throw new Error(`${stillReal.length} real names survived renaming`);
@@ -417,4 +434,76 @@ export async function league(): Promise<void> {
   console.log(report.slice(0, 12).join("\n"));
   console.log(`Top overalls: ${top.join(", ")}`);
   console.log(`Wrote ${LEAGUE_FILE} (and a copy for the web app), and ${join(OUT, "report.md")}.`);
+}
+
+/** The real 2026 class from the draft step's private file, renamed, with fictional schools. */
+function realProspects(renamer: Renamer): RealProspectInput[] {
+  const file = join(OUT, "class-2026.json");
+  if (!existsSync(file)) return [];
+  type Row = {
+    key: string;
+    position: Position;
+    school: string | null;
+    age: number | null;
+    heightIn: number | null;
+    weightLb: number | null;
+    drills: Record<string, number | null>;
+    invited: boolean;
+    pick: { overall: number } | null;
+  };
+  const rows = (JSON.parse(readFileSync(file, "utf8")) as Row[]).sort((a, b) =>
+    a.key.localeCompare(b.key),
+  );
+  const sizes = draftData.combine.measurables as unknown as Record<
+    string,
+    { ht: { mean: number }; wt: { mean: number } }
+  >;
+  return rows.map((r) => ({
+    key: r.key,
+    ...renamer.name(`prospect:${r.key}`),
+    position: r.position,
+    college: fictionalCollege(r.school ?? ""),
+    age: r.age,
+    // Drafted players who skipped the combine: a typical size at the position.
+    heightIn: r.heightIn ?? Math.round(sizes[r.position]?.ht.mean ?? 74),
+    weightLb: r.weightLb ?? Math.round(sizes[r.position]?.wt.mean ?? 240),
+    drills: {
+      forty: r.drills["forty"] ?? null,
+      bench: r.drills["bench"] ?? null,
+      vertical: r.drills["vertical"] ?? null,
+      broadJump: r.drills["broad_jump"] ?? null,
+      cone: r.drills["cone"] ?? null,
+      shuttle: r.drills["shuttle"] ?? null,
+    },
+    invited: r.invited,
+    pick: r.pick?.overall ?? null,
+  }));
+}
+
+/** Pro Football Reference team codes (the draft data's) that differ from this league's ids. */
+const PFR_TEAM: Record<string, string> = {
+  GNB: "GB",
+  KAN: "KC",
+  LVR: "LV",
+  NOR: "NO",
+  NWE: "NE",
+  SFO: "SF",
+  TAM: "TB",
+};
+
+/** The real 2026 draft: every pick's number, round and the club that made it. */
+function realDraftOrder(): { overall: number; round: number; teamId: string }[] {
+  const file = join(OUT, "class-2026.json");
+  if (!existsSync(file)) return [];
+  const rows = JSON.parse(readFileSync(file, "utf8")) as {
+    pick: { round: number; overall: number; team: string } | null;
+  }[];
+  return rows
+    .flatMap((r) => (r.pick ? [r.pick] : []))
+    .sort((a, b) => a.overall - b.overall)
+    .map((p) => ({
+      overall: p.overall,
+      round: p.round,
+      teamId: leagueTeam(PFR_TEAM[p.team] ?? p.team),
+    }));
 }

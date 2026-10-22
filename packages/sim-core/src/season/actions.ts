@@ -6,6 +6,7 @@ import { advance, advanceUntil, type SimHooks } from "./flow";
 
 export type SimActionId =
   | "league-year"
+  | "draft-day"
   | "draft"
   | "camp"
   | "preseason-week"
@@ -34,12 +35,14 @@ const ROUND_NAMES = {
 const OFFSEASON_STOPS: { id: SimActionId; label: string; reaches: League["calendar"]["stage"] }[] =
   [
     { id: "league-year", label: "Sim to the new League Year", reaches: "free-agency" },
+    { id: "draft-day", label: "Sim to draft day", reaches: "draft" },
     { id: "draft", label: "Sim through the draft", reaches: "after-draft" },
     { id: "camp", label: "Sim to training camp", reaches: "preseason" },
   ];
 const STAGE_ORDER: League["calendar"]["stage"][] = [
   "offseason",
   "free-agency",
+  "draft",
   "after-draft",
   "preseason",
   "cutdown",
@@ -53,6 +56,7 @@ export function availableActions(league: League): SimAction[] {
   switch (stage) {
     case "offseason":
     case "free-agency":
+    case "draft":
     case "after-draft": {
       const here = STAGE_ORDER.indexOf(stage);
       return [
@@ -106,6 +110,8 @@ export function runAction(league: League, id: SimActionId, hooks: SimHooks = {})
   switch (id) {
     case "league-year":
       return until("free-agency");
+    case "draft-day":
+      return until("draft");
     case "draft":
       return until("after-draft");
     case "camp":

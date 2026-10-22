@@ -1,6 +1,7 @@
 /** Small builders for hand-made season scenarios in tests. */
 import type { Game, Team } from "../league/schema";
 import { RULES_BY_SEASON, type Rules } from "../rules";
+import { emptyScouting } from "../scouting/config";
 
 export const RULES = RULES_BY_SEASON[2026] as Rules;
 
@@ -19,6 +20,7 @@ export function rulesTeams(rules: Rules = RULES): Team[] {
         controller: "ai" as const,
         reserveReturns: [],
         elevated: [],
+        scouting: emptyScouting(),
         depthChart: { auto: true, slots: {} },
         stadium: { roof: "outdoor" as const, surface: "grass" as const, elevationMeters: 0 },
         cap: { deadMoney: [], carryover: [], cashPaid: [], juneFirstDesignations: [] },

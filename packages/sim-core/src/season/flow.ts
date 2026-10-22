@@ -4,6 +4,7 @@
  * -> training camp -> preseason weeks -> final cuts -> Weeks 1-18 -> wild card
  * -> divisional -> conference -> championship -> season complete -> next year.
  */
+import { staffInput } from "../coaches/style";
 import { STARTERS } from "../generate/config";
 import { addDays, POSITIONS, overallAt, Rng, RngStreams, streamSeed } from "@fgm/foundation";
 import type {
@@ -180,8 +181,9 @@ function playGames(league: League, games: Game[], hooks: SimHooks): void {
     const weather = drawWeather(league, g);
     const output = simulateGame(
       {
-        home: { id: g.homeId, depth: depth.get(g.homeId)! },
-        away: { id: g.awayId, depth: depth.get(g.awayId)! },
+        // Each team's staff calls its plays and manages its games (Phase 10).
+        home: { id: g.homeId, depth: depth.get(g.homeId)!, ...staffInput(league, g.homeId) },
+        away: { id: g.awayId, depth: depth.get(g.awayId)!, ...staffInput(league, g.awayId) },
         neutral: g.neutral,
         conditions: conditionsFor(league, g, weather),
         playoff: g.round !== "regular",

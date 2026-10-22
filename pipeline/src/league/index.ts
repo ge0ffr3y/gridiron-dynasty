@@ -9,6 +9,7 @@
  * report of anything that couldn't be matched. The league file holds no real
  * names; the report does, and never leaves this machine.
  */
+import { realCoachStyle } from "./coachStyles";
 import { copyFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
@@ -243,9 +244,10 @@ export async function buildLeague(): Promise<{
     teamId: leagueTeam(c.team!),
     birthDate: null,
     experience: null,
+    style: realCoachStyle(c.role!, c.team!, c.name ?? ""),
   }));
   report.push(
-    `${coachInputs.length} real coaches (head coaches and coordinators) from end-of-2025 staffs.`,
+    `${coachInputs.length} real coaches (head coaches and coordinators) from end-of-2025 staffs; ${coachInputs.filter((c) => c.style).length} with tendencies measured from their real teams.`,
   );
 
   const league = assembleRealLeague({

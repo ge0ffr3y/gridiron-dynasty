@@ -19,6 +19,7 @@ import {
   type Position,
 } from "@fgm/foundation";
 import type { League, Player } from "../league/schema";
+import { developmentMultiplier } from "../coaches/effects";
 import { PRESEASON } from "../roster/config";
 import { DEVELOPMENT } from "./config";
 import { ageCurve, growthShare, peakAge } from "./curves";
@@ -64,7 +65,7 @@ export interface DevelopmentContext {
   portion: number;
   /** Extra growth a strong camp earns (overall points, before the potential cap). */
   campBonus?: number;
-  /** A coaching staff's development effect, 1 = typical (a hook for Phase 10). */
+  /** His coaches' development effect and his scheme fit (Phase 10), 1 = typical. */
   coaching?: number;
 }
 
@@ -202,6 +203,8 @@ export function offseasonDevelopment(league: League): DevelopmentChange[] {
         age: ageOn(p.birthDate, league.date),
         playingTime: playingTime(p, league.season - 1, games),
         portion: DEVELOPMENT.offseasonShare,
+        // His coaches and his fit in their scheme (Phase 10).
+        coaching: developmentMultiplier(league, p),
       },
       rng,
     );
@@ -253,6 +256,7 @@ export function campDevelopment(league: League): DevelopmentChange[] {
             : playingTime(p, league.season - 1, games),
           portion,
           campBonus: campBonus(p, league.season),
+          coaching: developmentMultiplier(league, p),
         },
         rng,
       ),

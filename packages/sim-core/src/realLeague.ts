@@ -37,11 +37,11 @@ import { emptyTeamCap } from "./contracts/team";
 import { generateContracts } from "./contracts/generate";
 import { seedSalaryHistory } from "./contracts/tags";
 import { settleUnsigned } from "./contracts/upkeep";
+import { COACH_AGE_FALLBACK } from "./coaches/config";
 import { completeSeasonFromResults, startNextSeason } from "./season/flow";
 import { stadiumFor } from "./season/weather";
-import { generateCoach } from "./generate/coaches";
+import { fillStaff, generateCoach } from "./generate/coaches";
 import {
-  COACH_AGE_FALLBACK,
   DRAFT_PEDIGREE_GROWTH,
   DRAFT_PEDIGREE_GROWTH_LATER,
   GROWTH_PER_YEAR,
@@ -105,6 +105,8 @@ export interface RealCoachInput {
   teamId: string;
   birthDate: LeagueDate | null;
   experience: number | null;
+  /** Tendencies measured from his real teams (Phase 10); the rest are drawn as for generated coaches. */
+  style?: Partial<Coach["style"]>;
 }
 
 /** A real game from the season before the league starts. */
@@ -222,7 +224,7 @@ function generatedTraits(rng: Rng): Omit<HiddenTraits, "potential"> {
 
 function realCoach(input: RealCoachInput, id: number, date: LeagueDate, seed: number): Coach {
   const rng = personRng(seed, input.key);
-  // Generated attributes (Phase 10 derives real ones); the facts we have override the rest.
+  // Generated skills; the facts we have (age, experience, real tendencies) override the rest.
   const coach = generateCoach(
     rng,
     { next: () => ({ firstName: input.firstName, lastName: input.lastName }) } as NamePicker,
@@ -234,6 +236,7 @@ function realCoach(input: RealCoachInput, id: number, date: LeagueDate, seed: nu
   );
   if (input.birthDate) coach.birthDate = input.birthDate;
   if (input.experience !== null) coach.experience = input.experience;
+  if (input.style) Object.assign(coach.style, input.style);
   return coach;
 }
 
@@ -274,26 +277,6 @@ export function assembleRealLeague(input: RealLeagueInput): League {
   const coaches = [...input.coaches]
     .sort((a, b) => a.teamId.localeCompare(b.teamId) || a.role.localeCompare(b.role))
     .map((c, i) => realCoach(c, i, date, input.seed));
-  // Jobs the real data doesn't cover get generated people.
-  const coachRng = new Rng(streamSeed(input.seed, "coaches"));
-  for (const team of teams) {
-    for (const role of ["HC", "OC", "DC", "STC", "SCOUT", "SCOUT"] as const) {
-      if (role !== "SCOUT" && coaches.some((c) => c.teamId === team.id && c.role === role))
-        continue;
-      coaches.push(
-        generateCoach(
-          coachRng,
-          input.names,
-          date,
-          coaches.length,
-          team.id,
-          role,
-          COACH_AGE_FALLBACK[role],
-        ),
-      );
-    }
-  }
-
   const draftPicks = generateDraftPicks(
     input.season + 1,
     nextRules.draft.seasonsOfPicksHeld,
@@ -361,6 +344,8 @@ export function assembleRealLeague(input: RealLeagueInput): League {
       decision: 0,
     },
   };
+  // Jobs the real data doesn't cover (position coaches, trainers, scouts) get generated people.
+  fillStaff(league, date, "real");
   completeSeasonFromResults(league);
   startNextSeason(league, { agePlayers: false });
   // Money: everyone on a roster gets a contract, and the tag history starts from them.

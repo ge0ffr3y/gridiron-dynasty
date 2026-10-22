@@ -11,6 +11,7 @@ import injuryData from "../../../../calibration/injuries.json";
 import type { League, Player } from "../league/schema";
 import { seasonDates } from "../season/calendar";
 import { DEPTH_CHART } from "../season/config";
+import { fitFor } from "../coaches/fit";
 import { resolveDepthChart, teamRoster } from "../season/depthChart";
 
 /** The measured groups (offensive linemen together), as in lifecycle.json. */
@@ -57,7 +58,7 @@ export function lifecycleSnapshot(league: League): LifecycleSnapshot {
   for (const team of league.teams) {
     const roster = teamRoster(league, team.id);
     const byId = new Map(roster.map((p) => [p.id, p]));
-    const chart = resolveDepthChart(team, roster, league.season);
+    const chart = resolveDepthChart(team, roster, league.season, fitFor(league, team.id));
     const seen = new Set<number>();
     for (const slot of DEPTH_SLOTS) {
       if (slot === "KR" || slot === "PR") continue;

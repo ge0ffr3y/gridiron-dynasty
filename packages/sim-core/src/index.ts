@@ -63,8 +63,9 @@ export {
 export { validateSchedule } from "./season/validate";
 export * from "./lifecycle/report";
 export * from "./lifecycle/views";
+export * from "./coaches/report";
 export { DEVELOPMENT } from "./lifecycle/config";
 export { seasonDates } from "./season/calendar";
 
 /** Bumped when the league save format or simulation rules change in a breaking way. */
-export const SIM_CORE_VERSION = "0.11.0";
+export const SIM_CORE_VERSION = "0.12.0";

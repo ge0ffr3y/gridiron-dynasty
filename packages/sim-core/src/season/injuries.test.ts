@@ -51,6 +51,7 @@ describe("severity and body parts", () => {
   it("a player back from a hamstring injury hurts his hamstring again more often", () => {
     const league = copy();
     const fresh = someone(league, "WR");
+    fresh.injuryHistory = []; // no recent injury of his own
     const back = JSON.parse(JSON.stringify(fresh)) as Player;
     back.injuryHistory = [
       { season: league.season, date: league.date, part: "Hamstring", kind: "game", games: 2 },
@@ -76,15 +77,18 @@ describe("getting hurt", () => {
   it("a knock lists him Questionable and he plays, a step slower", () => {
     const league = copy();
     const p = someone(league, "RB");
+    const lineupOf = () =>
+      Object.values(gameDepthChart(league, p.teamId!))
+        .flat()
+        .find((x) => x.id === p.id);
+    const healthy = lineupOf();
     hurt(league, p, 0, "practice", "test", new Rng(1));
     expect(p.injury).toBeNull();
     expect(p.knock).not.toBeNull();
     expect(p.injuryHistory.at(-1)!.games).toBe(0);
-    const chart = gameDepthChart(league, p.teamId!);
-    const inLineup = Object.values(chart)
-      .flat()
-      .find((x) => x.id === p.id);
-    if (inLineup) expect(inLineup.ratings.speed).toBe(p.ratings.speed - INJURY_MODEL.knockPenalty);
+    const knocked = lineupOf();
+    if (healthy && knocked)
+      expect(healthy.ratings.speed - knocked.ratings.speed).toBe(INJURY_MODEL.knockPenalty);
   });
 
   it("an injury that costs games: part, severity, Out, history; he sits", () => {

@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatHeight } from "@/lib/format";
-import { InjuryTag, ListTag, OverallBadge } from "./shared";
+import { InjuryTag, FitTag, ListTag, OverallBadge } from "./shared";
 
 const POSITION_ORDER = new Map<Position, number>(POSITIONS.map((p, i) => [p, i]));
 
@@ -128,6 +128,13 @@ export function RosterTable({
         sortDescFirst: true,
         cell: (c) => <OverallBadge value={c.getValue<number>()} />,
         meta: { numeric: true },
+      },
+      {
+        id: "fit",
+        accessorFn: (r) => r.fit?.score ?? 0,
+        header: "Fit",
+        sortDescFirst: true,
+        cell: (c) => <FitTag label={c.row.original.fit?.label ?? null} always />,
       },
     ],
     [showTeam],

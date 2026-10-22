@@ -61,13 +61,26 @@ describe("generated league: contents", () => {
     }
   });
 
-  it("gives every team a six-person staff and its own 21 draft picks", () => {
+  it("gives every team a twelve-person staff (Phase 10) and its own 21 draft picks", () => {
     for (const team of league.teams) {
       const staff = league.coaches
         .filter((c) => c.teamId === team.id)
         .map((c) => c.role)
         .sort();
-      expect(staff).toEqual(["DC", "HC", "OC", "SCOUT", "SCOUT", "STC"]);
+      expect(staff).toEqual([
+        "DBC",
+        "DC",
+        "FRONT",
+        "HC",
+        "MED",
+        "OC",
+        "OLC",
+        "SCOUT",
+        "SCOUT",
+        "SKILL",
+        "STC",
+        "STR",
+      ]);
       const picks = league.draftPicks.filter((p) => p.ownerTeamId === team.id);
       expect(picks).toHaveLength(21);
       expect(picks.every((p) => p.originalTeamId === team.id)).toBe(true);
@@ -140,7 +153,7 @@ describe("perception and views", () => {
     expect(summary.conferences.flatMap((c) => c.divisions)).toHaveLength(8);
     const team = teamView(league, "BUF", LEAGUE_VIEW);
     expect(team.roster).toHaveLength(90);
-    expect(team.staff).toHaveLength(6);
+    expect(team.staff).toHaveLength(12);
     expect(team.starterOverall).toBeGreaterThan(65);
     expect(playersView(league, LEAGUE_VIEW)).toHaveLength(league.players.length);
     const card = playerView(league, 0, LEAGUE_VIEW);

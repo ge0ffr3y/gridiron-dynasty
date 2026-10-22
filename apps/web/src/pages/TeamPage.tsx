@@ -171,27 +171,29 @@ export function TeamPage({ teamId }: { teamId: string }) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Role</TableHead>
+              <TableHead>Job</TableHead>
               <TableHead>Name</TableHead>
               <TableHead className="text-right">Age</TableHead>
-              <TableHead className="text-right">Years coaching</TableHead>
+              <TableHead className="text-right">Main skill</TableHead>
               <TableHead>Scheme</TableHead>
+              <TableHead>Style, or what he does</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {staff.map((c) => (
               <TableRow key={c.id}>
-                <TableCell className="text-muted-foreground">
-                  {c.role === "SCOUT" ? "Scout" : c.role}
-                </TableCell>
+                <TableCell className="text-muted-foreground">{c.roleName}</TableCell>
                 <TableCell>
                   <Link href={`/coach/${c.id}`} className="font-medium hover:underline">
                     {c.name}
                   </Link>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{c.age}</TableCell>
-                <TableCell className="text-right tabular-nums">{c.experience}</TableCell>
+                <TableCell className="text-right tabular-nums" title={c.mainSkill.label}>
+                  {c.mainSkill.value}
+                </TableCell>
                 <TableCell>{c.scheme ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{c.summary}</TableCell>
               </TableRow>
             ))}
           </TableBody>

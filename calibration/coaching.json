@@ -1,0 +1,157 @@
+{
+  "source": "nflverse play-by-play and participation 2016-2025 regular seasons (CC-BY-4.0), built by `npm run pipeline -- coaching`.",
+  "note": "Per team-season tendencies. spread = standard deviation across team-seasons; trueSpread takes out the sampling noise of one season's plays. yearToYear = correlation with the same team's previous season, when the head coach stayed and when he changed.",
+  "tendencies": {
+    "passOverExpected": {
+      "side": "off",
+      "label": "Pass rate over expected (neutral situations)",
+      "teamSeasons": 320,
+      "seasons": [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+      "mean": -0.0117,
+      "spread": 0.0442,
+      "trueSpread": 0.0392,
+      "yearToYear": {
+        "sameHeadCoach": 0.444,
+        "newHeadCoach": 0.2,
+        "pairs": [220, 68]
+      }
+    },
+    "noHuddle": {
+      "side": "off",
+      "label": "No-huddle share (neutral situations)",
+      "teamSeasons": 320,
+      "seasons": [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+      "mean": 0.0822,
+      "spread": 0.091,
+      "trueSpread": 0.0902,
+      "yearToYear": {
+        "sameHeadCoach": 0.744,
+        "newHeadCoach": -0.003,
+        "pairs": [220, 68]
+      }
+    },
+    "deepShare": {
+      "side": "off",
+      "label": "Share of pass attempts thrown 20+ yards",
+      "teamSeasons": 320,
+      "seasons": [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+      "mean": 0.1173,
+      "spread": 0.022,
+      "trueSpread": 0.0172,
+      "yearToYear": {
+        "sameHeadCoach": 0.332,
+        "newHeadCoach": 0.266,
+        "pairs": [220, 68]
+      }
+    },
+    "shotgun": {
+      "side": "off",
+      "label": "Shotgun share (neutral situations)",
+      "teamSeasons": 320,
+      "seasons": [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+      "mean": 0.6355,
+      "spread": 0.1299,
+      "trueSpread": 0.1282,
+      "yearToYear": {
+        "sameHeadCoach": 0.785,
+        "newHeadCoach": 0.157,
+        "pairs": [220, 68]
+      }
+    },
+    "personnel11": {
+      "side": "off",
+      "label": "11-personnel share (participation)",
+      "teamSeasons": 224,
+      "seasons": [2016, 2017, 2018, 2019, 2020, 2021, 2022],
+      "mean": 0.6242,
+      "spread": 0.1271,
+      "trueSpread": 0.1261,
+      "yearToYear": {
+        "sameHeadCoach": 0.643,
+        "newHeadCoach": 0.17,
+        "pairs": [144, 48]
+      }
+    },
+    "blitz": {
+      "side": "def",
+      "label": "Blitz rate: 5+ pass rushers on dropbacks (participation)",
+      "teamSeasons": 320,
+      "seasons": [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+      "mean": 0.2783,
+      "spread": 0.0686,
+      "trueSpread": 0.0661,
+      "yearToYear": {
+        "sameHeadCoach": 0.584,
+        "newHeadCoach": 0.346,
+        "pairs": [220, 68]
+      }
+    },
+    "manCoverage": {
+      "side": "def",
+      "label": "Man-coverage share (participation)",
+      "teamSeasons": 256,
+      "seasons": [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+      "mean": 0.3572,
+      "spread": 0.1088,
+      "trueSpread": 0.1069,
+      "yearToYear": {
+        "sameHeadCoach": 0.47,
+        "newHeadCoach": 0,
+        "pairs": [169, 55]
+      }
+    },
+    "stackedBox": {
+      "side": "def",
+      "label": "8+ in the box on early-down runs (participation)",
+      "teamSeasons": 320,
+      "seasons": [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+      "mean": 0.1821,
+      "spread": 0.0927,
+      "trueSpread": 0.0905,
+      "yearToYear": {
+        "sameHeadCoach": 0.507,
+        "newHeadCoach": 0.618,
+        "pairs": [220, 68]
+      }
+    },
+    "fourthDownGoOverExpected": {
+      "side": "coach",
+      "label": "4th-down go rate over expected (same distance and field zone)",
+      "teamSeasons": 320,
+      "seasons": [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+      "mean": 0.0001,
+      "spread": 0.046,
+      "trueSpread": 0.0372,
+      "yearToYear": {
+        "sameHeadCoach": 0.626,
+        "newHeadCoach": 0.391,
+        "pairs": [220, 68]
+      }
+    },
+    "twoPointRate": {
+      "side": "coach",
+      "label": "2-point tries per touchdown",
+      "teamSeasons": 320,
+      "seasons": [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025],
+      "mean": 0.0997,
+      "spread": 0.0664,
+      "trueSpread": 0.0451,
+      "yearToYear": {
+        "sameHeadCoach": 0.209,
+        "newHeadCoach": 0.346,
+        "pairs": [220, 68]
+      }
+    }
+  },
+  "headCoachChanges": {
+    "2017": 6,
+    "2018": 7,
+    "2019": 9,
+    "2020": 7,
+    "2021": 8,
+    "2022": 11,
+    "2023": 6,
+    "2024": 7,
+    "2025": 7
+  }
+}

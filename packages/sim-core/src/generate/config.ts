@@ -148,25 +148,3 @@ export const JERSEY_RANGES: Record<Position, [number, number][]> = {
     [90, 99],
   ],
 };
-
-/** Coaching staff per team. */
-export const STAFF: {
-  role: "HC" | "OC" | "DC" | "STC" | "SCOUT";
-  count: number;
-  age: [number, number];
-}[] = [
-  { role: "HC", count: 1, age: [40, 66] },
-  { role: "OC", count: 1, age: [34, 62] },
-  { role: "DC", count: 1, age: [34, 62] },
-  { role: "STC", count: 1, age: [32, 60] },
-  { role: "SCOUT", count: 2, age: [27, 62] },
-];
-
-/** Age ranges by job, for coaches whose real age isn't known. */
-export const COACH_AGE_FALLBACK = Object.fromEntries(STAFF.map((s) => [s.role, s.age])) as Record<
-  (typeof STAFF)[number]["role"],
-  [number, number]
->;
-export const COACH_RATING: [number, number] = [58, 12];
-/** Bonus to the rating that matters most for a role. */
-export const COACH_ROLE_BONUS = 12;

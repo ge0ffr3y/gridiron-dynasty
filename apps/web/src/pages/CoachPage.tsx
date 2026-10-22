@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import { PhilosophyChart } from "@/components/PhilosophyChart";
 import { ErrorNote, Facts, Loading, RatingBar, TeamChip } from "@/components/shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatLeagueDate } from "@/lib/format";
@@ -47,10 +48,36 @@ export function CoachPage({ coachId }: { coachId: number }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Attributes</CardTitle>
+          <CardTitle>Philosophy{c.summary ? `: ${c.summary}` : ""}</CardTitle>
           <CardDescription>
-            Placeholder coaching attributes; the full coach model arrives in Phase 10.
+            How he likes to play, against the league average, in points of each real rate (a full
+            bar is about as far as the most extreme real teams). His own job's side is in color; the
+            rest is how he'd coach if he moved.
           </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PhilosophyChart lines={c.philosophy} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>In his job</CardTitle>
+          <CardDescription>What he does for his team, against a typical staff.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul className="list-disc pl-5 text-sm">
+            {c.effects.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Skills</CardTitle>
+          <CardDescription>0 to 100; his job's main skill matters most.</CardDescription>
         </CardHeader>
         <CardContent className="flex max-w-xl flex-col gap-2">
           {c.attributes.map((a) => (

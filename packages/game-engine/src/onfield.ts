@@ -9,7 +9,7 @@
  */
 import type { Rng } from "@fgm/foundation";
 import { MATCHUPS } from "./config";
-import type { Lineup, LineupPlayer } from "./types";
+import type { DefenseStyle, Lineup, LineupPlayer, OffenseStyle } from "./types";
 
 export type Formation = "SHOTGUN" | "UNDER CENTER" | "PISTOL";
 export type DefensePackage = "base" | "nickel" | "dime" | "goal-line";
@@ -59,9 +59,27 @@ export interface Huddle {
 }
 
 /** Optional style for a defense (e.g. a blitz-happy coordinator); Phase 10 coaches set this. */
-export interface DefenseStyle {
-  /** Added to the chance of sending five or more rushers. */
-  extraBlitz?: number;
+/**
+ * Moves `shift` of the probability onto (or off) the keys in `keys`, scaling the rest so the
+ * shares still add up (a coach who likes man coverage plays more of every man coverage).
+ */
+export function tilt(
+  shares: Record<string, number> | undefined,
+  keys: (key: string) => boolean,
+  shift: number,
+): Record<string, number> | undefined {
+  if (!shares || !shift) return shares;
+  const total = Object.values(shares).reduce((a, b) => a + b, 0);
+  if (total <= 0) return shares;
+  const inside = Object.entries(shares)
+    .filter(([k]) => keys(k))
+    .reduce((a, [, v]) => a + v, 0);
+  const share = inside / total;
+  if (share <= 0 || share >= 1) return shares;
+  const target = Math.min(0.98, Math.max(0.02, share + shift));
+  const up = target / share;
+  const down = (1 - target) / (1 - share);
+  return Object.fromEntries(Object.entries(shares).map(([k, v]) => [k, v * (keys(k) ? up : down)]));
 }
 
 /** One key of a table of shares, chosen in proportion to the shares. */
@@ -118,11 +136,17 @@ export function chooseHuddle(
   offense: Lineup,
   defense: Lineup,
   style: DefenseStyle = {},
+  offenseStyle: OffenseStyle = {},
 ): Huddle {
   const sit = situationKey(s.down, s.toGo, s.yardsToGoal);
+  // Each coordinator's leanings tilt the real tables (Phase 10).
   let personnel = pickShare(
     rng,
-    (MATCHUPS.personnelBySituation as Record<string, Record<string, number>>)[`${call}|${sit}`],
+    tilt(
+      (MATCHUPS.personnelBySituation as Record<string, Record<string, number>>)[`${call}|${sit}`],
+      (k) => k === "11",
+      offenseStyle.personnel11 ?? 0,
+    ),
     "11",
   );
   if (personnel.length !== 2 || !feasible(personnel, offense)) personnel = "11";
@@ -141,13 +165,21 @@ export function chooseHuddle(
   const box = Number(
     pickShare(
       rng,
-      (MATCHUPS.boxByPersonnel as Record<string, Record<string, number>>)[`${call}|${personnel}`],
+      tilt(
+        (MATCHUPS.boxByPersonnel as Record<string, Record<string, number>>)[`${call}|${personnel}`],
+        (k) => call === "run" && parseInt(k, 10) >= 8,
+        style.stackedBox ?? 0,
+      ),
       "6",
     ),
   );
   let coverage = pickShare(
     rng,
-    (MATCHUPS.coverageByDefense as Record<string, Record<string, number>>)[pkg],
+    tilt(
+      (MATCHUPS.coverageByDefense as Record<string, Record<string, number>>)[pkg],
+      (k) => MAN_COVERAGES.includes(k as Coverage),
+      style.manCoverage ?? 0,
+    ),
     "cover3",
   ) as Coverage;
   if (!(coverage in COVERAGE_NAMES)) coverage = "other";
@@ -158,10 +190,12 @@ export function chooseHuddle(
       "4": 1,
     }),
   };
-  if (style.extraBlitz) {
-    for (const k of ["5", "6", "7+"]) rushShares[k] = (rushShares[k] ?? 0) + style.extraBlitz / 3;
-  }
-  const rushKey = pickShare(rng, rushShares, "4");
+  // The coordinator's blitz habit moves the share of five or more rushers (Phase 10).
+  const rushKey = pickShare(
+    rng,
+    tilt(rushShares, (k) => k === "5" || k === "6" || k === "7+", style.extraBlitz ?? 0),
+    "4",
+  );
   const rushers = rushKey === "3-" ? 3 : rushKey === "7+" ? 7 : Number(rushKey);
 
   // The eleven on each side.

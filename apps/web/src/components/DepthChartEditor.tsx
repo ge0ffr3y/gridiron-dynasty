@@ -7,7 +7,7 @@ import type { DepthChartView, DepthSlot } from "@fgm/sim-core";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { ErrorNote, InjuryTag, Loading, OverallBadge } from "@/components/shared";
+import { ErrorNote, FitTag, InjuryTag, Loading, OverallBadge } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLeagueKey } from "@/lib/session";
@@ -107,6 +107,7 @@ export function DepthChartEditor({ teamId }: { teamId: string }) {
                               </span>
                             )}
                             <InjuryTag injury={p.injury} />
+                            <FitTag label={p.fit} />
                             {p.note && (
                               <span
                                 className="ml-1 rounded bg-accent px-1 text-xs text-accent-foreground"

@@ -131,8 +131,6 @@ export const INJURY_MODEL = {
     points: 2,
     perYearPast28: 0.5,
   },
-  /** A medical staff's effect on recovery time (1 = typical; Phase 10 sets it from the staff). */
-  medicalRecovery: 1,
 };
 
 /** Drawing game-day weather (season/weather.ts). */

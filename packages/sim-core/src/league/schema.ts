@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 10;
+export const LEAGUE_FORMAT_VERSION = 11;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -269,7 +269,24 @@ export const PlayerSchema = z.object({
     .nullable(),
 });
 
-export const COACH_ROLES = ["HC", "OC", "DC", "STC", "SCOUT"] as const;
+/**
+ * Staff jobs (Phase 10): head coach, coordinators, special teams, four position-group coaches
+ * (QB and skill positions, offensive line, front seven, secondary), strength and conditioning,
+ * head athletic trainer, scouts.
+ */
+export const COACH_ROLES = [
+  "HC",
+  "OC",
+  "DC",
+  "STC",
+  "SKILL",
+  "OLC",
+  "FRONT",
+  "DBC",
+  "STR",
+  "MED",
+  "SCOUT",
+] as const;
 export const CoachRoleSchema = z.enum(COACH_ROLES);
 export const OFFENSIVE_SCHEMES = [
   "West Coast",
@@ -297,7 +314,10 @@ export const CoachSchema = z.object({
   birthDate: IsoDate,
   /** Years coaching in the league. */
   experience: z.number().int().nonnegative(),
-  /** Placeholder attributes; the full coach model arrives in Phase 10. */
+  /**
+   * Skills, 0-100 (Phase 10): play calling on each side, development, leadership (also the
+   * staff's discipline), game management, scouting, and health (strength coach and trainer).
+   */
   ratings: z.object({
     offense: Score,
     defense: Score,
@@ -305,6 +325,25 @@ export const CoachSchema = z.object({
     leadership: Score,
     gameManagement: Score,
     scouting: Score,
+    health: Score,
+  }),
+  /**
+   * How he coaches (Phase 10), relative to the league's average, in the real units of
+   * calibration/coaching.json (0 = typical). The offensive coordinator's offense, the defensive
+   * coordinator's defense and the head coach's game management reach the field.
+   */
+  style: z.object({
+    passOverExpected: z.number(),
+    noHuddle: z.number(),
+    deepShare: z.number(),
+    personnel11: z.number(),
+    blitz: z.number(),
+    manCoverage: z.number(),
+    stackedBox: z.number(),
+    fourthDown: z.number(),
+    twoPoint: z.number(),
+    /** In-game adaptability, 0-1 (0.5 typical). */
+    adaptability: z.number(),
   }),
   offensiveScheme: z.enum(OFFENSIVE_SCHEMES).nullable(),
   defensiveScheme: z.enum(DEFENSIVE_SCHEMES).nullable(),

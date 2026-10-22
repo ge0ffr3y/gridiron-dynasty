@@ -3,10 +3,11 @@
  * teams pass by down and distance, go for it on 4th down by field position),
  * nudged by the score and the clock. Coordinators take this over in Phase 10.
  */
-import type { Rng } from "@fgm/foundation";
+import { dmath, type Rng } from "@fgm/foundation";
 import { REAL, TUNING } from "./config";
 import { decideFourthDown, type Evaluator, type FourthDownChoice } from "./decisions";
-import type { Side } from "./types";
+import { tilt } from "./onfield";
+import type { OffenseStyle, Side } from "./types";
 
 export interface Situation {
   quarter: number;
@@ -29,6 +30,8 @@ export interface Situation {
   evaluator: Evaluator;
   /** Halftime adjustment to the pass rate (leaning toward what worked). */
   passRateAdjustment: number;
+  /** The offensive play caller's leanings (Phase 10). */
+  style?: OffenseStyle;
 }
 
 export type Call =
@@ -61,6 +64,8 @@ export function fieldZone(yardsToGoal: number): string {
 }
 
 const TWO_MINUTES = 120;
+/** How fast a pass rate near one half moves per unit of log-odds (p(1-p) at 0.5). */
+const NEUTRAL_SLOPE = 0.25;
 const late = (s: Situation) => s.quarter >= 4 || s.overtime;
 const kickDistance = (s: Situation) => s.yardsToGoal + TUNING.fieldGoal.snapYards;
 const inRange = (s: Situation) => kickDistance(s) <= s.fieldGoalRange;
@@ -101,12 +106,21 @@ export function passRate(s: Situation): number {
     if (s.margin > 0) rate -= Math.min(a.maxShift, s.margin * a.leadingPerPoint) * weight;
   }
   rate += s.passRateAdjustment;
+  // A coordinator's pass lean (Phase 10), measured in neutral situations (a pass rate near half),
+  // moves the log-odds: full size on early downs, little on 3rd and long, where everyone passes.
+  const lean = s.style?.passOverExpected ?? 0;
+  if (lean) {
+    const p = Math.min(0.97, Math.max(0.05, rate));
+    rate = dmath.logistic(dmath.log(p / (1 - p)) + lean / NEUTRAL_SLOPE);
+  }
   if (twoMinuteDrill(s)) rate = Math.max(rate, TUNING.twoMinuteDrillPassRate);
   return Math.min(0.97, Math.max(0.05, rate));
 }
 
 function passDepth(rng: Rng, s: Situation): "short" | "medium" | "deep" {
-  const share = s.down >= 3 && s.toGo >= 8 ? TUNING.longYardageDepthShare : REAL.pass.depthShare;
+  const base = s.down >= 3 && s.toGo >= 8 ? TUNING.longYardageDepthShare : REAL.pass.depthShare;
+  // A coordinator who likes deep shots throws more of them (the rest shrink in proportion).
+  const share = tilt(base, (k) => k === "deep", s.style?.deepShare ?? 0) as typeof base;
   // Near the goal line there's no room to throw deep.
   const deep = s.yardsToGoal < 25 ? 0 : share.deep;
   const medium = s.yardsToGoal < 12 ? 0 : share.medium;
@@ -208,11 +222,20 @@ export function callPlay(rng: Rng, s: Situation): Call {
 }
 
 /** Seconds that run off before the next snap while the clock is running. */
-export function tempo(s: Pick<Situation, "quarter" | "clock" | "margin" | "overtime">): number {
+export function tempo(
+  s: Pick<Situation, "quarter" | "clock" | "margin" | "overtime" | "style">,
+): number {
+  const T = TUNING.tempo;
   if (twoMinuteDrill(s) || ((s.quarter >= 4 || s.overtime) && s.margin < -8 && s.clock <= 360))
-    return TUNING.tempo.hurry;
-  if ((s.quarter >= 4 || s.overtime) && s.margin > 0 && s.clock <= 360) return TUNING.tempo.milk;
-  return TUNING.tempo.normal;
+    return T.hurry;
+  if ((s.quarter >= 4 || s.overtime) && s.margin > 0 && s.clock <= 360) return T.milk;
+  // A coordinator who runs more no-huddle snaps plays faster: each extra share of hurry-up
+  // snaps moves the average toward the hurry-up pace.
+  const noHuddle = s.style?.noHuddle ?? 0;
+  // Whole seconds: the clock runs in whole seconds.
+  return Math.round(
+    Math.max(T.hurry, Math.min(T.milk, T.normal - noHuddle * (T.normal - T.hurry))),
+  );
 }
 
 /** Does a team call timeout to stop the running clock? */

@@ -168,3 +168,20 @@ export function Facts({ items }: { items: [string, ReactNode][] }) {
     </dl>
   );
 }
+
+/**
+ * A player's scheme fit (Phase 10) as a small tag: words, not color alone. Neutral fits show
+ * nothing unless `always`.
+ */
+export function FitTag({ label, always = false }: { label: string | null; always?: boolean }) {
+  if (!label || (label === "Neutral" && !always)) return null;
+  const good = label === "Great fit" || label === "Good fit";
+  return (
+    <span
+      title={`Scheme fit: ${label.toLowerCase()} in his team's scheme`}
+      className={`ml-1 inline-flex items-center rounded border px-1 text-[11px] ${good ? "border-primary/40 text-foreground" : "text-muted-foreground"}`}
+    >
+      {good ? "▲" : label === "Neutral" ? "" : "▼"} {label.replace(" fit", "")}
+    </span>
+  );
+}

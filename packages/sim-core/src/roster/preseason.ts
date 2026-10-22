@@ -7,6 +7,7 @@
  * (Phase 9) for players with room to grow and good work habits, and it can
  * settle a close position battle. Stats are kept apart from the season's.
  */
+import { staffInput } from "../coaches/style";
 import { Rng, streamSeed, type Position } from "@fgm/foundation";
 import {
   DEPTH_SLOTS,
@@ -105,8 +106,9 @@ export function playPreseasonWeek(league: League, week: number, hooks: SimHooks 
     const weather = drawWeather(league, g);
     const output = simulateGame(
       {
-        home: { id: g.homeId, depth: depth.get(g.homeId)! },
-        away: { id: g.awayId, depth: depth.get(g.awayId)! },
+        // Each team's staff calls its plays and manages its games (Phase 10).
+        home: { id: g.homeId, depth: depth.get(g.homeId)!, ...staffInput(league, g.homeId) },
+        away: { id: g.awayId, depth: depth.get(g.awayId)!, ...staffInput(league, g.awayId) },
         neutral: g.neutral,
         conditions: conditionsFor(league, g, weather),
         playoff: false,

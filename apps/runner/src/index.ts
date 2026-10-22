@@ -7,6 +7,7 @@
  *   npm run sim -- --seasons 10 --seed 42                 simulate seasons, checking every schedule
  *   npm run sim -- --calibrate [--leagues 4 --seasons 2 --seed 42]   compare simulated seasons with real NFL ranges
  *   npm run sim -- --calibrate --league pipeline/private/out/real-league-2026.json   the same, from the real league
+ *   npm run sim -- --coaching 2 [--seed 42] [--league file]   how much teams differ in style, sim vs. real
  *   npm run sim -- --injuries 3 [--seed 42] [--league file]   injuries, report statuses and reserve lists vs. real
  *   npm run sim -- --lifecycle 30 [--seed 42] [--league file] [--out file]   long run: age mix, starter quality, stars, careers
  */
@@ -37,6 +38,9 @@ import {
   startRealLeague,
   careerSummary,
   injurySeason,
+  teamTendencies,
+  tendencySpread,
+  type TeamGame,
   lifecycleSnapshot,
   reportCounts,
   REAL_INJURIES,
@@ -82,6 +86,12 @@ if (args.includes("--calibrate")) {
         )
       : null,
   );
+  process.exit(0);
+}
+
+const coachingArg = option(args, "--coaching");
+if (coachingArg !== undefined) {
+  runCoaching(readSeed(args), Number(coachingArg), option(args, "--league"));
   process.exit(0);
 }
 
@@ -434,5 +444,51 @@ function runInjuries(seed: number, count: number, file?: string): void {
   for (const [b, v] of realCosting)
     console.log(
       `  ${b.padEnd(4)} ${((severity[b] ?? 0) * 100).toFixed(1).padStart(5)}%  ${((v / realTotal) * 100).toFixed(1).padStart(5)}%`,
+    );
+}
+
+/**
+ * Coaching styles (Phase 10): plays seasons and prints how much teams differ in each tendency
+ * (pass rate, deep shots, personnel, blitzes, man coverage, 4th downs), sim vs. real, one
+ * season at a time, averaged.
+ */
+function runCoaching(seed: number, count: number, file?: string): void {
+  const league = file
+    ? fromFile(parseLeague(readFileSync(fromCaller(file), "utf8")), seed)
+    : createLeague({ seed, name: `League ${seed}` });
+  const sums = new Map<
+    string,
+    { sim: number; real: number; simMean: number; realMean: number; label: string }
+  >();
+  for (let i = 0; i < count; i++) {
+    const games: TeamGame[] = [];
+    advanceUntil(league, (l) => l.calendar.stage === "regular");
+    advanceUntil(league, (l) => l.calendar.stage !== "regular", {
+      onGame: (g, output) => games.push({ homeId: g.homeId, awayId: g.awayId, output }),
+    });
+    for (const line of tendencySpread(teamTendencies(games))) {
+      const s = sums.get(line.key) ?? {
+        sim: 0,
+        real: 0,
+        simMean: 0,
+        realMean: 0,
+        label: line.label,
+      };
+      s.sim += line.sim / count;
+      s.real = line.real;
+      s.simMean += line.simMean / count;
+      s.realMean = line.realMean;
+      sums.set(line.key, s);
+    }
+    advanceUntil(league, (l) => l.calendar.stage === "complete");
+    advance(league);
+  }
+  console.log(
+    `\nHow much teams differ (standard deviation across teams, one season), seed ${seed}, ${count} seasons:\n`,
+  );
+  console.log("tendency                    sim spread  real spread   sim mean  real mean");
+  for (const [key, s] of sums)
+    console.log(
+      `${key.padEnd(26)}  ${s.sim.toFixed(3).padStart(10)}  ${s.real.toFixed(3).padStart(11)}  ${s.simMean.toFixed(3).padStart(9)}  ${s.realMean.toFixed(3).padStart(9)}`,
     );
 }

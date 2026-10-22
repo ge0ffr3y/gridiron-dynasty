@@ -9,6 +9,7 @@
  * - a status on the injury report (Out, Doubtful, Questionable). A knock he plays
  *   through lists him Questionable, and he plays a step slower;
  * - lasting damage when a severe injury hits the legs.
+ * The team's strength coach moves injury risk and its head trainer recovery time (Phase 10).
  * Long injuries carry over the offseason; the rest heal.
  *
  * Every draw uses a seed made from the game, team and week, so results never
@@ -33,6 +34,7 @@ import type {
   Player,
   REPORT_STATUSES,
 } from "../league/schema";
+import { injuryRiskMultiplier, recoveryMultiplier } from "../coaches/effects";
 import { INJURY_MODEL, LONGEST_INJURY_GAMES } from "./config";
 import { injuryRisk } from "./depthChart";
 
@@ -183,7 +185,8 @@ export function hurt(
     p.injuryHistory.push({ season: league.season, date, part, kind, games: 0 });
     return part;
   }
-  const out = Math.max(1, Math.round(games * INJURY_MODEL.medicalRecovery));
+  // His team's head trainer speeds or slows recovery (Phase 10).
+  const out = Math.max(1, Math.round(games * recoveryMultiplier(league, p.teamId)));
   const severity = severityFor(out);
   p.knock = null;
   p.injury = {
@@ -286,10 +289,14 @@ const EXPOSURE: Record<Position, number> = (() => {
 
 /** A team's healthy players, each with his share of the risk of getting hurt. */
 function exposed(league: League, teamId: string): { p: Player; risk: number }[] {
-  return league.players
-    .filter((p) => p.teamId === teamId && p.roster === "active" && !p.injury)
-    .sort((a, b) => a.id - b.id)
-    .map((p) => ({ p, risk: injuryRisk(p) * EXPOSURE[p.position] }));
+  const strength = injuryRiskMultiplier(league, teamId);
+  return (
+    league.players
+      .filter((p) => p.teamId === teamId && p.roster === "active" && !p.injury)
+      .sort((a, b) => a.id - b.id)
+      // The strength coach moves everyone's risk a little (Phase 10).
+      .map((p) => ({ p, risk: injuryRisk(p) * EXPOSURE[p.position] * strength }))
+  );
 }
 
 /** Each player's chance is `expected` shared out by injury risk. */

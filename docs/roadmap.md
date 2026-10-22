@@ -391,10 +391,10 @@ Decisions that block a phase. Record the answer here when made.
 
 ### Steps
 - [ ] **Coach model:** offensive and defensive philosophies, game-management traits (4th-down aggressiveness, 2-point tendency, clock management, timeout use, run/pass balance, in-game adaptability, halftime adjustments), leadership traits (development, discipline, locker room, staff building), career history
-- [ ] **Real coaches' traits derived from their teams' play-by-play** (pass rate over expected, 4th-down decisions vs. the model, tempo, 2-point rate, blitz and coverage tendencies where data allows)
-- [ ] **AI play callers:** the offensive and defensive coordinators' traits now drive the engine's play calling; the head coach owns game management
-- [ ] **Scheme fit:** each scheme defines what it wants at each position; fit changes on-field effectiveness and development
-- [ ] **Position coaches** affect development; strength and medical staff affect injuries
+- [x] **Real coaches' traits derived from their teams' play-by-play** (pass rate over expected, 4th-down decisions vs. the model, tempo, 2-point rate, blitz and coverage tendencies where data allows) *(10a: `calibration/coaching.json` from 2016-25 team-seasons; 94 of 96 real head coaches and coordinators get their tendencies, shrunk by sample noise)*
+- [x] **AI play callers:** the offensive and defensive coordinators' traits now drive the engine's play calling; the head coach owns game management *(10a: pass rate, tempo, deep shots, personnel, blitz, man coverage, stacked boxes, 4th-down and 2-point aggressiveness, discipline, and a small zero-sum play-calling edge)*
+- [x] **Scheme fit:** each scheme defines what it wants at each position; fit changes on-field effectiveness and development *(10a: up to ±3 overall on game day and the depth chart, ±5% development; neutral for a typical player)*
+- [x] **Position coaches** affect development; strength and medical staff affect injuries *(10a: development ±10% by position group and ±3% from the head coach; injury risk and recovery time ±10%; neutral on average)*
 - [ ] **Scouts** (accuracy, regional and positional expertise; used in Phase 11)
 - [ ] **Staff market:** generated coaches, coach development and reputations
 - [ ] **Coaching carousel:** firings, interview requests, interview rules from config, assistants poached as coordinators and head coaches
@@ -402,10 +402,10 @@ Decisions that block a phase. Record the answer here when made.
 - [ ] **UI:** staff page, coach profile with philosophy chart, hiring screen (candidates, interviews), scheme-fit badges on the roster
 
 ### Done when
-- [ ] Two identical rosters with different coaching staffs play visibly differently (pass rate, 4th-down attempts, blitz rate)
-- [ ] Changing coordinators moves players' scheme-fit ratings, and some players get better or worse
+- [x] Two identical rosters with different coaching staffs play visibly differently (pass rate, 4th-down attempts, blitz rate) *(10a: test in CI; team spreads match real ones within about 15%)*
+- [x] Changing coordinators moves players' scheme-fit ratings, and some players get better or worse *(10a: test in CI; fit tags on the roster in the browser)*
 - [ ] Each offseason's number of head-coach changes lands in a realistic range
-- [ ] Calibration scorecard still green with coaches calling plays
+- [x] Calibration scorecard still green with coaches calling plays *(10a: 61 of 63 on generated and real leagues, two seeds each; the misses are the long-standing success-rate gap and net punting a hair over its edge)*
 
 > [!example]- Kickoff prompt
 > "Phase 10: build the coach model, derive real coaches' tendencies from nflverse play-by-play, make coordinators' traits drive the engine's play calling, add scheme fit, staff effects on development and injuries, scouts, the staff market, the coaching carousel, and coaching trees. Add staff and hiring screens. Re-run calibration. Plan first."

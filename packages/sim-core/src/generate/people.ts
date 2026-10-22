@@ -7,6 +7,11 @@ export class NamePicker {
 
   constructor(private readonly rng: Rng) {}
 
+  /** A name already taken (so a new person doesn't share it). */
+  reserve(full: string): void {
+    this.used.add(full);
+  }
+
   next(): { firstName: string; lastName: string } {
     for (;;) {
       const firstName = this.rng.pick(FIRST_NAMES);

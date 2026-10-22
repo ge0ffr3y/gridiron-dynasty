@@ -19,7 +19,8 @@ import { RULES_BY_SEASON, rulesFor, teamIdsInOrder, type Rules } from "../rules"
 import { advanceUntil, scheduleSeason, startNextSeason } from "../season/flow";
 import { stadiumFor } from "../season/weather";
 import { generateCoach } from "./coaches";
-import { ROSTER_MIX, STAFF, TEAM_STRENGTH_SPREAD } from "./config";
+import { STAFF_ROLES } from "../coaches/config";
+import { ROSTER_MIX, TEAM_STRENGTH_SPREAD } from "./config";
 import { COLLEGES } from "./names";
 import { NamePicker } from "./people";
 import { generateDraftPicks, generatePlayer, tierFor } from "./players";
@@ -99,7 +100,7 @@ export function createLeague(options: NewLeagueOptions): League {
         );
       }
     }
-    for (const { role, count, age } of STAFF) {
+    for (const { role, count, age } of STAFF_ROLES) {
       for (let i = 0; i < count; i++)
         coaches.push(generateCoach(rng, names, date, coaches.length, team.id, role, age));
     }

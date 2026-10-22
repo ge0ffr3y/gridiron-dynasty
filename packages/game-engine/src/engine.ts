@@ -173,6 +173,7 @@ class Game {
         this.overtime.active && this.overtime.phase === "second" && this.margin(this.offense) < 0,
       evaluator: this.evaluator(this.offense),
       passRateAdjustment: this.adjust[this.offense].passRate,
+      style: this.input[this.offense].offenseStyle ?? {},
     };
   }
 
@@ -238,7 +239,15 @@ class Game {
           ? M.strength
           : -M.strength
         : 0;
-    return { runShift: boost - def.againstRuns, passShift: boost - def.againstPasses };
+    // The better play caller gains a little on every snap (Phase 10; zero-sum across the league).
+    const skill =
+      (this.input[offense].offenseStyle?.skill ?? 0) -
+      (this.input[otherSide(offense)].defenseStyle?.skill ?? 0);
+    const C = TUNING.coaching;
+    return {
+      runShift: boost - def.againstRuns + skill * C.runQuantilePerSkill,
+      passShift: boost - def.againstPasses + skill * C.completionLogitPerSkill,
+    };
   }
 
   /** After a big swing play, the team it favored gets momentum for a few snaps. */
@@ -970,6 +979,7 @@ class Game {
       this.lineupOf(offense),
       this.lineupOf(defense),
       this.input[defense].defenseStyle ?? {},
+      this.input[offense].offenseStyle ?? {},
     );
     // Run-pass option: some quick throws against a stacked box come off a run fake.
     // (The real pass rates already count RPO throws as passes, so a called run stays a run.)
@@ -981,7 +991,10 @@ class Game {
       this.rng.chance(TUNING.pass.rpoOfQuickThrowsVsStackedBox);
     const at = { clock: this.clock };
 
-    const pre = preSnapFoul(this.rng, this.input.rules, huddle);
+    const pre = preSnapFoul(this.rng, this.input.rules, huddle, {
+      offense: this.input[offense].discipline ?? 1,
+      defense: this.input[defense].discipline ?? 1,
+    });
     if (pre) {
       this.enforcePreSnap(pre);
       return;

@@ -129,9 +129,15 @@ function culprit(
 }
 
 /** A foul before the snap (no play)? */
-export function preSnapFoul(rng: Rng, rules: GameRules, h: Huddle): Foul | null {
+export function preSnapFoul(
+  rng: Rng,
+  rules: GameRules,
+  h: Huddle,
+  /** Each side's discipline (Phase 10): 1 typical, lower for a disciplined staff. */
+  discipline: { offense: number; defense: number } = { offense: 1, defense: 1 },
+): Foul | null {
   for (const r of rates(rules, "pre")) {
-    if (rng.chance(r.chance))
+    if (rng.chance(Math.min(1, r.chance * discipline[r.rule.side])))
       return {
         type: r.type,
         rule: r.rule,

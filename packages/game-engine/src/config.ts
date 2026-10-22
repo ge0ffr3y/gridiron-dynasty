@@ -123,6 +123,16 @@ export const TUNING = {
   /** Home teams play as if this many rating points better (none at a neutral site). */
   homeFieldEdge: 1.0,
   /**
+   * Coaching (Phase 10): a play caller's skill (-1 to 1) moves his unit's results a little, on
+   * every snap, against the other side's play caller. Judgment-sized: the best staffs gain about
+   * a point a game on the worst. Zero-sum across the league, so league totals don't move.
+   */
+  coaching: {
+    completionLogitPerSkill: 0.05,
+    runQuantilePerSkill: 0.01,
+  },
+
+  /**
    * Whole-league corrections, found by calibration: our measured shapes leave
    * out context the engine doesn't model yet (short-yardage and goal-line runs,
    * pressure that doesn't become a sack). Each is a nudge, not a rewrite.
@@ -314,15 +324,22 @@ export const TUNING = {
   decisions: {
     goSlope: 150,
     /** Real coaches give up a punt far less readily than a field goal. */
-    goLeanVsPunt: -2.45,
-    goLeanVsFieldGoal: -1.6,
+    // Phase 10: -2.45 / -1.6 -> -2.6 / -1.75, and the 2-point lean -2.25 -> -2.3. Coaches now
+    // differ in aggressiveness as real ones do, and since the go chance is a curve, a spread of
+    // coaches goes for it a little more on average than one typical coach did.
+    goLeanVsPunt: -2.6,
+    goLeanVsFieldGoal: -1.75,
     /** ...and they trust long field goals less: per yard of kick beyond `trustedKick`, the lean shrinks by this. */
     longKickDoubt: 0.08,
     trustedKick: 35,
     twoPointSlope: 60,
-    twoPointLean: -2.25,
-    /** How far a team's aggressiveness (0 to 1) moves the lean, from most cautious to boldest. */
-    aggressivenessRange: 2,
+    twoPointLean: -2.3,
+    /**
+     * How far a team's aggressiveness (0 to 1) moves the lean, from most cautious to boldest.
+     * Phase 10: 2 -> 4, so a coach as far from average as real coaches are (calibration/
+     * coaching.json) goes for it as much more often as they do. 0.5 (typical) is unchanged.
+     */
+    aggressivenessRange: 4,
     /** Yards past the line on a typical conversion. */
     conversionExtraYards: 2,
     /** Clock a 4th-down play or punt takes, for the win-probability look-ahead. */

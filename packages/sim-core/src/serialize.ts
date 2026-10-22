@@ -2,6 +2,9 @@
  * The league file format: JSON with object keys in sorted order, so the same
  * league always produces exactly the same text (and the same fingerprint).
  */
+import { COACH_SKILL } from "./coaches/config";
+import { drawStyle } from "./coaches/style";
+import { fillStaff } from "./generate/coaches";
 import { severityFor } from "./season/injuries";
 import { Rng, streamSeed } from "@fgm/foundation";
 import { generateContracts } from "./contracts/generate";
@@ -144,7 +147,27 @@ function upgrade(data: Record<string, unknown>): void {
     }
     data["formatVersion"] = 10;
   }
+  // Version 10 -> 11: the coach model. Each coach gets a health skill and a style drawn as for
+  // generated coaches (seeded by the league and the coach); the new jobs are filled after
+  // validation (see parseLeague).
+  if (data["formatVersion"] === 10) {
+    const seed = Number((data["meta"] as Record<string, unknown>)?.["seed"] ?? 0);
+    for (const c of (data["coaches"] as Record<string, unknown>[]) ?? []) {
+      const rng = new Rng(streamSeed(seed, `coach-upgrade:${String(c["id"])}`));
+      const ratings = c["ratings"] as Record<string, number>;
+      ratings["health"] = Math.max(
+        1,
+        Math.min(99, Math.round(rng.gaussian(COACH_SKILL.mean, COACH_SKILL.spread))),
+      );
+      c["style"] = drawStyle(rng);
+    }
+    data["formatVersion"] = 11;
+    data[NEEDS_STAFF] = true;
+  }
 }
+
+/** Set on an upgraded save whose teams still need their Phase 10 staff (removed before validation). */
+const NEEDS_STAFF = "__needsStaff";
 
 /** Set on an upgraded save whose players still need contracts (removed before validation). */
 const NEEDS_CONTRACTS = "__needsContracts";
@@ -171,6 +194,8 @@ export function parseLeague(text: string): League {
   }
   const needsContracts = (data as Record<string, unknown>)[NEEDS_CONTRACTS] === true;
   delete (data as Record<string, unknown>)[NEEDS_CONTRACTS];
+  const needsStaff = (data as Record<string, unknown>)[NEEDS_STAFF] === true;
+  delete (data as Record<string, unknown>)[NEEDS_STAFF];
   const result = LeagueSchema.safeParse(data);
   if (!result.success) {
     const first = result.error.issues.slice(0, 5).map((i) => `${i.path.join(".")}: ${i.message}`);
@@ -181,6 +206,7 @@ export function parseLeague(text: string): League {
     generateContracts(result.data, new Rng(streamSeed(result.data.meta.seed, "contracts:upgrade")));
     seedSalaryHistory(result.data);
   }
+  if (needsStaff) fillStaff(result.data, result.data.date, "upgrade");
   return result.data;
 }
 

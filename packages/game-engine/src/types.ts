@@ -114,11 +114,44 @@ export interface Lineup {
   returner: LineupPlayer;
 }
 
+/**
+ * How a team's offensive play caller likes to play (Phase 10): each is added to the league's
+ * real rate (so 0 is a typical coach), in the same units as calibration/coaching.json.
+ */
+export interface OffenseStyle {
+  /** Added to the pass rate on every down. */
+  passOverExpected?: number;
+  /** Added to the share of snaps run without a huddle (a faster tempo). */
+  noHuddle?: number;
+  /** Added to the share of passes thrown deep. */
+  deepShare?: number;
+  /** Added to the share of plays in 11 personnel (three receivers). */
+  personnel11?: number;
+  /** Play-calling skill: -1 (poor) to 1 (excellent), 0 typical. */
+  skill?: number;
+}
+
+/** How a team's defensive play caller likes to play (Phase 10); 0 is typical. */
+export interface DefenseStyle {
+  /** Added to the chance of sending five or more rushers. */
+  extraBlitz?: number;
+  /** Added to the share of man coverage. */
+  manCoverage?: number;
+  /** Added to the share of eight or more in the box against runs. */
+  stackedBox?: number;
+  /** Play-calling skill: -1 (poor) to 1 (excellent), 0 typical. */
+  skill?: number;
+}
+
 export interface TeamInput {
   id: string;
   depth: DepthChart;
-  /** How this team's defense likes to play (coaches set this from Phase 10). */
-  defenseStyle?: { extraBlitz?: number };
+  /** How this team's offense likes to play (its coordinator, Phase 10). */
+  offenseStyle?: OffenseStyle;
+  /** How this team's defense likes to play (its coordinator, Phase 10). */
+  defenseStyle?: DefenseStyle;
+  /** Pre-snap penalties: 1 is typical, lower for a disciplined staff (Phase 10). */
+  discipline?: number;
   /**
    * How this team's coach manages games (coaches set this from Phase 10).
    * Each is 0 (cautious) to 1 (bold); 0.5 is a typical coach.

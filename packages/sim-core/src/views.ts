@@ -7,6 +7,15 @@ import { capHit, span, totalValue } from "./contracts/contract";
 import { ageOn } from "@fgm/foundation";
 import { STARTERS } from "./generate/config";
 import { stageLabel } from "./season/calendar";
+import { ROLE_NAMES, STAFF_ROLES } from "./coaches/config";
+import {
+  jobEffects,
+  mainSkill,
+  perceivedFit,
+  philosophy,
+  styleSummary,
+  type PhilosophyLine,
+} from "./coaches/views";
 import type { Coach, CoachRole, League, Player, RosterList, Team } from "./league/schema";
 import { perceiveChange, perceiveHistory, perceivePlayer, type Viewer } from "./perception";
 import {
@@ -48,15 +57,22 @@ export interface RosterRow {
   injury: { description: string; gamesRemaining: number } | null;
   /** Where he's listed on his team (null for free agents). */
   list: RosterList | null;
+  /** His fit in his team's scheme, as the viewer's staff sees it (Phase 10). */
+  fit: { scheme: string; score: number; label: string } | null;
 }
 
 export interface StaffRow {
   id: number;
   name: string;
   role: CoachRole;
+  roleName: string;
   age: number;
   experience: number;
   scheme: string | null;
+  /** The skill that matters most in his job (Phase 10). */
+  mainSkill: { label: string; value: number };
+  /** How he coaches (coordinators and head coach), or what his job does. */
+  summary: string;
 }
 
 export interface LeagueSummary {
@@ -160,6 +176,8 @@ export interface PlayerView {
     /** The current season, before it's finished. */
     now: boolean;
   }[];
+  /** His fit in his team's scheme, as the viewer's staff sees it (Phase 10). */
+  schemeFit: { scheme: string; score: number; label: string } | null;
   /** This season's notable development: the League Year, camp and in-season changes. */
   development: { stage: string; date: string; change: number; reason: string }[];
   /** Where he's listed with his team (null for free agents), and since when on a reserve list. */
@@ -187,15 +205,13 @@ export interface CoachView {
   attributes: { key: string; label: string; value: number }[];
   offensiveScheme: string | null;
   defensiveScheme: string | null;
+  /** His leanings against the league average (Phase 10), his job's side first. */
+  philosophy: PhilosophyLine[];
+  /** A few words on how he coaches ("" for jobs without a style). */
+  summary: string;
+  /** What his job does for his team, in plain English. */
+  effects: string[];
 }
-
-const ROLE_NAMES: Record<CoachRole, string> = {
-  HC: "Head coach",
-  OC: "Offensive coordinator",
-  DC: "Defensive coordinator",
-  STC: "Special teams coordinator",
-  SCOUT: "Scout",
-};
 
 const COACH_RATING_LABELS: Record<keyof Coach["ratings"], string> = {
   offense: "Offense",
@@ -204,6 +220,7 @@ const COACH_RATING_LABELS: Record<keyof Coach["ratings"], string> = {
   leadership: "Leadership",
   gameManagement: "Game management",
   scouting: "Scouting",
+  health: "Health (strength and medical)",
 };
 
 function teamCard(league: League, team: Team): TeamCard {
@@ -244,6 +261,7 @@ function rosterRow(league: League, player: Player, viewer: Viewer): RosterRow {
       ? { description: player.injury.description, gamesRemaining: player.injury.gamesRemaining }
       : null,
     list: player.teamId ? player.roster : null,
+    fit: perceivedFit(league, player, viewer),
   };
 }
 
@@ -319,14 +337,29 @@ export function teamView(league: League, teamId: string, viewer: Viewer): TeamVi
     .map((p) => rosterRow(league, p, viewer));
   const staff = league.coaches
     .filter((c) => c.teamId === teamId)
-    .map((c) => ({
-      id: c.id,
-      name: `${c.firstName} ${c.lastName}`,
-      role: c.role,
-      age: ageOn(c.birthDate, league.date),
-      experience: c.experience,
-      scheme: c.offensiveScheme ?? c.defensiveScheme,
-    }));
+    // In staff order: head coach, coordinators, position coaches, support staff, scouts.
+    .sort(
+      (a, b) =>
+        STAFF_ROLES.findIndex((r) => r.role === a.role) -
+          STAFF_ROLES.findIndex((r) => r.role === b.role) || a.id - b.id,
+    )
+    .map((c) => {
+      const main = mainSkill(c);
+      return {
+        id: c.id,
+        name: `${c.firstName} ${c.lastName}`,
+        role: c.role,
+        roleName: ROLE_NAMES[c.role],
+        age: ageOn(c.birthDate, league.date),
+        experience: c.experience,
+        scheme: c.role === "DC" ? c.defensiveScheme : (c.offensiveScheme ?? c.defensiveScheme),
+        mainSkill: {
+          label: COACH_RATING_LABELS[main.key as keyof Coach["ratings"]],
+          value: main.value,
+        },
+        summary: styleSummary(c) || jobEffects(c)[0] || "",
+      };
+    });
   const picks = league.draftPicks
     .filter((p) => p.ownerTeamId === teamId)
     .map((p) => ({
@@ -546,6 +579,7 @@ export function playerView(league: League, playerId: number, viewer: Viewer): Pl
     knock: player.knock,
     injuryHistory: [...player.injuryHistory].reverse(),
     ratingHistory: ratingHistoryFor(league, player, viewer, seen.overall),
+    schemeFit: perceivedFit(league, player, viewer),
     development: league.development
       .filter((r) => r.season === league.season)
       .flatMap((r) =>
@@ -589,5 +623,8 @@ export function coachView(league: League, coachId: number): CoachView {
     })),
     offensiveScheme: coach.offensiveScheme,
     defensiveScheme: coach.defensiveScheme,
+    philosophy: philosophy(coach),
+    summary: styleSummary(coach),
+    effects: jobEffects(coach),
   };
 }

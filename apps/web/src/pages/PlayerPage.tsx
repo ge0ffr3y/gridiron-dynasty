@@ -124,6 +124,10 @@ export function PlayerPage({ playerId }: { playerId: number }) {
                   : `${listName(p.list)}${p.reserve ? ` since ${formatLeagueDate(p.reserve.since)}, ${p.reserve.gamesMissed} game${p.reserve.gamesMissed === 1 ? "" : "s"} missed${p.reserve.designatedToReturn ? ", designated to return" : ""}` : ""}${p.list === "practice-squad" ? ` · elevated ${p.elevations} of 3 times this season` : ""}`,
               ],
               [
+                "Scheme fit",
+                p.schemeFit ? `${p.schemeFit.label} in his team's ${p.schemeFit.scheme}` : "—",
+              ],
+              [
                 "Health",
                 p.injury ? (
                   <span className="text-destructive">

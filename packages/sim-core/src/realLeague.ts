@@ -202,6 +202,8 @@ function realPlayer(input: RealPlayerInput, id: number, date: LeagueDate, seed: 
     stats: input.stats ?? [],
     injury: null,
     ratingHistory: [],
+    knock: null,
+    injuryHistory: [],
     ...NEW_PLAYER_ROSTER,
   };
 }

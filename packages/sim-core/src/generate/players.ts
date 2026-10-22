@@ -199,6 +199,8 @@ export function generatePlayer(
     stats: [],
     injury: null,
     ratingHistory: [],
+    knock: null,
+    injuryHistory: [],
     ...NEW_PLAYER_ROSTER,
   };
 }

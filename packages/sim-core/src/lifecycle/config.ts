@@ -13,6 +13,8 @@ export const DEVELOPMENT = {
   declinePointsPerSd: 7,
   /** Share of the year's development at the new League Year; the rest comes in training camp. */
   offseasonShare: 0.7,
+  /** The most of his remaining room to grow a player closes in one year. */
+  maxGrowthShare: 0.6,
   /** Work ethic (0-100): 50 is typical; each point away changes growth by this share. */
   workEthicEffect: 0.008,
   /** Durability (0-100): each point below 50 speeds decline by this share (above slows it). */
@@ -92,10 +94,13 @@ export const RETIREMENT = {
   fringeOverall: 62,
   fringeAge: 29,
   fringe: 1,
-  /** Hurt, with this many games still to miss, at 28 or older. */
-  injuredGames: 6,
+  /** Still hurt going into the new season (a long injury carried over), at 28 or older. */
+  injuredGames: 1,
   injuredAge: 28,
   injured: 1,
+  /** A severe injury (9+ games) in the season just ended, at this age or older. */
+  severeInjuryAge: 30,
+  severeInjury: 0.8,
   /** A free agent nobody played all season retires (sooner from this age). */
   idleSeasons: 2,
   idleAgeOneSeason: 27,

@@ -18,6 +18,7 @@ import { getUnderCap } from "../contracts/upkeep";
 import { ROSTER_MIX, STARTERS } from "../generate/config";
 import type { League, Player } from "../league/schema";
 import { decideRetirement } from "../lifecycle/retirement";
+import { campInjuries } from "../season/injuries";
 import { seasonDates } from "../season/calendar";
 import { ROSTER_AI } from "./config";
 import { inSeasonRosters, isPracticeSquadVeteran, onTeam, openSpots } from "./lists";
@@ -83,7 +84,11 @@ function freeAgents(league: League): Player[] {
 // ---------------------------------------------------------------------------
 // Training camp
 
-/** Camp opens: players still hurt go on the PUP list (they count toward 90 and can come back any time). */
+/**
+ * Camp opens: players still hurt from last season go on the PUP list, then camp's own injuries
+ * happen (Phase 9b); a non-football injury starts a player on the NFI list. Both lists count
+ * toward the 90, and a player can come off them any time in camp.
+ */
 export function trainingCampOpens(league: League): void {
   for (const p of league.players) if (p.teamId !== null) p.preseason = null;
   for (const p of [...league.players].sort((a, b) => a.id - b.id)) {
@@ -95,6 +100,16 @@ export function trainingCampOpens(league: League): void {
       playerIds: [p.id],
       text: `${p.teamId} put ${name(p)} on the active/PUP list for training camp.`,
       reason: `Still hurt when camp opened (${p.injury.description.toLowerCase()}).`,
+    });
+  }
+  for (const p of campInjuries(league)) {
+    p.roster = "nfi";
+    recordTransaction(league, {
+      type: "reserve",
+      teamIds: [p.teamId!],
+      playerIds: [p.id],
+      text: `${p.teamId} put ${name(p)} on the active/NFI list for training camp.`,
+      reason: `${p.injury!.description}: not hurt playing football, so the non-football injury list.`,
     });
   }
 }
@@ -130,16 +145,18 @@ export function cutdownDay(league: League): void {
     league.date = dates.cutdown;
     const pending: { p: Player; from: string }[] = [];
     for (const team of aiTeams(league)) {
-      for (const p of onTeam(league, team.id, "pup").sort((a, b) => a.id - b.id)) {
-        if (p.injury && p.injury.gamesRemaining >= r.pupMinGames)
-          placeOnReserve(
-            league,
-            p.id,
-            "pup",
-            `Still hurt at final cuts: Reserve/PUP, out at least ${r.pupMinGames} games and off the 53.`,
-          );
-        else activate(league, p.id, "Healthy by final cuts: off the PUP list.");
-      }
+      for (const list of ["pup", "nfi"] as const)
+        for (const p of onTeam(league, team.id, list).sort((a, b) => a.id - b.id)) {
+          const label = list === "pup" ? "PUP" : "NFI";
+          if (p.injury && p.injury.gamesRemaining >= r.pupMinGames)
+            placeOnReserve(
+              league,
+              p.id,
+              list,
+              `Still hurt at final cuts: Reserve/${label}, out at least ${r.pupMinGames} games and off the 53.`,
+            );
+          else activate(league, p.id, `Healthy by final cuts: off the ${label} list.`);
+        }
       const hurt = byScore(
         onTeam(league, team.id, "active").filter(
           (p) => p.injury && p.injury.gamesRemaining >= r.injuredMinGames,
@@ -344,20 +361,32 @@ export function weeklyRosterUpkeep(league: League): void {
   const r = league.rules.roster.reserve;
   batch(league, () => {
     for (const team of aiTeams(league)) {
-      // Out for weeks: injured reserve frees his spot.
-      for (const p of onTeam(league, team.id, "active").sort((a, b) => a.id - b.id))
-        if (p.injury && p.injury.gamesRemaining >= r.injuredMinGames)
+      // Out for weeks: injured reserve frees his spot. Teams keep shorter injuries on the 53,
+      // unless the position is short of healthy players (then anyone the rule allows goes).
+      const irFrom = Math.max(r.injuredMinGames, ROSTER_AI.injuredReserveFromGames);
+      const active = onTeam(league, team.id, "active").sort((a, b) => a.id - b.id);
+      const healthyAt = (pos: Position) =>
+        active.filter((x) => x.position === pos && !x.injury).length;
+      for (const p of active) {
+        if (!p.injury) continue;
+        const short = healthyAt(p.position) < keepAtLeast(p.position);
+        if (p.injury.gamesRemaining >= (short ? r.injuredMinGames : irFrom))
           placeOnReserve(
             league,
             p.id,
             "injured-reserve",
-            `Out ${p.injury.gamesRemaining} more games (${p.injury.description.toLowerCase()}).`,
+            `Out ${p.injury.gamesRemaining} more games (${p.injury.description.toLowerCase()})${short ? `, with the team short at ${p.position}` : ""}.`,
           );
+      }
       // Back from a reserve list once healthy and past the minimum.
       for (const p of onTeam(league, team.id)
-        .filter((x) => (x.roster === "injured-reserve" || x.roster === "pup") && x.reserve)
+        .filter(
+          (x) =>
+            (x.roster === "injured-reserve" || x.roster === "pup" || x.roster === "nfi") &&
+            x.reserve,
+        )
         .sort((a, b) => playerValue(league, b) - playerValue(league, a) || a.id - b.id)) {
-        const min = p.roster === "pup" ? r.pupMinGames : r.injuredMinGames;
+        const min = p.roster === "injured-reserve" ? r.injuredMinGames : r.pupMinGames;
         if (p.injury || p.reserve!.gamesMissed < min) continue;
         const usesDesignation = p.roster === "injured-reserve" && !p.reserve!.designatedToReturn;
         if (usesDesignation && reserveReturnsLeft(league, team.id) <= 0) continue;
@@ -369,7 +398,7 @@ export function weeklyRosterUpkeep(league: League): void {
           waivePlayer(
             league,
             weakest.id,
-            `Waived to make room for ${name(p)}, back from ${p.roster === "pup" ? "the PUP list" : "injured reserve"}.`,
+            `Waived to make room for ${name(p)}, back from ${p.roster === "pup" ? "the PUP list" : p.roster === "nfi" ? "the NFI list" : "injured reserve"}.`,
           );
         }
         if (p.reserve!.designatedToReturn && p.roster === "injured-reserve") {

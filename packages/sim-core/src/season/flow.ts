@@ -23,7 +23,13 @@ import {
   type StatKey,
 } from "@fgm/game-engine";
 import { gameDepthChart } from "./depthChart";
-import { applyInjuries } from "./injuries";
+import {
+  applyInjuries,
+  freeAgentsHeal,
+  offseasonHealing,
+  practiceWeek,
+  preseasonCampInjuries,
+} from "./injuries";
 import { conditionsFor, drawWeather } from "./weather";
 import { closeLeagueYear, openLeagueYear } from "../contracts/upkeep";
 import {
@@ -283,12 +289,14 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       const weeks = dates.preseasonSaturdays.length;
       if (!league.settings.preseasonGames) {
         league.date = dates.preseasonSaturdays[weeks - 1]!;
+        for (let w = 1; w <= weeks; w++) preseasonCampInjuries(league, w, weeks);
         cal.stage = "cutdown";
         return "Training camp (no preseason games)";
       }
       const week = cal.week;
       league.date = dates.preseasonSaturdays[week - 1]!;
       batch(league, () => playPreseasonWeek(league, week, hooks));
+      preseasonCampInjuries(league, week, weeks);
       if (week >= weeks) {
         batch(league, () => gradePreseason(league));
         cal.stage = "cutdown";
@@ -311,9 +319,16 @@ function advanceOnce(league: League, hooks: SimHooks): string {
         hooks,
       );
       league.date = dates.weekSundays[week - 1] as string;
-      // Small in-season changes after the whole week is played (so every game this week saw
-      // the same ratings, whether simmed with the week or played early).
-      if (!hooks.historyOnly) recordDevelopment(league, "season", weeklyDevelopment(league, week));
+      // Small in-season changes and the week's practice injuries, after the whole week is played
+      // (so every game this week saw the same players, whether simmed with the week or played early).
+      if (!hooks.historyOnly) {
+        recordDevelopment(league, "season", weeklyDevelopment(league, week));
+        practiceWeek(
+          league,
+          week >= league.rules.schedule.regularSeasonWeeks ? "the playoffs" : `Week ${week + 1}`,
+        );
+        freeAgentsHeal(league);
+      }
       if (week >= league.rules.schedule.regularSeasonWeeks) {
         cal.stage = "wildcard";
         addPlayoffRound(league, "wildcard");
@@ -338,7 +353,10 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       if (next) {
         cal.stage = next;
         addPlayoffRound(league, next);
-        if (!hooks.historyOnly) weeklyRosterUpkeep(league);
+        if (!hooks.historyOnly) {
+          practiceWeek(league, `the ${next} round`);
+          weeklyRosterUpkeep(league);
+        }
       } else {
         cal.stage = "complete";
         completeSeason(league);
@@ -460,8 +478,8 @@ export function startNextSeason(league: League, options: { agePlayers: boolean }
   closeLeagueYear(league);
   league.season += 1;
   league.rules = rulesFor(league.season);
-  // Everyone heals over the offseason (the full injury model arrives in Phase 9).
-  for (const p of league.players) p.injury = null;
+  // The offseason heals most injuries; long ones carry into camp (Phase 9b).
+  offseasonHealing(league);
   league.date = addDays(championship, 1);
   league.calendar = { stage: "offseason", week: 1 };
   if (options.agePlayers) for (const p of league.players) if (p.teamId !== null) p.experience += 1;

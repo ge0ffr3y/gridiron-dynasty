@@ -175,6 +175,9 @@ function runTackler(rng: Rng, h: Huddle, defenders: LineupPlayer[], gain: number
           ...h.defense.dl.map((p) => [p, W.dl] as [LineupPlayer, number]),
           ...backs.map((p) => [p, W.backs] as [LineupPlayer, number]),
         ];
+  // A defense short of linebackers and defensive backs (injuries) still has someone to tackle.
+  if (pool.length === 0)
+    for (const p of [...defenders, ...h.defense.dl]) pool.push([p, W.atTheGap]);
   // Better tacklers make more of the tackles.
   return weightedPick(rng, pool, ([p, w]) => w * (0.5 + p.ratings.tackling / 100))[0];
 }

@@ -4,6 +4,11 @@ import type { Position } from "@fgm/foundation";
  * placeholders' judgment calls, not league rules (those are in rules.roster).
  */
 export const ROSTER_AI = {
+  /**
+   * In the season, a player goes on injured reserve when out at least this many games (the rule
+   * allows four; real teams keep shorter injuries on the 53: calibration/injuries.json).
+   */
+  injuredReserveFromGames: 6,
   /** A waiver claim needs the player to beat the team's weakest at his position by this much (overall). */
   claimMargin: 3,
   /** Signing another team's practice-squad player needs him to beat the closer options by this much. */
@@ -80,7 +85,7 @@ export const PRESEASON = {
  */
 export const DRAFT_CLASS = {
   /** Prospects beyond the picks: the undrafted pool teams fill out to 90 from. */
-  undraftedPool: 200,
+  undraftedPool: 320,
   overallByRank: [
     [1, 72],
     [32, 65],
@@ -109,17 +114,17 @@ export const DRAFT_CLASS = {
    */
   growthByPosition: {
     QB: -1,
-    RB: 3.5,
-    FB: 6,
-    WR: 4.5,
-    TE: 2.5,
+    RB: 5,
+    FB: 8,
+    WR: 5.5,
+    TE: 3.5,
     OT: -0.5,
     OG: -0.5,
     C: -0.5,
     EDGE: -3,
-    DT: -1.5,
+    DT: -0.5,
     LB: -0.5,
-    CB: 2.5,
+    CB: 3.5,
   } as Partial<Record<Position, number>>,
   /** How much a team weighs a prospect's room to grow, and filling a thin position. */
   potentialWeight: 0.25,

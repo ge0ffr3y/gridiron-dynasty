@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 9;
+export const LEAGUE_FORMAT_VERSION = 10;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -175,6 +175,13 @@ void statLinesMatch;
 export const ROSTER_LISTS = ["active", "practice-squad", "injured-reserve", "pup", "nfi"] as const;
 export type RosterList = (typeof ROSTER_LISTS)[number];
 
+/** Phase 9b: how bad an injury is (games missed: 1, 2-3, 4-8, 9 or more). */
+export const INJURY_SEVERITIES = ["minor", "moderate", "significant", "severe"] as const;
+/** Where it happened. */
+export const INJURY_KINDS = ["game", "practice", "camp", "non-football"] as const;
+/** The injury report's game statuses. */
+export const REPORT_STATUSES = ["Out", "Doubtful", "Questionable"] as const;
+
 export const PlayerSchema = z.object({
   id: z.number().int().nonnegative(),
   firstName: z.string(),
@@ -198,14 +205,36 @@ export const PlayerSchema = z.object({
   contract: ContractSchema.nullable(),
   /** Season-by-season stats, oldest first. Career totals are the sum. */
   stats: z.array(SeasonStatsSchema),
-  /** A current injury: he sits out until his team has played this many more games. */
+  /**
+   * A current injury that costs games (Phase 9b): he sits out until his team has played this
+   * many more games. `status` is how his team lists him for the next game.
+   */
   injury: z
     .object({
       description: z.string(),
+      part: z.string(),
+      severity: z.enum(INJURY_SEVERITIES),
+      kind: z.enum(INJURY_KINDS),
       gamesRemaining: z.number().int().positive(),
+      /** Games he was expected to miss when it happened. */
+      totalGames: z.number().int().positive(),
       since: IsoDate,
+      status: z.enum(REPORT_STATUSES),
     })
     .nullable(),
+  /** A knock he plays through: listed Questionable for his next game, a step slower in it. */
+  knock: z.object({ part: z.string(), since: IsoDate }).nullable(),
+  /** Every injury that cost games or was listed, oldest first. */
+  injuryHistory: z.array(
+    z.object({
+      season: z.number().int(),
+      date: IsoDate,
+      part: z.string(),
+      kind: z.enum(INJURY_KINDS),
+      /** Games he was expected to miss (0 for a knock). */
+      games: z.number().int().nonnegative(),
+    }),
+  ),
   /** Which list he's on with his team (meaningless without a team). */
   roster: z.enum(ROSTER_LISTS),
   /** Time on a reserve list: team games missed since placed, and whether designated to return. */

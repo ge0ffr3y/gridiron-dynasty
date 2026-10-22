@@ -13,7 +13,7 @@ import { overallWithFamiliarity, type Position } from "@fgm/foundation";
 import { DEPTH_SLOTS, type DepthChart, type DepthSlot, type LineupPlayer } from "@fgm/game-engine";
 import type { League, Player, Team } from "../league/schema";
 import { POSITION_BATTLE } from "../lifecycle/config";
-import { DEPTH_CHART, INJURY_RISK } from "./config";
+import { DEPTH_CHART, INJURY_MODEL, INJURY_RISK } from "./config";
 
 export type DepthSlots = Record<DepthSlot, number[]>;
 
@@ -206,14 +206,26 @@ export function injuryRisk(p: Player): number {
   return Math.max(R.min, Math.min(R.max, risk));
 }
 
+function playingHurt(ratings: Player["ratings"]): Player["ratings"] {
+  const less = (v: number) => Math.max(1, v - INJURY_MODEL.knockPenalty);
+  return {
+    ...ratings,
+    speed: less(ratings.speed),
+    acceleration: less(ratings.acceleration),
+    agility: less(ratings.agility),
+  };
+}
+
 function asLineupPlayer(p: Player, slot: DepthSlot): LineupPlayer {
   const position = slot === "KR" || slot === "PR" ? p.position : SLOT_POSITION[slot];
   const familiarity = p.position === position ? 1 : (p.familiarity[position] ?? 0);
+  // Playing through a knock (listed Questionable): a step slower for the game.
+  const ratings = p.knock ? playingHurt(p.ratings) : p.ratings;
   return {
     id: p.id,
     position: p.position,
-    ratings: p.ratings,
-    overall: overallWithFamiliarity(p.ratings, position, familiarity),
+    ratings,
+    overall: overallWithFamiliarity(ratings, position, familiarity),
     injuryRisk: injuryRisk(p),
   };
 }

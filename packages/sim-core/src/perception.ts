@@ -42,3 +42,26 @@ export function perceivePlayer(_league: League, player: Player, _viewer: Viewer)
   const overall = overallWithFamiliarity(ratings, player.position, 1);
   return { ratings, overall, positionOveralls, confidence: 1 };
 }
+
+/**
+ * A player's season-by-season overall as the viewer sees it (Phase 9b). The same as the truth
+ * until scouting arrives in Phase 11, which adds each staff's uncertainty here.
+ */
+export function perceiveHistory(
+  _league: League,
+  player: Player,
+  _viewer: Viewer,
+): Player["ratingHistory"] {
+  return player.ratingHistory.map((h) => ({ ...h }));
+}
+
+/** A development change (overall before and after) as the viewer sees it; the truth until Phase 11. */
+export function perceiveChange(
+  _league: League,
+  _player: Player,
+  _viewer: Viewer,
+  before: number,
+  after: number,
+): { before: number; after: number } {
+  return { before, after };
+}

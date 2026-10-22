@@ -88,6 +88,53 @@ export const INJURY_RISK = {
 /** Games missed beyond the "9+" bucket of the real data: drawn up to this many. */
 export const LONGEST_INJURY_GAMES = 17;
 
+/**
+ * The injury model (Phase 9b; season/injuries.ts). Real numbers are in calibration/
+ * injuries.json and people.json; these knobs size what the data can't give directly, each
+ * tuned so the sim's injury report and reserve lists match the real ones (npm run sim --
+ * --lifecycle prints them).
+ */
+export const INJURY_MODEL = {
+  /**
+   * In-game injuries that cost games, per team-season, as the engine produces them (measured).
+   * Practice injuries make up the rest of the real total, with the severities the real total
+   * needs once the in-game ones are counted.
+   */
+  inGameCostingPerTeamSeason: 7.7,
+  /** Weeks of practice injuries a season (after each of the 18 regular-season weeks). */
+  practiceWeeksPerSeason: 18,
+  /** Kickers, punters and long snappers: injury exposure away from games vs. a typical player (judgment). */
+  specialistExposure: 0.15,
+  /** Minor practice knocks a team lists each week (Questionable, but he plays). */
+  practiceKnocksPerTeamWeek: 0.65,
+  /** The last game of an absence: listed Questionable or Doubtful this often (else Out). */
+  lastGameStatus: { Questionable: 0.5, Doubtful: 0.2 },
+  /** Playing through a knock: physical traits this many points lower for the game. */
+  knockPenalty: 2,
+  /**
+   * Training camp: injuries per team over camp and the preseason (half when camp opens, the
+   * rest over the preseason weeks), and non-football injuries at camp's start (these last
+   * at least `nonFootballMinGames`: the ones that reach the list are surgeries and the like).
+   */
+  campInjuriesPerTeam: 24,
+  campOpeningShare: 0.5,
+  nonFootballPerTeam: 0.18,
+  nonFootballMinGames: 4,
+  /** The offseason heals this many games' worth of a long injury (it's months, not weeks). */
+  offseasonRecoveryGames: 6,
+  /**
+   * Lasting damage (judgment, not measured): a severe injury to the legs costs this much
+   * speed, acceleration and agility, plus this much more per year past 28.
+   */
+  lastingDamage: {
+    parts: ["Knee", "Ankle", "Foot", "Achilles", "Hamstring", "Calf", "Hip"],
+    points: 2,
+    perYearPast28: 0.5,
+  },
+  /** A medical staff's effect on recovery time (1 = typical; Phase 10 sets it from the staff). */
+  medicalRecovery: 1,
+};
+
 /** Drawing game-day weather (season/weather.ts). */
 export const WEATHER = {
   /** Climate's second half (rain/snow shares) starts this week. */

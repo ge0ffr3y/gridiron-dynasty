@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createLeague } from "../generate/league";
 import { depthChartView, leadersView, moveOnDepthChart, resetDepthChart } from "../peopleViews";
 import { parseLeague, serializeLeague } from "../serialize";
+import { injuryFor } from "./injuries";
 import { autoDepthChart, gameDepthChart, slotOverall, teamRoster } from "./depthChart";
 import { advanceUntil } from "./flow";
 
@@ -94,11 +95,11 @@ describe("depth charts", () => {
   it("injured players sit out games but stay on the chart", () => {
     const copy = parseLeague(serializeLeague(league));
     const starter = gameDepthChart(copy, team.id).QB[0]!;
-    copy.players.find((p) => p.id === starter.id)!.injury = {
-      description: "Hurt in Week 1 against XYZ",
-      gamesRemaining: 2,
-      since: copy.date,
-    };
+    copy.players.find((p) => p.id === starter.id)!.injury = injuryFor(
+      2,
+      copy.date,
+      "Hurt in Week 1 against XYZ",
+    );
     expect(gameDepthChart(copy, team.id).QB.map((p) => p.id)).not.toContain(starter.id);
     const view = depthChartView(copy, team.id, VIEWER).slots.find((s) => s.slot === "QB")!;
     expect(view.players[0]!.id).toBe(starter.id);

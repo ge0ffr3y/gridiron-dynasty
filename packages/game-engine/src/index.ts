@@ -22,4 +22,4 @@ export type * from "./types";
 export { STAT_KEYS, LONGEST_STATS, DEPTH_SLOTS } from "./types";
 
 /** Bumped when the engine changes how games play out. */
-export const GAME_ENGINE_VERSION = "0.5.2";
+export const GAME_ENGINE_VERSION = "0.5.3";

@@ -2,6 +2,7 @@
  * The league file format: JSON with object keys in sorted order, so the same
  * league always produces exactly the same text (and the same fingerprint).
  */
+import { severityFor } from "./season/injuries";
 import { Rng, streamSeed } from "@fgm/foundation";
 import { generateContracts } from "./contracts/generate";
 import { seedSalaryHistory } from "./contracts/tags";
@@ -122,6 +123,26 @@ function upgrade(data: Record<string, unknown>): void {
     for (const p of (data["players"] as Record<string, unknown>[]) ?? []) p["ratingHistory"] = [];
     data["development"] = [];
     data["formatVersion"] = 9;
+  }
+  // Version 9 -> 10: the injury model. A current injury gets a body part we don't know, a
+  // severity from its length, and an Out status; no knocks or injury history yet.
+  if (data["formatVersion"] === 9) {
+    for (const p of (data["players"] as Record<string, unknown>[]) ?? []) {
+      const injury = p["injury"] as Record<string, unknown> | null;
+      if (injury) {
+        const games = Number(injury["gamesRemaining"]);
+        Object.assign(injury, {
+          part: "Other",
+          severity: severityFor(games),
+          kind: "game",
+          totalGames: games,
+          status: "Out",
+        });
+      }
+      p["knock"] = null;
+      p["injuryHistory"] = [];
+    }
+    data["formatVersion"] = 10;
   }
 }
 

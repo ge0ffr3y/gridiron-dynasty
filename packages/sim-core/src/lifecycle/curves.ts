@@ -100,7 +100,8 @@ export function retirementAges(position: Position): number[] {
 /**
  * The share of a young player's remaining growth that comes this year: half from the real
  * curve's timing (this age's growth over the growth still to come), half spread evenly over
- * the years to his peak (the real curves are lumpy year to year). 0 at or past the peak.
+ * the years to his peak (the real curves are lumpy year to year), at most
+ * DEVELOPMENT.maxGrowthShare. 0 at or past the peak.
  */
 export function growthShare(position: Position, age: number): number {
   const now = ageCurve(position, age);
@@ -113,5 +114,7 @@ export function growthShare(position: Position, age: number): number {
     ahead += c;
     years += 1;
   }
-  return 0.5 * (now / ahead) + 0.5 * (1 / years);
+  // Never more than this share in one year: the year before a peak doesn't bring all the
+  // growth still to come at once (a 24-year-old tight end jumping 14 points).
+  return Math.min(DEVELOPMENT.maxGrowthShare, 0.5 * (now / ahead) + 0.5 * (1 / years));
 }

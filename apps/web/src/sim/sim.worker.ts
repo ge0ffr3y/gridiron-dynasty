@@ -37,6 +37,8 @@ import {
   makeCapMove,
   calendarPageView,
   campReportView,
+  developmentReportView,
+  injuryReportView,
   makeRosterMove,
   makeTrade,
   previewTradeDeal,
@@ -303,6 +305,14 @@ const handlers: Handlers = {
 
   campReportView() {
     return campReportView(requireLeague());
+  },
+
+  injuryReportView({ teamId }) {
+    return injuryReportView(requireLeague(), teamId ?? null);
+  },
+
+  developmentReportView() {
+    return developmentReportView(requireLeague(), VIEWER);
   },
 
   rosterManagementView({ teamId, freeAgentPosition }) {

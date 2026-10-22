@@ -118,6 +118,10 @@ describe("game engine", () => {
       if (!g.overtime) continue;
       const ot = g.plays.filter((p) => p.quarter >= 5 && SCRIMMAGE.has(p.kind));
       const first = ot[0]?.offense;
+      // If the kicking team recovers the overtime kickoff, the receiving team is deemed to
+      // have had its possession (NFL rule), so a touchdown can end it: not this case.
+      const opening = g.plays.find((p) => p.quarter >= 5 && p.kind === "kickoff");
+      if (opening && opening.offense === first) continue;
       const firstTd = ot.find((p) => p.touchdown === first && p.offense === first);
       const firstPossession = ot.findIndex((p) => p.offense !== first);
       if (!firstTd || (firstPossession !== -1 && ot.indexOf(firstTd) > firstPossession)) continue;

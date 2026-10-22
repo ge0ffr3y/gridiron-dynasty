@@ -133,8 +133,13 @@ export const TUNING = {
     // Phase 8: 0.05 -> 0.09. Teams now dress 48 from a 53-man roster instead of all 90, so the
     // receivers and linemen who rotate in are thinner; completion and yards per attempt fell
     // about 0.006 and 0.15 below the real rates, and this restores them (5 scorecard runs).
-    completionLogit: 0.09,
-    sackRateScale: 0.76,
+    // Phase 9b: 0.09 -> 0.11. Injuries now happen at the real rate (31 a team-season cost games,
+    // not 8), so backups play more, as in the real league; yards per attempt fell to 6.8 and
+    // completion to 0.637. This restores them without pushing scoring past its range (0.14 did).
+    completionLogit: 0.11,
+    // Phase 9b: 0.76 -> 0.72. Backup linemen and quarterbacks play more (real injury rates);
+    // the real league's sack rate rose to 0.076, over its 0.074 edge (generated leagues 0.073).
+    sackRateScale: 0.72,
     interceptionRateScale: 1.14,
     /**
      * Nudges to the real neutral-situation pass rates, per situation, so that

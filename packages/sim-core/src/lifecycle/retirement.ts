@@ -16,11 +16,11 @@ export interface RetirementCall {
 }
 
 function seasonsIdle(p: Player, endedSeason: number): number {
+  // A prospect nobody signed, who never played: his whole (short) time in the league was idle.
+  if (p.ratingHistory.length === 0 && p.stats.length === 0) return RETIREMENT.idleSeasons;
   let n = 0;
   for (let s = endedSeason; s > endedSeason - 5; s--) {
     if (p.stats.some((st) => st.season === s && (st.line.gp ?? 0) > 0)) break;
-    // A rookie prospect didn't exist before his first season.
-    if (p.ratingHistory.length === 0 && p.experience === 0) return n + 1;
     n += 1;
   }
   return n;
@@ -81,6 +81,11 @@ export function retirementChance(league: League, p: Player, endedSeason: number)
   if ((p.injury?.gamesRemaining ?? 0) >= RETIREMENT.injuredGames && age >= RETIREMENT.injuredAge) {
     logOdds += RETIREMENT.injured;
     parts.push({ value: RETIREMENT.injured, reason: "another long recovery ahead" });
+  }
+  const severe = p.injuryHistory.some((h) => h.season === endedSeason && h.games >= 9);
+  if (severe && age >= RETIREMENT.severeInjuryAge) {
+    logOdds += RETIREMENT.severeInjury;
+    parts.push({ value: RETIREMENT.severeInjury, reason: "a severe injury last season" });
   }
   const chance = dmath.logistic(Math.max(RETIREMENT.floor, logOdds));
   return {

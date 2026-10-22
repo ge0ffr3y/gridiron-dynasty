@@ -4,9 +4,10 @@
  * last, so a 30-season run can show the league neither inflates nor collapses
  * and careers look like the real ones (calibration/lifecycle.json).
  */
-import { ageOn, overallAt, type Position } from "@fgm/foundation";
+import { addDays, ageOn, overallAt, type Position } from "@fgm/foundation";
 import { DEPTH_SLOTS } from "@fgm/game-engine";
 import lifecycle from "../../../../calibration/lifecycle.json";
+import injuryData from "../../../../calibration/injuries.json";
 import type { League, Player } from "../league/schema";
 import { seasonDates } from "../season/calendar";
 import { DEPTH_CHART } from "../season/config";
@@ -151,3 +152,110 @@ export function realAgeMix(): { mean: number; quantiles: number[] } {
   const all = (lifecycle.ageMix as Record<string, { mean: number; quantiles: number[] }>)["ALL"]!;
   return { mean: all.mean, quantiles: all.quantiles };
 }
+
+// --- Injuries (Phase 9b) -----------------------------------------------------------------
+
+/** This week's injury report, counted per team: listed Out, Doubtful, Questionable (sitting), and playing through a knock. */
+export function reportCounts(league: League): {
+  Out: number;
+  Doubtful: number;
+  Questionable: number;
+  playingThrough: number;
+} {
+  const c = { Out: 0, Doubtful: 0, Questionable: 0, playingThrough: 0 };
+  for (const p of league.players) {
+    // Players on a reserve list aren't on the report (as in the real one).
+    if (p.teamId === null || p.roster !== "active") continue;
+    if (p.injury) c[p.injury.status] += 1;
+    else if (p.knock) c.playingThrough += 1;
+  }
+  const teams = league.teams.length;
+  return {
+    Out: c.Out / teams,
+    Doubtful: c.Doubtful / teams,
+    Questionable: c.Questionable / teams,
+    playingThrough: c.playingThrough / teams,
+  };
+}
+
+export interface InjurySeason {
+  season: number;
+  /** Injuries that cost games in the regular season, per team (in games, at practice). */
+  costingPerTeam: { all: number; game: number; practice: number };
+  /** Severity of those, shares by games missed. */
+  severity: Record<string, number>;
+  /** Players put on reserve lists at final cuts, and on injured reserve during the season, per team. */
+  reserve: { irAtWeek1: number; irDuring: number; pupAtWeek1: number; nfiAtWeek1: number };
+  /** The most common body parts (all listed injuries), sim share vs. real. */
+  parts: { part: string; sim: number; real: number }[];
+}
+
+const SEVERITY_BUCKETS = ["1", "2", "3", "4-5", "6-8", "9+"];
+function bucketFor(games: number): string {
+  if (games <= 3) return String(games);
+  if (games <= 5) return "4-5";
+  if (games <= 8) return "6-8";
+  return "9+";
+}
+
+/** Injuries and reserve lists over a finished regular season, next to the real numbers. */
+export function injurySeason(league: League, season: number): InjurySeason {
+  const d = seasonDates(league.rules, season);
+  const first = d.weekSundays[0]!;
+  const last = d.weekSundays.at(-1)!;
+  const teams = league.teams.length;
+  const inSeason = league.players.flatMap((p) =>
+    p.injuryHistory.filter((h) => h.season === season && h.date >= first && h.date <= last),
+  );
+  const costing = inSeason.filter((h) => h.games >= 1);
+  const severity = Object.fromEntries(
+    SEVERITY_BUCKETS.map((b) => [
+      b,
+      costing.filter((h) => bucketFor(h.games) === b).length / Math.max(1, costing.length),
+    ]),
+  );
+  const moves = league.transactions.filter((t) => t.type === "reserve");
+  const placed = (on: string, from: string, to: string) =>
+    new Set(
+      moves
+        .filter((t) => t.date >= from && t.date <= to && t.text.includes(on))
+        .flatMap((t) => t.playerIds),
+    ).size / teams;
+  // Real overall mix: each severity's body parts, weighted by how common that severity is.
+  const realMix = new Map<string, number>();
+  const shares = injuryData.episodes.severity.shares as Record<string, number>;
+  for (const [b, mix] of Object.entries(
+    injuryData.bodyParts.bySeverity as Record<string, Record<string, number>>,
+  ))
+    for (const [part, share] of Object.entries(mix))
+      realMix.set(part, (realMix.get(part) ?? 0) + (shares[b] ?? 0) * share);
+  const simMix = new Map<string, number>();
+  for (const h of inSeason) simMix.set(h.part, (simMix.get(h.part) ?? 0) + 1 / inSeason.length);
+  return {
+    season,
+    costingPerTeam: {
+      all: costing.length / teams,
+      game: costing.filter((h) => h.kind === "game").length / teams,
+      practice: costing.filter((h) => h.kind === "practice").length / teams,
+    },
+    severity,
+    reserve: {
+      irAtWeek1: placed("injured reserve", d.cutdown, d.cutdown),
+      irDuring: placed("injured reserve", addDays(d.cutdown, 1), last),
+      pupAtWeek1: placed("the PUP list", d.cutdown, d.cutdown),
+      nfiAtWeek1: placed("the NFI list", d.cutdown, d.cutdown),
+    },
+    parts: [...realMix]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([part, real]) => ({ part, sim: simMix.get(part) ?? 0, real })),
+  };
+}
+
+/** The real numbers the injury summary compares with (calibration/injuries.json). */
+export const REAL_INJURIES = {
+  costingPerTeam: injuryData.episodes.costingGamesPerTeamSeason,
+  severity: injuryData.episodes.severity.shares,
+  reserve: injuryData.reserve,
+  statuses: injuryData.statuses,
+};

@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { ContractPanel } from "@/components/ContractPanel";
+import { RatingHistoryChart } from "@/components/RatingHistoryChart";
 import { StatTables } from "@/components/StatTables";
 import {
   ErrorNote,
@@ -11,10 +12,31 @@ import {
   TeamChip,
 } from "@/components/shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatHeight, formatLeagueDate, ordinal } from "@/lib/format";
 import { useLeagueKey } from "@/lib/session";
 import { useSim } from "@/sim/client";
 import { formatShort } from "@fgm/sim-core";
+
+const DEVELOPMENT_STAGES: Record<string, string> = {
+  "league-year": "League Year",
+  camp: "camp",
+  season: "in season",
+};
+
+const INJURY_KINDS: Record<string, string> = {
+  game: "In a game",
+  practice: "In practice",
+  camp: "Training camp",
+  "non-football": "Off the field",
+};
 
 const GROUP_TITLES = { physical: "Physical", technical: "Technical", mental: "Mental" } as const;
 
@@ -105,9 +127,11 @@ export function PlayerPage({ playerId }: { playerId: number }) {
                 "Health",
                 p.injury ? (
                   <span className="text-destructive">
-                    Injured: {p.injury.description.toLowerCase()}, out {p.injury.gamesRemaining}{" "}
-                    more game{p.injury.gamesRemaining === 1 ? "" : "s"}
+                    {p.injury.status}: {p.injury.description}; out {p.injury.gamesRemaining} more
+                    game{p.injury.gamesRemaining === 1 ? "" : "s"}
                   </span>
+                ) : p.knock ? (
+                  `Questionable: playing through a ${p.knock.part.toLowerCase()} knock`
                 ) : (
                   "Healthy"
                 ),
@@ -139,6 +163,71 @@ export function PlayerPage({ playerId }: { playerId: number }) {
           ))}
         </CardContent>
       </Card>
+
+      {p.ratingHistory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Career arc</CardTitle>
+            <CardDescription>
+              Overall at the end of each season, your staff's read; the open dot is this season so
+              far.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <RatingHistoryChart points={p.ratingHistory} />
+            {p.development.length > 0 && (
+              <div className="flex flex-col gap-1 text-sm">
+                <div className="font-medium">This season</div>
+                {p.development.map((d) => (
+                  <div key={`${d.stage}-${d.date}`}>
+                    <span className="tabular-nums">
+                      {d.change > 0 ? "+" : ""}
+                      {d.change}
+                    </span>{" "}
+                    <span className="text-muted-foreground">
+                      ({DEVELOPMENT_STAGES[d.stage] ?? d.stage}) {d.reason}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {p.injuryHistory.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Injury history</CardTitle>
+            <CardDescription>
+              Every injury, newest first, with the games he was expected to miss (0: he played
+              through it).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Injury</TableHead>
+                  <TableHead>Where</TableHead>
+                  <TableHead className="text-right">Games</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {p.injuryHistory.map((h, i) => (
+                  <TableRow key={`${h.date}-${i}`}>
+                    <TableCell>{formatLeagueDate(h.date)}</TableCell>
+                    <TableCell>{h.part}</TableCell>
+                    <TableCell>{INJURY_KINDS[h.kind] ?? h.kind}</TableCell>
+                    <TableCell className="text-right tabular-nums">{h.games}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {p.preseason && (
         <Card>

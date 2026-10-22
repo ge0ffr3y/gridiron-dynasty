@@ -5,6 +5,8 @@
 import type {
   CalendarPageView,
   CampReportView,
+  DevelopmentReportView,
+  InjuryReportView,
   RosterManagementView,
   RosterMoveKind,
   TradeAssets,
@@ -100,6 +102,10 @@ export interface SimApi {
   calendarPageView(params: Record<string, never>): CalendarPageView;
   /** Preseason standouts, who improved, and the waiver claims at final cuts. */
   campReportView(params: Record<string, never>): CampReportView;
+  /** This week's injury report: every team's (or one team's) listed players and reserve lists. */
+  injuryReportView(params: { teamId?: string }): InjuryReportView;
+  /** This season's development rounds: biggest risers and fallers, with reasons. */
+  developmentReportView(params: Record<string, never>): DevelopmentReportView;
   /** A team's roster by list, with the moves the league office can make; plus free agents. */
   rosterManagementView(params: {
     teamId: string;

@@ -5,6 +5,7 @@
  * rookie deals, weekly pay on in-season moves, and game-day actives.
  */
 import { describe, expect, it } from "vitest";
+import { injuryFor } from "../season/injuries";
 import { overallAt } from "@fgm/foundation";
 import { rookieSlot } from "../contracts/cap";
 import { capHit, totalValue } from "../contracts/contract";
@@ -161,7 +162,7 @@ describe("the practice squad", () => {
     const team = "BUF";
     // Leave the team with no healthy quarterback behind the starter.
     const qbs = onTeam(league, team, "active").filter((p) => p.position === "QB");
-    for (const p of qbs) p.injury = { description: "Test", gamesRemaining: 3, since: league.date };
+    for (const p of qbs) p.injury = injuryFor(3, league.date, "Test");
     const psQb = league.players.find(
       (p) =>
         p.teamId === null && p.retiredAfter === null && p.position === "QB" && p.experience <= 2,
@@ -202,13 +203,14 @@ describe("signing off another practice squad", () => {
 });
 
 describe("injured reserve", () => {
-  it("a player out four or more games goes on IR, misses at least four, and his return uses one of eight", () => {
+  it("a player out for weeks goes on IR, misses at least four, and his return uses one of eight", () => {
     const league = copy(WEEK_ONE);
     const team = "BUF";
     const star = onTeam(league, team, "active").sort(
       (a, b) => overallAt(b.ratings, b.position) - overallAt(a.ratings, a.position),
     )[0]!;
-    star.injury = { description: "Test injury", gamesRemaining: 5, since: league.date };
+    // Out long enough that teams use injured reserve (ROSTER_AI.injuredReserveFromGames).
+    star.injury = injuryFor(7, league.date, "Test injury");
     const returns = reserveReturnsLeft(league, team);
     advance(league); // weekly upkeep puts him on IR, then Week 1 is played
     expect(star.roster).toBe("injured-reserve");
@@ -217,7 +219,10 @@ describe("injured reserve", () => {
     for (let w = 0; w < 3; w++) advance(league);
     expect(star.roster).toBe("active");
     expect(star.reserve).toBeNull();
-    expect(reserveReturnsLeft(league, team)).toBe(returns - 1);
+    // His return used one of the season's designations (teammates may have used others).
+    const used = league.teams.find((t) => t.id === team)!.reserveReturns;
+    expect(used.some((r) => r.playerId === star.id && r.season === league.season)).toBe(true);
+    expect(reserveReturnsLeft(league, team)).toBeLessThanOrEqual(returns - 1);
     expect(rosterProblems(league)).toEqual([]);
   }, 300_000);
 });

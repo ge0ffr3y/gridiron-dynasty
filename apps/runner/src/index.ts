@@ -7,6 +7,7 @@
  *   npm run sim -- --seasons 10 --seed 42                 simulate seasons, checking every schedule
  *   npm run sim -- --calibrate [--leagues 4 --seasons 2 --seed 42]   compare simulated seasons with real NFL ranges
  *   npm run sim -- --calibrate --league pipeline/private/out/real-league-2026.json   the same, from the real league
+ *   npm run sim -- --injuries 3 [--seed 42] [--league file]   injuries, report statuses and reserve lists vs. real
  *   npm run sim -- --lifecycle 30 [--seed 42] [--league file] [--out file]   long run: age mix, starter quality, stars, careers
  */
 import { readFileSync, writeFileSync } from "node:fs";
@@ -35,7 +36,10 @@ import {
   parseLeague,
   startRealLeague,
   careerSummary,
+  injurySeason,
   lifecycleSnapshot,
+  reportCounts,
+  REAL_INJURIES,
   realAgeMix,
   type League,
 } from "@fgm/sim-core";
@@ -78,6 +82,12 @@ if (args.includes("--calibrate")) {
         )
       : null,
   );
+  process.exit(0);
+}
+
+const injuriesArg = option(args, "--injuries");
+if (injuriesArg !== undefined) {
+  runInjuries(readSeed(args), Number(injuriesArg), option(args, "--league"));
   process.exit(0);
 }
 
@@ -342,4 +352,87 @@ function runLifecycle(seed: number, count: number, file?: string, out?: string):
     writeFileSync(fromCaller(out), serializeLeague(league));
     console.log(`Wrote ${out}`);
   }
+}
+
+/**
+ * Injuries (Phase 9b): simulates seasons and prints, per season, injuries that cost games (in
+ * games and at practice), injured-reserve and camp lists, and the weekly injury report, next
+ * to the real numbers (calibration/injuries.json).
+ */
+function runInjuries(seed: number, count: number, file?: string): void {
+  const league = file
+    ? fromFile(parseLeague(readFileSync(fromCaller(file), "utf8")), seed)
+    : createLeague({ seed, name: `League ${seed}` });
+  const real = REAL_INJURIES;
+  const f = (x: number) => x.toFixed(2).padStart(6);
+  console.log(`\nInjuries: ${count} seasons from seed ${seed}${file ? " (from file)" : ""}\n`);
+  console.log(
+    "season  costing games (game + practice)   IR wk1  IR during  PUP wk1  NFI wk1   Out  Doubt  Q-sits  Q-plays  Q play%",
+  );
+  const totals = { costing: 0, irWeek1: 0, irDuring: 0, pup: 0, nfi: 0 };
+  const report = { Out: 0, Doubtful: 0, Questionable: 0, playingThrough: 0, weeks: 0 };
+  const severity: Record<string, number> = {};
+  for (let i = 0; i < count; i++) {
+    const week = { Out: 0, Doubtful: 0, Questionable: 0, playingThrough: 0, n: 0 };
+    for (let guard = 0; guard < 100 && league.calendar.stage !== "complete"; guard++) {
+      advance(league);
+      // The report each team files before a regular-season game.
+      if (league.calendar.stage === "regular") {
+        const c = reportCounts(league);
+        week.Out += c.Out;
+        week.Doubtful += c.Doubtful;
+        week.Questionable += c.Questionable;
+        week.playingThrough += c.playingThrough;
+        week.n += 1;
+      }
+    }
+    const s = injurySeason(league, league.season);
+    advance(league);
+    totals.costing += s.costingPerTeam.all;
+    totals.irWeek1 += s.reserve.irAtWeek1;
+    totals.irDuring += s.reserve.irDuring;
+    totals.pup += s.reserve.pupAtWeek1;
+    totals.nfi += s.reserve.nfiAtWeek1;
+    for (const k of ["Out", "Doubtful", "Questionable", "playingThrough"] as const)
+      report[k] += week[k];
+    report.weeks += week.n;
+    for (const [b, v] of Object.entries(s.severity)) severity[b] = (severity[b] ?? 0) + v / count;
+    const q = week.Questionable + week.playingThrough;
+    console.log(
+      `${s.season}    ${f(s.costingPerTeam.all)} (${s.costingPerTeam.game.toFixed(1)} + ${s.costingPerTeam.practice.toFixed(1)})          ${f(s.reserve.irAtWeek1)}  ${f(s.reserve.irDuring)}   ${f(s.reserve.pupAtWeek1)}   ${f(s.reserve.nfiAtWeek1)}  ${f(week.Out / week.n)} ${f(week.Doubtful / week.n)}  ${f(week.Questionable / week.n)}   ${f(week.playingThrough / week.n)}   ${((week.playingThrough / Math.max(1, q)) * 100).toFixed(0).padStart(5)}%`,
+    );
+    if (i === count - 1) {
+      console.log("\nBody parts (all listed injuries this season), sim vs. real:");
+      for (const p of s.parts)
+        console.log(
+          `  ${p.part.padEnd(12)} ${(p.sim * 100).toFixed(1).padStart(5)}%  ${(p.real * 100).toFixed(1).padStart(5)}%`,
+        );
+    }
+  }
+  const qReal = real.statuses.Questionable;
+  console.log(`\nAverage per team-season vs. real:`);
+  console.log(
+    `  injuries costing games  ${(totals.costing / count).toFixed(1)}  real ${real.costingPerTeam}`,
+  );
+  console.log(
+    `  injured reserve at Week 1 ${(totals.irWeek1 / count).toFixed(2)}  real ${real.reserve.injuredReserveAtWeek1}; during the season ${(totals.irDuring / count).toFixed(2)}  real ${real.reserve.injuredReserveDuringSeason}`,
+  );
+  console.log(
+    `  PUP at Week 1 ${(totals.pup / count).toFixed(2)}  real ${real.reserve.pupAtWeek1}; NFI ${(totals.nfi / count).toFixed(2)}  real ${real.reserve.nfiAtWeek1}`,
+  );
+  const w = report.weeks;
+  console.log(`Injury report per team-week vs. real:`);
+  console.log(
+    `  Out ${(report.Out / w).toFixed(2)}  real ${real.statuses.Out.perTeamWeek}; Doubtful ${(report.Doubtful / w).toFixed(2)}  real ${real.statuses.Doubtful.perTeamWeek}`,
+  );
+  console.log(
+    `  Questionable ${((report.Questionable + report.playingThrough) / w).toFixed(2)}  real ${qReal.perTeamWeek}, of whom ${((report.playingThrough / Math.max(1, report.Questionable + report.playingThrough)) * 100).toFixed(0)}% play  real ${(qReal.playRate * 100).toFixed(0)}%`,
+  );
+  console.log(`Severity of injuries costing games, sim vs. real:`);
+  const realCosting = Object.entries(real.severity).filter(([b]) => b !== "0");
+  const realTotal = realCosting.reduce((a, [, v]) => a + v, 0);
+  for (const [b, v] of realCosting)
+    console.log(
+      `  ${b.padEnd(4)} ${((severity[b] ?? 0) * 100).toFixed(1).padStart(5)}%  ${((v / realTotal) * 100).toFixed(1).padStart(5)}%`,
+    );
 }

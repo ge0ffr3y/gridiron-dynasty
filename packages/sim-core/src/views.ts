@@ -8,7 +8,7 @@ import { ageOn } from "@fgm/foundation";
 import { STARTERS } from "./generate/config";
 import { stageLabel } from "./season/calendar";
 import type { Coach, CoachRole, League, Player, RosterList, Team } from "./league/schema";
-import { perceivePlayer, type Viewer } from "./perception";
+import { perceiveChange, perceiveHistory, perceivePlayer, type Viewer } from "./perception";
 import {
   ATTRIBUTES,
   POSITION_INFO,
@@ -137,7 +137,31 @@ export interface PlayerView {
     capHit: number;
     averagePerYear: number;
   } | null;
-  injury: { description: string; gamesRemaining: number; since: string } | null;
+  injury: {
+    description: string;
+    part: string;
+    severity: string;
+    status: "Out" | "Doubtful" | "Questionable";
+    gamesRemaining: number;
+    totalGames: number;
+    since: string;
+  } | null;
+  /** A knock he's playing through (listed Questionable). */
+  knock: { part: string; since: string } | null;
+  /** Every injury, newest first: when, what, where, and games he was expected to miss. */
+  injuryHistory: { season: number; date: string; part: string; kind: string; games: number }[];
+  /** His overall at the end of each season, oldest first, then where he stands now. */
+  ratingHistory: {
+    season: number;
+    age: number;
+    team: string | null;
+    position: Position;
+    overall: number;
+    /** The current season, before it's finished. */
+    now: boolean;
+  }[];
+  /** This season's notable development: the League Year, camp and in-season changes. */
+  development: { stage: string; date: string; change: number; reason: string }[];
   /** Where he's listed with his team (null for free agents), and since when on a reserve list. */
   list: RosterList | null;
   reserve: { since: string; gamesMissed: number; designatedToReturn: boolean } | null;
@@ -437,6 +461,35 @@ export function playersView(league: League, viewer: Viewer): RosterRow[] {
     .map((p) => rosterRow(league, p, viewer));
 }
 
+/** Season-end overalls as the viewer sees them, plus this season so far. */
+function ratingHistoryFor(
+  league: League,
+  player: Player,
+  viewer: Viewer,
+  overall: number,
+): PlayerView["ratingHistory"] {
+  const past = perceiveHistory(league, player, viewer).map((h) => ({
+    season: h.season,
+    age: h.age,
+    team: h.teamId,
+    position: h.position,
+    overall: h.overall,
+    now: false,
+  }));
+  if (player.retiredAfter !== null || past.some((h) => h.season === league.season)) return past;
+  return [
+    ...past,
+    {
+      season: league.season,
+      age: ageOn(player.birthDate, league.date),
+      team: player.teamId,
+      position: player.position,
+      overall,
+      now: true,
+    },
+  ];
+}
+
 export function playerView(league: League, playerId: number, viewer: Viewer): PlayerView {
   const player = league.players.find((p) => p.id === playerId);
   if (!player) throw new Error(`no player ${playerId}`);
@@ -490,6 +543,20 @@ export function playerView(league: League, playerId: number, viewer: Viewer): Pl
         }
       : null,
     injury: player.injury,
+    knock: player.knock,
+    injuryHistory: [...player.injuryHistory].reverse(),
+    ratingHistory: ratingHistoryFor(league, player, viewer, seen.overall),
+    development: league.development
+      .filter((r) => r.season === league.season)
+      .flatMap((r) =>
+        r.changes
+          .filter((c) => c.playerId === player.id)
+          .map((c) => {
+            const d = perceiveChange(league, player, viewer, c.before, c.after);
+            return { stage: r.stage, date: r.date, change: d.after - d.before, reason: c.reason };
+          }),
+      )
+      .filter((d) => d.change !== 0),
     list: player.teamId ? player.roster : null,
     reserve: player.reserve,
     elevations: player.elevations,

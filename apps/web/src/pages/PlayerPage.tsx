@@ -12,6 +12,7 @@ import {
   TeamChip,
 } from "@/components/shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MoodCard } from "@/components/Morale";
 import {
   Table,
   TableBody,
@@ -207,6 +208,8 @@ export function PlayerPage({ playerId }: { playerId: number }) {
           </CardContent>
         </Card>
       )}
+
+      <MoodCard player={p} />
 
       {p.injuryHistory.length > 0 && (
         <Card>

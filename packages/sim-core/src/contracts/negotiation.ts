@@ -21,6 +21,7 @@ import { STARTERS } from "../generate/config";
 import type { Agent, Contract, ContractYear, League, Offer, Player } from "../league/schema";
 import { fitScore, teamScheme } from "../coaches/fit";
 import { agentOf } from "../people/agents";
+import { MORALE } from "../people/morale";
 import { readOverall } from "../perception";
 import { uniformFrom } from "../scouting/noise";
 import { starterStrengths } from "../season/flow";
@@ -44,6 +45,8 @@ export const NEGOTIATION = {
   moneyAsk: 0.05,
   /** A loyal player takes up to this much less from his own team. */
   loyaltyDiscount: 0.06,
+  /** Phase 12b: his mood about his own team moves his ask to it by up to this much (-1..1 mood). */
+  moodAsk: 0.06,
   /** Money score: yearly value and guarantees, and the cost of years off what he wants. */
   guaranteeWeight: 0.3,
   yearsTolerance: 1,
@@ -86,10 +89,18 @@ export function demandFor(
   const style = N.agent[agent.style];
   const ego = (p.personality.ego - 50) / 50;
   const money = (p.personality.priorities.money - 25) / 75;
-  const loyal =
+  // His mood about his team (Phase 12b): unhappy, he wants more to stay and his loyalty fades;
+  // happy, he gives a little more of a discount.
+  const atHome = teamId !== null && teamId === home && p.teamId === home;
+  const mood = atHome && p.mood ? (p.mood.score - MORALE.neutral) / 50 : 0;
+  const loyalBase =
     teamId !== null && teamId === home ? Math.max(0, (p.personality.loyalty - 50) / 50) : 0;
+  const loyal = mood < 0 ? loyalBase * (1 + mood) : loyalBase;
   const factor =
-    style.ask * (1 + N.egoAsk * ego + N.moneyAsk * money) * (1 - N.loyaltyDiscount * loyal);
+    style.ask *
+    (1 + N.egoAsk * ego + N.moneyAsk * money) *
+    (1 - N.loyaltyDiscount * loyal) *
+    (1 - N.moodAsk * mood);
   const minimum = minimumSalary(league.rules.cap, league.season, p.experience);
   const apy = Math.max(minimum, Math.round(market.apy * factor));
   const cap = salaryCap(league.rules.cap, league.season);
@@ -105,6 +116,8 @@ export function demandFor(
   if (Math.abs(ego) > 0.4)
     reasons.push(ego > 0 ? "A big ego: he thinks he's worth more." : "Modest about his worth.");
   if (loyal > 0.3) reasons.push("Loyal to his team: he'd take a little less to stay.");
+  if (mood <= -0.3) reasons.push("Unhappy where he is: it'll cost more to keep him.");
+  else if (mood >= 0.3) reasons.push("Happy where he is: he'd give his team a little break.");
   return {
     apy,
     years,

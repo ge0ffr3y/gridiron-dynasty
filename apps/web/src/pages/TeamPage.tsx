@@ -6,6 +6,7 @@ import { RosterManager } from "@/components/RosterManager";
 import { TransactionsPage } from "@/pages/TransactionsPage";
 import { DepthChartEditor } from "@/components/DepthChartEditor";
 import { RosterTable } from "@/components/RosterTable";
+import { LockerRoom } from "@/components/Morale";
 import {
   ErrorNote,
   Facts,
@@ -28,7 +29,7 @@ import { ordinal } from "@/lib/format";
 import { useLeagueKey } from "@/lib/session";
 import { useSim } from "@/sim/client";
 
-type Tab = "roster" | "manage" | "depth" | "cap" | "moves" | "stats" | "staff" | "picks";
+type Tab = "roster" | "manage" | "depth" | "cap" | "moves" | "stats" | "staff" | "picks" | "locker";
 
 export function TeamPage({ teamId }: { teamId: string }) {
   const view = useSim("teamView", { teamId }, useLeagueKey(String(teamId)));
@@ -73,6 +74,7 @@ export function TeamPage({ teamId }: { teamId: string }) {
             ["cap", "Salary cap"],
             ["moves", "Transactions"],
             ["staff", "Staff"],
+            ["locker", "Locker room"],
             ["picks", "Draft picks"],
             ["stats", "Stats"],
           ] as [Tab, string][]
@@ -96,6 +98,8 @@ export function TeamPage({ teamId }: { teamId: string }) {
       {tab === "roster" && <RosterTable rows={roster} />}
 
       {tab === "depth" && <DepthChartEditor teamId={teamId} />}
+
+      {tab === "locker" && <LockerRoom teamId={teamId} />}
 
       {tab === "cap" && <CapSheet teamId={teamId} />}
 

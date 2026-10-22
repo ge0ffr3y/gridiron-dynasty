@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 15;
+export const LEAGUE_FORMAT_VERSION = 16;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -107,6 +107,28 @@ export const AgentSchema = z.object({
   agency: z.string(),
   style: z.enum(AGENT_STYLES),
 });
+
+/** What moves a player's mood (Phase 12b). */
+export const MOOD_FACTORS = [
+  "winning",
+  "role",
+  "pay",
+  "fit",
+  "leaders",
+  "loyalty",
+  "dispute",
+] as const;
+
+/** A contract dispute (Phase 12b): out of camp, at camp but not practicing, or asking to be traded. */
+export const DISPUTE_KINDS = ["holdout", "hold-in", "trade-request"] as const;
+/** How a dispute ended. */
+export const DISPUTE_OUTCOMES = [
+  "extended",
+  "traded",
+  "reported",
+  "withdrawn",
+  "released",
+] as const;
 
 export const CONTRACT_TYPES = [
   "rookie",
@@ -326,6 +348,16 @@ export const PlayerSchema = z.object({
       kind: z.enum(RIGHTS_KINDS),
       teamId: z.string(),
       season: z.number().int(),
+    })
+    .nullable(),
+  /**
+   * How he feels about where he is (Phase 12b): 0-100 (50 = content), updated weekly, with
+   * what moved it (points each). Null while he has no team.
+   */
+  mood: z
+    .object({
+      score: z.number().min(0).max(100),
+      factors: z.array(z.object({ key: z.enum(MOOD_FACTORS), points: z.number() })),
     })
     .nullable(),
 });
@@ -719,6 +751,8 @@ export const TransactionSchema = z.object({
     "development",
     // Phase 11b: compensatory picks awarded.
     "compensatory",
+    // Phase 12b: holdouts, hold-ins and trade requests, and how they ended.
+    "dispute",
   ]),
   teamIds: z.array(z.string()),
   playerIds: z.array(z.number().int()),
@@ -852,6 +886,26 @@ export const LeagueSchema = z.object({
       years: z.number().int().positive(),
       /** Accrued seasons when he signed (10+ non-quarterbacks can't bring a pick before round 5). */
       accruedSeasons: z.number().int().nonnegative(),
+    }),
+  ),
+  /**
+   * Contract disputes (Phase 12b), oldest first: holdouts, hold-ins and trade requests, open
+   * while `end` is null. Kept for three seasons.
+   */
+  disputes: z.array(
+    z.object({
+      playerId: z.number().int(),
+      teamId: z.string(),
+      season: z.number().int(),
+      kind: z.enum(DISPUTE_KINDS),
+      start: IsoDate,
+      reason: z.string(),
+      /** Camp fines he's run up (CBA Article 42), whole dollars; teams often waive them. */
+      fines: z.number().int().nonnegative(),
+      end: IsoDate.nullable(),
+      outcome: z.enum(DISPUTE_OUTCOMES).nullable(),
+      /** How the team answered, or how it ended, and why. */
+      response: z.string(),
     }),
   ),
   /** One summary per completed season, oldest first. */

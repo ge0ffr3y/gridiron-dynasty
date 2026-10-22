@@ -340,6 +340,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     coachingMoves: [],
     prospects: [],
     freeAgentMoves: [],
+    disputes: [],
     agents: generateAgents(input.seed),
     negotiations: [],
     freeAgency: null,

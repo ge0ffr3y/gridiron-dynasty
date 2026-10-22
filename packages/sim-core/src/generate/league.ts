@@ -142,6 +142,7 @@ export function createLeague(options: NewLeagueOptions): League {
     coachingMoves: [],
     prospects: [],
     freeAgentMoves: [],
+    disputes: [],
     agents: generateAgents(options.seed),
     negotiations: [],
     freeAgency: null,

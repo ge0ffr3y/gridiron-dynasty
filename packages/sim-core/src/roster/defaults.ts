@@ -7,4 +7,5 @@ export const NEW_PLAYER_ROSTER = {
   preseason: null,
   measurables: null,
   rights: null,
+  mood: null,
 } as const;

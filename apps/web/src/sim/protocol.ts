@@ -4,6 +4,8 @@
  */
 import type {
   FreeAgencyView,
+  LockerRoomView,
+  DisputesView,
   NegotiationView,
   Offer,
   BigBoardView,
@@ -157,6 +159,10 @@ export interface SimApi {
   scoutingMove(params: ScoutingMove): { message: string };
   /** The free-agent market: who's available, interest, signings, tags and tenders. */
   freeAgencyView(params: Record<string, never>): FreeAgencyView;
+  /** A team's locker room: chemistry, leaders, the unhappy and its disputes (Phase 12b). */
+  lockerRoomView(params: { teamId: string }): LockerRoomView;
+  /** The league's holdouts, hold-ins and trade requests, and every team's chemistry. */
+  disputesView(params: Record<string, never>): DisputesView;
   /** A player's demands and how talks with a team stand. */
   negotiationView(params: { playerId: number; teamId: string }): NegotiationView;
   /** The league office's offer for a team (saved): his answer, and a signing if he accepts. */

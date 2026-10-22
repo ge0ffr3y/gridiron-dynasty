@@ -10,7 +10,9 @@ Contracts are negotiated now. Every player has an agent and things he cares abou
 
 You can sit at the table too. On the negotiation screen you can make an offer for any team as the league office, until GM Mode. You'll see the player's market value, his ask and why, his agent, what he cares about, how he sees your team, and what the deal does to your cap.
 
-_(Screenshot to come: the app window was closed during this session, so the browser couldn't draw one.)_
+![Contract talks: an unhappy linebacker's demands, his agent and priorities, and a lowball offer his agent ended talks over](img/0012a-negotiation.jpg)
+
+_(Taken in a fictional league (seed 42) during Phase 12b, so it also shows 12b's mood line in his demands.)_
 
 ## The real market
 

@@ -40,6 +40,8 @@ import {
   campReportView,
   carouselView,
   freeAgencyView,
+  lockerRoomView,
+  disputesView,
   makeOffer,
   negotiationView,
   bigBoardView,
@@ -381,6 +383,14 @@ const handlers: Handlers = {
 
   freeAgencyView() {
     return freeAgencyView(requireLeague(), viewer());
+  },
+
+  lockerRoomView({ teamId }) {
+    return lockerRoomView(requireLeague(), teamId, viewer());
+  },
+
+  disputesView() {
+    return disputesView(requireLeague());
   },
 
   negotiationView({ playerId, teamId }) {

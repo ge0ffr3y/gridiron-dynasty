@@ -235,6 +235,13 @@ function upgrade(data: Record<string, unknown>): void {
     if (rules) rules["freeAgency"] = rulesFor(Number(data["season"])).freeAgency;
     data["formatVersion"] = 15;
   }
+  // Version 15 -> 16: moods and disputes (Phase 12b). Moods start unset (the next weekly update
+  // fills them in) and there are no disputes yet.
+  if (data["formatVersion"] === 15) {
+    for (const p of (data["players"] as Record<string, unknown>[]) ?? []) p["mood"] = null;
+    data["disputes"] = [];
+    data["formatVersion"] = 16;
+  }
 }
 
 /** Set on an upgraded save whose teams still need their Phase 10 staff (removed before validation). */

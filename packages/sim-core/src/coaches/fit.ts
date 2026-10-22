@@ -164,9 +164,11 @@ export function ratingsInScheme(
   ratings: Player["ratings"],
   position: Position,
   fit: number,
+  /** Extra game-day points (Phase 12b: mood and locker-room chemistry). */
+  extra = 0,
 ): Player["ratings"] {
-  if (fit === 0) return ratings;
-  const shift = fit * FIT_OVERALL_POINTS;
+  if (fit === 0 && extra === 0) return ratings;
+  const shift = fit * FIT_OVERALL_POINTS + extra;
   const out = { ...ratings };
   for (const k of Object.keys(OVERALL_WEIGHTS[position]) as AttributeKey[])
     out[k] = Math.max(1, Math.min(99, out[k] + shift));

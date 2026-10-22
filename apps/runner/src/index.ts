@@ -35,6 +35,8 @@ import {
   draftOutcomesByPick,
   marketSeason,
   REAL_MOVEMENT,
+  disputeSeason,
+  REAL_DISPUTES,
   capSheet,
   salaryCap,
   seasonsStarted,
@@ -527,6 +529,9 @@ function runMarketReport(seed: number, count: number, file?: string): void {
     inRange: 0,
     deals: 0,
     seasons: 0,
+    camp: 0,
+    requests: 0,
+    disputeSeasons: 0,
   };
   for (let i = 0; i < count; i++) {
     // Through the next League Year's free agency to the draft, then the rest of the season.
@@ -543,11 +548,19 @@ function runMarketReport(seed: number, count: number, file?: string): void {
     advanceUntil(league, (l) => l.calendar.stage === "preseason");
     const s = marketSeason(league, league.season);
     advanceUntil(league, (l) => l.calendar.stage === "complete");
+    const disputes = disputeSeason(league, league.season);
     advance(league);
     const f = (x: number) => `${Math.round(x * 100)}%`;
     console.log(
       `${s.season} (room ${Math.round(medianRoom * 100)}%)  ${String(s.freeAgentsNewTeam).padStart(5)} (${String(s.freeAgentsNewTeamPaid1Pct).padStart(3)})    ${String(s.reSigned).padStart(5)} (${String(s.reSignedPaid1Pct).padStart(3)})     ${String(s.extensionsPaid5Pct).padStart(5)}  ${String(s.franchiseTags).padStart(4)}  ${String(s.tenders).padStart(7)}  ${String(s.offerSheets).padStart(6)}  ${f(s.timing.first3Days)}/${f(s.timing.firstWeek)}/${f(s.timing.later)}       ${s.topTierInRange.inRange} of ${s.topTierInRange.deals}`,
     );
+    const o = disputes.outcomes;
+    console.log(
+      `             disputes: ${disputes.holdouts} holdouts, ${disputes.holdIns} hold-ins, ${disputes.tradeRequests} trade requests (extended ${o.extended}, traded ${o.traded}, reported ${o.reported}, withdrawn ${o.withdrawn}, left ${o.released}, open ${o.open}); fines $${(disputes.fines / 1e6).toFixed(2)}M; mood ${disputes.mood.mean.toFixed(1)}, ${f(disputes.mood.angry)} angry`,
+    );
+    totals.camp += disputes.holdouts + disputes.holdIns;
+    totals.requests += disputes.tradeRequests;
+    totals.disputeSeasons += 1;
     if (s.freeAgentsNewTeam === 0) continue; // a new league's first year: nobody's deal ran out
     totals.newTeam += s.freeAgentsNewTeam;
     totals.paid += s.freeAgentsNewTeamPaid1Pct;
@@ -571,6 +584,10 @@ function runMarketReport(seed: number, count: number, file?: string): void {
   const per = (x: number) => (x / Math.max(1, totals.seasons)).toFixed(1);
   console.log(
     `\nA year on average: ${per(totals.newTeam)} free agents to new teams (real ${real.freeAgentsNewTeam}), ${per(totals.paid)} paid 1%+ of the cap (real ${real.freeAgentsNewTeamPaid1Pct}); ${per(totals.resigned)} re-signed (real ${real.reSigned}), ${per(totals.resignedPaid)} paid 1%+ (real ${real.reSignedPaid1Pct}); ${per(totals.ext)} extensions (real: ${real.extensionsPaid5Pct} worth 5%+ of the cap, ${real.extensions} in all). Top-tier free agents inside the real range: ${totals.inRange} of ${totals.deals} (${Math.round((100 * totals.inRange) / Math.max(1, totals.deals))}%).`,
+  );
+  const perD = (x: number) => (x / Math.max(1, totals.disputeSeasons)).toFixed(1);
+  console.log(
+    `Disputes a year: ${perD(totals.camp)} holdouts and hold-ins (real about ${REAL_DISPUTES.campDisputes.join("-")}), ${perD(totals.requests)} trade requests (real about ${REAL_DISPUTES.tradeRequests.join("-")}).`,
   );
   const seconds = Number(process.hrtime.bigint() - started) / 1e9;
   console.log(`${count} League Years in ${seconds.toFixed(0)} s.`);

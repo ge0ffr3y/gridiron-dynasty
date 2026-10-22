@@ -83,6 +83,9 @@ export * from "./scouting/views";
 export * from "./contracts/marketViews";
 export { FREE_AGENCY } from "./contracts/freeAgency";
 export { marketSeason, REAL_MOVEMENT, type MarketSeason } from "./contracts/marketReport";
+export * from "./people/morale";
+export * from "./people/disputes";
+export * from "./people/views";
 // Draft day (Phase 11b).
 export * from "./draft/views";
 export { draftAction, tradeOffers, type DraftAction, type TradeOffer } from "./draft/day";

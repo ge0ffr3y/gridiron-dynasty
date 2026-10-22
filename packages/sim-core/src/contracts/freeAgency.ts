@@ -22,6 +22,7 @@ import { addDays, ageOn, daysBetween, type Dollars } from "@fgm/foundation";
 import { STARTERS } from "../generate/config";
 import type { League, Offer, Player } from "../league/schema";
 import { readOverall } from "../perception";
+import { MORALE } from "../people/morale";
 import { teamNeeds } from "../draft/boards";
 import { uniformFrom } from "../scouting/noise";
 import { seasonDates } from "../season/calendar";
@@ -75,10 +76,10 @@ export const FREE_AGENCY = {
   keepDepth: 1.5,
   /**
    * The share of wanted players who let their deal run out to test the market (before personality:
-   * money, ego and loyalty move it). Tuned so about as many good players change teams as re-sign
+   * money, ego, loyalty and his mood (Phase 12b) move it). Tuned so about as many good players change teams as re-sign
    * (real: ~140 a year paid 1%+ of the cap change teams, ~105 re-sign; calibration/market.json).
    */
-  testMarket: { base: 0.6, money: 0.15, ego: 0.1, loyalty: 0.15 },
+  testMarket: { base: 0.55, money: 0.15, ego: 0.1, loyalty: 0.15, mood: 0.2 },
   /** Tags: used on a player in the market's top this-many at his position whose talks failed. */
   tagTopRank: 8,
   /** Restricted tenders: the level the player's market value covers, by this margin. */
@@ -118,7 +119,11 @@ export function teamBudget(league: League, teamId: string): Dollars {
 }
 
 /** Where he'd fit on a team: starter, rotation or depth (by the team's read). */
-function roleOn(league: League, teamId: string, p: Player): "starter" | "rotation" | "depth" {
+export function roleOn(
+  league: League,
+  teamId: string,
+  p: Player,
+): "starter" | "rotation" | "depth" {
   const better = betterOnTeam(league, teamId, p);
   const starters = STARTERS[p.position] ?? 1;
   return better < starters
@@ -398,7 +403,8 @@ export function reSigningWindow(league: League): void {
         FREE_AGENCY.testMarket.base +
         FREE_AGENCY.testMarket.money * ((pr.priorities.money - 25) / 75) +
         FREE_AGENCY.testMarket.ego * ((pr.ego - 50) / 50) -
-        FREE_AGENCY.testMarket.loyalty * ((pr.loyalty - 50) / 50);
+        FREE_AGENCY.testMarket.loyalty * ((pr.loyalty - 50) / 50) -
+        FREE_AGENCY.testMarket.mood * (((p.mood?.score ?? MORALE.neutral) - MORALE.neutral) / 50);
       const testsMarket =
         uniformFrom(`${league.meta.seed}:tests-market:${p.id}:${season}`) < testChance;
       if (testsMarket) continue;
@@ -727,31 +733,47 @@ export function weeklyExtensions(league: League, week: number): number {
       .filter((p) => roleOn(league, team.id, p) === "starter")
       .sort((a, b) => marketValue(league, b).apy - marketValue(league, a).apy || a.id - b.id);
     for (const p of candidates.slice(0, 1)) {
-      const limit = teamLimit(league, team.id, p);
-      const talks = negotiateOwn(league, team.id, p, limit);
-      if (!talks.offer) continue;
-      const o = talks.offer;
-      const contract = contractFromOffer(league, p, team.id, o, "extension", league.season + 1);
-      const years = contract.years.map(({ season: _s, ...rest }) => rest);
-      // Tried on a scratch copy first: the new bonus counts on this year's cap too.
-      const copy = scratch(league);
-      extendContract(copy, p.id, years, o.signingBonus, "preview");
-      if (
-        capSheet(copy, team.id, league.season).room < 0 ||
-        capSheet(copy, team.id, league.season + 1).room < 0
-      )
-        continue;
-      extendContract(
+      const done = tryExtension(
         league,
-        p.id,
-        years,
-        o.signingBonus,
-        `Extended before his deal's last season ran out: a starter they want to keep. ${talks.reason}`,
+        team.id,
+        p,
+        teamLimit(league, team.id, p),
+        "Extended before his deal's last season ran out: a starter they want to keep.",
       );
-      n += 1;
+      if (done.extended) n += 1;
     }
   }
   return n;
+}
+
+/**
+ * Talks on an extension up to `limit` a year; signs it if they agree and it fits under the cap
+ * this year and next (tried on a scratch copy first: the new bonus counts on this year's cap).
+ */
+export function tryExtension(
+  league: League,
+  teamId: string,
+  p: Player,
+  limit: Dollars,
+  why: string,
+): { extended: boolean; reason: string } {
+  const talks = negotiateOwn(league, teamId, p, limit);
+  if (!talks.offer) return { extended: false, reason: talks.reason };
+  const o = talks.offer;
+  const contract = contractFromOffer(league, p, teamId, o, "extension", league.season + 1);
+  const years = contract.years.map(({ season: _s, ...rest }) => rest);
+  const copy = scratch(league);
+  extendContract(copy, p.id, years, o.signingBonus, "preview");
+  if (
+    capSheet(copy, teamId, league.season).room < 0 ||
+    capSheet(copy, teamId, league.season + 1).room < 0
+  )
+    return {
+      extended: false,
+      reason: "They agreed on terms, but the deal doesn't fit under the cap.",
+    };
+  extendContract(league, p.id, years, o.signingBonus, `${why} ${talks.reason}`);
+  return { extended: true, reason: talks.reason };
 }
 
 /** The last day of the signing period for offer sheets this League Year. */

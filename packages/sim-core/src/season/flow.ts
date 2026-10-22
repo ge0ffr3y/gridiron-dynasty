@@ -71,6 +71,17 @@ import { assignScouts, offseasonScouting, pruneStudy, scoutingWeeks } from "../s
 import { SCOUTING } from "../scouting/config";
 import { assignJerseys } from "../roster/jerseys";
 import { gradePreseason, playPreseasonWeek, schedulePreseason } from "../roster/preseason";
+import { updateMoods } from "../people/morale";
+import {
+  campDisputes,
+  endCampDisputes,
+  leagueYearDisputes,
+  preseasonDisputes,
+  weeklyDisputes,
+} from "../people/disputes";
+
+/** At the offseason's turning points moods move most of the way to where they're headed. */
+const MOOD_SETTLE = 0.6;
 import {
   countReserveGames,
   cutdownDay,
@@ -322,6 +333,12 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       if (!hooks.historyOnly) awardCompensatoryPicks(league);
       batch(league, () => openLeagueYear(league));
       cal.stage = "free-agency";
+      if (!hooks.historyOnly) {
+        // Moods settle over the winter. Trading is open again: requests from players now happy
+        // lapse, and teams answer the rest (Phase 12b).
+        updateMoods(league, MOOD_SETTLE);
+        batch(league, () => leagueYearDisputes(league));
+      }
       return "The new League Year opens: free agency day 1";
     case "free-agency": {
       // Free agency: day by day for the first week, then a week at a time, until the draft.
@@ -361,6 +378,11 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       batch(league, () => lateFreeAgency(league, dates.leagueYear, dates.trainingCamp));
       league.date = dates.trainingCamp;
       batch(league, () => trainingCampOpens(league));
+      if (!hooks.historyOnly) {
+        // Camp: unhappy, underpaid stars may hold out, hold in or ask out (Phase 12b).
+        updateMoods(league, MOOD_SETTLE);
+        batch(league, () => campDisputes(league));
+      }
       if (league.settings.preseasonGames) schedulePreseason(league);
       else league.preseasonGames = [];
       cal.stage = "preseason";
@@ -370,7 +392,10 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       const weeks = dates.preseasonSaturdays.length;
       if (!league.settings.preseasonGames) {
         league.date = dates.preseasonSaturdays[weeks - 1]!;
-        for (let w = 1; w <= weeks; w++) preseasonCampInjuries(league, w, weeks);
+        for (let w = 1; w <= weeks; w++) {
+          preseasonCampInjuries(league, w, weeks);
+          if (!hooks.historyOnly) batch(league, () => preseasonDisputes(league, w));
+        }
         cal.stage = "cutdown";
         return "Training camp (no preseason games)";
       }
@@ -378,6 +403,7 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       league.date = dates.preseasonSaturdays[week - 1]!;
       batch(league, () => playPreseasonWeek(league, week, hooks));
       preseasonCampInjuries(league, week, weeks);
+      if (!hooks.historyOnly) batch(league, () => preseasonDisputes(league, week));
       if (week >= weeks) {
         batch(league, () => gradePreseason(league));
         cal.stage = "cutdown";
@@ -387,6 +413,8 @@ function advanceOnce(league: League, hooks: SimHooks): string {
     case "cutdown":
       // Camp's share of the year's development (a strong preseason helps), then final cuts.
       recordDevelopment(league, "camp", campDevelopment(league));
+      // Holdouts and hold-ins still going end: nobody gives up his game checks (Phase 12b).
+      if (!hooks.historyOnly) batch(league, () => endCampDisputes(league));
       cutdownDay(league);
       // Week 1's roster moves (injured reserve, elevations) are made now too.
       weeklyRosterUpkeep(league);
@@ -412,6 +440,9 @@ function advanceOnce(league: League, hooks: SimHooks): string {
         scoutingWeeks(league, 1);
         // Extensions for players in their deal's last year (Phase 12).
         batch(league, () => weeklyExtensions(league, week));
+        // Moods move with the week, and very unhappy players may ask out (Phase 12b).
+        updateMoods(league);
+        batch(league, () => weeklyDisputes(league, week));
         // Rarely, a head coach is fired during the season (Phase 10b).
         inSeasonFirings(league, week);
       }

@@ -73,6 +73,18 @@ export {
 } from "./coaches/carousel";
 export { DEVELOPMENT } from "./lifecycle/config";
 export { seasonDates } from "./season/calendar";
+// Scouting and draft classes (Phase 11).
+export type { RealProspectInput } from "./scouting/classes";
+export { draftClass, upcomingDraftYear } from "./scouting/classes";
+export { DRILLS } from "./scouting/measurables";
+export { REGIONS, SCOUT_GROUPS, SCOUTING } from "./scouting/config";
+export * from "./scouting/views";
+export {
+  draftOutcomes,
+  draftOutcomesByPick,
+  seasonsStarted,
+  DRAFT_REPORT,
+} from "./scouting/report";
 
 /** Bumped when the league save format or simulation rules change in a breaking way. */
-export const SIM_CORE_VERSION = "0.12.0";
+export const SIM_CORE_VERSION = "0.13.0";

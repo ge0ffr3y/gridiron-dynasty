@@ -18,6 +18,7 @@ import {
   type League,
 } from "./league/schema";
 import { rulesFor } from "./rules";
+import { emptyScouting } from "./scouting/config";
 import { stadiumFor } from "./season/weather";
 
 function sortKeys(value: unknown): unknown {
@@ -195,6 +196,17 @@ function upgrade(data: Record<string, unknown>): void {
     const rules = data["rules"] as Record<string, unknown> | undefined;
     if (rules) rules["staff"] = rulesFor(Number(data["season"])).staff;
     data["formatVersion"] = 12;
+  }
+  // Version 12 -> 13: scouting. Teams start with no scouting assignments or study, the screens
+  // view as the league office, and no draft class exists until the next season starts.
+  if (data["formatVersion"] === 12) {
+    for (const t of (data["teams"] as Record<string, unknown>[]) ?? [])
+      t["scouting"] = emptyScouting();
+    const settings = data["settings"] as Record<string, unknown> | undefined;
+    if (settings) settings["viewingAs"] = null;
+    data["prospects"] = [];
+    for (const p of (data["players"] as Record<string, unknown>[]) ?? []) p["measurables"] = null;
+    data["formatVersion"] = 13;
   }
 }
 

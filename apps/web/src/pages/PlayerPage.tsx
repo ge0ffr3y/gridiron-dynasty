@@ -97,7 +97,10 @@ export function PlayerPage({ playerId }: { playerId: number }) {
               ["Age", p.age],
               ["Born", formatLeagueDate(p.birthDate)],
               ["Height / weight", `${formatHeight(p.heightIn)}, ${p.weightLb} lb`],
-              ["40-yard dash", `${p.fortyTime.toFixed(2)} s`],
+              [
+                "40-yard dash",
+                `${p.fortyTime.toFixed(2)} s${p.fortyMeasured ? "" : " (estimated from tape)"}`,
+              ],
               [
                 "Experience",
                 p.experience === 0
@@ -149,8 +152,9 @@ export function PlayerPage({ playerId }: { playerId: number }) {
         <CardHeader>
           <CardTitle>Positions</CardTitle>
           <CardDescription>
-            Overall at each position this player knows. Your staff's read,{" "}
-            {Math.round(p.confidence * 100)}% confident.
+            Overall at each position this player knows: the staff's read, likely {p.overallRange[0]}
+            –{p.overallRange[1]} at {p.position} ({Math.round(p.confidence * 100)}% confident).
+            Potential: likely {p.potential.range[0]}–{p.potential.range[1]}.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-4">

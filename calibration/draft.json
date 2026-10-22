@@ -1,0 +1,1102 @@
+{
+  "source": "nflverse draft_picks (careers from Pro Football Reference) and combine data (CC-BY-4.0), built by `npm run pipeline -- draft`. Hit rates: classes 1994-2020. Pick value: classes 1994-2015. Combine: 2010-2026.",
+  "note": "starter3Plus: started 3+ seasons as a primary starter. meanCareerValue: weighted approximate value (w_av). pickValue[i] is the career value of overall pick i+1, smoothed and never rising. Measurables: height in inches, weight in pounds, 40 in seconds, bench reps, vertical and broad jump in inches, cone and shuttle in seconds.",
+  "byRound": [
+    {
+      "round": 1,
+      "players": 850,
+      "starter3Plus": 0.772,
+      "neverStarted": 0.066,
+      "proBowl": 0.427,
+      "allPro": 0.194,
+      "meanSeasonsStarted": 5.93,
+      "meanCareerValue": 44.4
+    },
+    {
+      "round": 2,
+      "players": 857,
+      "starter3Plus": 0.575,
+      "neverStarted": 0.219,
+      "proBowl": 0.203,
+      "allPro": 0.065,
+      "meanSeasonsStarted": 3.89,
+      "meanCareerValue": 28.2
+    },
+    {
+      "round": 3,
+      "players": 947,
+      "starter3Plus": 0.369,
+      "neverStarted": 0.403,
+      "proBowl": 0.118,
+      "allPro": 0.046,
+      "meanSeasonsStarted": 2.47,
+      "meanCareerValue": 19.2
+    },
+    {
+      "round": 4,
+      "players": 978,
+      "starter3Plus": 0.247,
+      "neverStarted": 0.507,
+      "proBowl": 0.066,
+      "allPro": 0.019,
+      "meanSeasonsStarted": 1.73,
+      "meanCareerValue": 14.3
+    },
+    {
+      "round": 5,
+      "players": 956,
+      "starter3Plus": 0.195,
+      "neverStarted": 0.634,
+      "proBowl": 0.065,
+      "allPro": 0.023,
+      "meanSeasonsStarted": 1.28,
+      "meanCareerValue": 10.5
+    },
+    {
+      "round": 6,
+      "players": 1039,
+      "starter3Plus": 0.119,
+      "neverStarted": 0.729,
+      "proBowl": 0.038,
+      "allPro": 0.01,
+      "meanSeasonsStarted": 0.85,
+      "meanCareerValue": 7.6
+    },
+    {
+      "round": 7,
+      "players": 1182,
+      "starter3Plus": 0.088,
+      "neverStarted": 0.784,
+      "proBowl": 0.022,
+      "allPro": 0.006,
+      "meanSeasonsStarted": 0.64,
+      "meanCareerValue": 6
+    }
+  ],
+  "byPickRange": [
+    {
+      "picks": "1-10",
+      "players": 270,
+      "starter3Plus": 0.859,
+      "neverStarted": 0.03,
+      "proBowl": 0.559,
+      "allPro": 0.278,
+      "meanSeasonsStarted": 6.87,
+      "meanCareerValue": 53.8
+    },
+    {
+      "picks": "11-32",
+      "players": 594,
+      "starter3Plus": 0.726,
+      "neverStarted": 0.089,
+      "proBowl": 0.36,
+      "allPro": 0.153,
+      "meanSeasonsStarted": 5.45,
+      "meanCareerValue": 39.8
+    },
+    {
+      "picks": "33-64",
+      "players": 864,
+      "starter3Plus": 0.573,
+      "neverStarted": 0.218,
+      "proBowl": 0.205,
+      "allPro": 0.068,
+      "meanSeasonsStarted": 3.89,
+      "meanCareerValue": 28.1
+    },
+    {
+      "picks": "65-100",
+      "players": 972,
+      "starter3Plus": 0.371,
+      "neverStarted": 0.396,
+      "proBowl": 0.119,
+      "allPro": 0.041,
+      "meanSeasonsStarted": 2.52,
+      "meanCareerValue": 19.5
+    },
+    {
+      "picks": "101-150",
+      "players": 1350,
+      "starter3Plus": 0.228,
+      "neverStarted": 0.546,
+      "proBowl": 0.066,
+      "allPro": 0.019,
+      "meanSeasonsStarted": 1.56,
+      "meanCareerValue": 13
+    },
+    {
+      "picks": "151-200",
+      "players": 1350,
+      "starter3Plus": 0.15,
+      "neverStarted": 0.693,
+      "proBowl": 0.045,
+      "allPro": 0.018,
+      "meanSeasonsStarted": 1,
+      "meanCareerValue": 8.7
+    },
+    {
+      "picks": "201-262",
+      "players": 1409,
+      "starter3Plus": 0.088,
+      "neverStarted": 0.784,
+      "proBowl": 0.023,
+      "allPro": 0.006,
+      "meanSeasonsStarted": 0.65,
+      "meanCareerValue": 6
+    }
+  ],
+  "pickValue": [
+    61.8, 61.8, 60.2, 55.7, 54.1, 52.8, 49.6, 48.1, 48.1, 48.1, 48.1, 48.1, 48.1, 47.5, 45.5, 43.3,
+    43.3, 43, 43, 41.8, 41.8, 40.9, 39.4, 39.1, 38.2, 38.2, 37.7, 35.2, 35.2, 35.2, 35.2, 35.2,
+    35.2, 35.2, 34.9, 33.6, 32.6, 32, 31.5, 30.1, 30.1, 28.9, 28.5, 28.3, 27.9, 27.6, 27.6, 27.6,
+    27.5, 26.8, 26.4, 26.4, 26.4, 26.3, 25.4, 25.3, 25.3, 25.1, 25.1, 24.9, 24.1, 23.8, 23.8, 23.5,
+    23.5, 23.5, 23.5, 23.3, 23.1, 22.4, 21.5, 21.5, 20.7, 20.5, 20.2, 19.4, 19, 19, 19, 19, 19, 19,
+    19, 18.5, 18.1, 17.8, 17.8, 17.6, 17.6, 17.1, 17.1, 17.1, 17, 16.7, 16.6, 16.6, 16.6, 16.6,
+    16.5, 16.5, 16.5, 16.2, 15.8, 15.7, 15.2, 14.8, 14.8, 14.7, 14.5, 14.4, 14.4, 14.4, 14.3, 14.3,
+    13.9, 13.9, 13.7, 13.4, 13.3, 13.3, 13.2, 13.2, 13.2, 13.2, 13.1, 12.6, 12.6, 12.5, 12.2, 12.2,
+    12.2, 12.1, 12.1, 12.1, 12.1, 12.1, 12.1, 11.8, 11.8, 11.7, 11.6, 11.5, 11.4, 11.3, 10.8, 10.8,
+    10.6, 10.6, 10.5, 10.5, 10.3, 10.2, 10, 10, 9.9, 9.9, 9.8, 9.6, 9.4, 9.3, 9.3, 9.2, 9, 8.8, 8.6,
+    8.6, 8.6, 8.4, 8.4, 8.4, 8.2, 8.2, 8.2, 8.2, 8.1, 8, 7.9, 7.9, 7.9, 7.9, 7.8, 7.8, 7.7, 7.7,
+    7.7, 7.7, 7.7, 7.6, 7.5, 7.4, 7.3, 7.3, 7.2, 7.2, 7.2, 7.2, 7.2, 7.2, 7.2, 7.1, 7.1, 7, 6.9,
+    6.9, 6.9, 6.9, 6.9, 6.8, 6.8, 6.8, 6.8, 6.8, 6.8, 6.8, 6.8, 6.7, 6.7, 6.7, 6.7, 6.6, 6.6, 6.6,
+    6.6, 6.6, 6.6, 6.6, 6.6, 6.4, 6.2, 6, 6, 5.9, 5.8, 5.7, 5.7, 5.7, 5.7, 5.6, 5.6, 5.6, 5.6, 5.6,
+    5.6, 5.6, 5.6, 5.6, 5.6, 5.6, 5.6, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.3, 5.3, 5.3, 5.3, 5.3,
+    5.3
+  ],
+  "positionMix": {
+    "1": {
+      "EDGE": 0.1358,
+      "WR": 0.1235,
+      "OT": 0.1176,
+      "CB": 0.108,
+      "LB": 0.1007,
+      "DT": 0.0953,
+      "QB": 0.0847,
+      "RB": 0.0788,
+      "S": 0.0661,
+      "OG": 0.0353,
+      "TE": 0.0341,
+      "C": 0.0176,
+      "FB": 0.0012,
+      "K": 0.0012
+    },
+    "2": {
+      "WR": 0.1412,
+      "CB": 0.1363,
+      "LB": 0.1218,
+      "EDGE": 0.1057,
+      "S": 0.0912,
+      "RB": 0.084,
+      "OT": 0.0764,
+      "DT": 0.0642,
+      "TE": 0.0572,
+      "OG": 0.0554,
+      "QB": 0.0327,
+      "C": 0.028,
+      "FB": 0.0023,
+      "K": 0.0023,
+      "P": 0.0012
+    },
+    "3": {
+      "LB": 0.1339,
+      "WR": 0.1246,
+      "CB": 0.1159,
+      "DT": 0.0929,
+      "EDGE": 0.0868,
+      "RB": 0.0855,
+      "OT": 0.0792,
+      "S": 0.0784,
+      "OG": 0.0644,
+      "TE": 0.0623,
+      "QB": 0.0338,
+      "C": 0.0232,
+      "FB": 0.0095,
+      "K": 0.0053,
+      "P": 0.0042
+    },
+    "4": {
+      "LB": 0.1301,
+      "CB": 0.1196,
+      "WR": 0.1155,
+      "RB": 0.1012,
+      "S": 0.0859,
+      "EDGE": 0.0857,
+      "DT": 0.0757,
+      "OG": 0.068,
+      "OT": 0.0649,
+      "TE": 0.0593,
+      "QB": 0.0429,
+      "C": 0.0276,
+      "FB": 0.0123,
+      "P": 0.0072,
+      "K": 0.0041
+    },
+    "5": {
+      "LB": 0.1351,
+      "CB": 0.1255,
+      "WR": 0.1151,
+      "EDGE": 0.086,
+      "S": 0.0847,
+      "OT": 0.0774,
+      "OG": 0.0722,
+      "RB": 0.0711,
+      "DT": 0.0707,
+      "TE": 0.0649,
+      "QB": 0.0387,
+      "C": 0.0199,
+      "P": 0.0146,
+      "FB": 0.0115,
+      "K": 0.0115,
+      "LS": 0.001
+    },
+    "6": {
+      "WR": 0.1319,
+      "LB": 0.1242,
+      "CB": 0.1101,
+      "RB": 0.0818,
+      "EDGE": 0.0803,
+      "DT": 0.0785,
+      "OT": 0.0784,
+      "S": 0.0747,
+      "TE": 0.0568,
+      "QB": 0.0529,
+      "OG": 0.0515,
+      "C": 0.0318,
+      "FB": 0.0192,
+      "P": 0.0125,
+      "K": 0.0125,
+      "LS": 0.0029
+    },
+    "7": {
+      "WR": 0.1286,
+      "LB": 0.1137,
+      "CB": 0.1025,
+      "EDGE": 0.0992,
+      "RB": 0.0854,
+      "DT": 0.0849,
+      "OG": 0.0681,
+      "TE": 0.0677,
+      "S": 0.0667,
+      "OT": 0.0664,
+      "QB": 0.0482,
+      "C": 0.0305,
+      "K": 0.0144,
+      "FB": 0.0118,
+      "P": 0.0102,
+      "LS": 0.0017
+    }
+  },
+  "ages": [
+    {
+      "round": 1,
+      "mean": 21.88,
+      "spread": 0.93
+    },
+    {
+      "round": 2,
+      "mean": 22.11,
+      "spread": 0.95
+    },
+    {
+      "round": 3,
+      "mean": 22.42,
+      "spread": 0.92
+    },
+    {
+      "round": 4,
+      "mean": 22.53,
+      "spread": 0.95
+    },
+    {
+      "round": 5,
+      "mean": 22.55,
+      "spread": 0.84
+    },
+    {
+      "round": 6,
+      "mean": 22.72,
+      "spread": 0.84
+    },
+    {
+      "round": 7,
+      "mean": 22.84,
+      "spread": 0.93
+    }
+  ],
+  "combine": {
+    "invitesPerYear": 337,
+    "draftedShare": 0.637,
+    "measurables": {
+      "C": {
+        "invitees": 135,
+        "ht": {
+          "mean": 75.58,
+          "spread": 1.138,
+          "tested": 1
+        },
+        "wt": {
+          "mean": 305.24,
+          "spread": 6.95,
+          "tested": 1
+        },
+        "forty": {
+          "mean": 5.21,
+          "spread": 0.157,
+          "tested": 0.807
+        },
+        "bench": {
+          "mean": 26.04,
+          "spread": 4.871,
+          "tested": 0.519
+        },
+        "vertical": {
+          "mean": 28.15,
+          "spread": 3.021,
+          "tested": 0.711
+        },
+        "broad_jump": {
+          "mean": 103.63,
+          "spread": 6.497,
+          "tested": 0.704
+        },
+        "cone": {
+          "mean": 7.67,
+          "spread": 0.258,
+          "tested": 0.585
+        },
+        "shuttle": {
+          "mean": 4.66,
+          "spread": 0.165,
+          "tested": 0.622
+        }
+      },
+      "CB": {
+        "invitees": 682,
+        "ht": {
+          "mean": 71.65,
+          "spread": 1.643,
+          "tested": 0.997
+        },
+        "wt": {
+          "mean": 193.04,
+          "spread": 8.966,
+          "tested": 0.997
+        },
+        "forty": {
+          "mean": 4.49,
+          "spread": 0.096,
+          "tested": 0.886
+        },
+        "bench": {
+          "mean": 14.61,
+          "spread": 4.09,
+          "tested": 0.648
+        },
+        "vertical": {
+          "mean": 35.99,
+          "spread": 2.931,
+          "tested": 0.777
+        },
+        "broad_jump": {
+          "mean": 123.27,
+          "spread": 5.698,
+          "tested": 0.762
+        },
+        "cone": {
+          "mean": 6.94,
+          "spread": 0.201,
+          "tested": 0.488
+        },
+        "shuttle": {
+          "mean": 4.19,
+          "spread": 0.144,
+          "tested": 0.512
+        }
+      },
+      "DT": {
+        "invitees": 498,
+        "ht": {
+          "mean": 75.13,
+          "spread": 1.468,
+          "tested": 0.99
+        },
+        "wt": {
+          "mean": 303.58,
+          "spread": 19.751,
+          "tested": 0.994
+        },
+        "forty": {
+          "mean": 5.06,
+          "spread": 0.194,
+          "tested": 0.839
+        },
+        "bench": {
+          "mean": 27,
+          "spread": 5.273,
+          "tested": 0.657
+        },
+        "vertical": {
+          "mean": 29.66,
+          "spread": 3.345,
+          "tested": 0.761
+        },
+        "broad_jump": {
+          "mean": 107.35,
+          "spread": 7.287,
+          "tested": 0.725
+        },
+        "cone": {
+          "mean": 7.64,
+          "spread": 0.313,
+          "tested": 0.568
+        },
+        "shuttle": {
+          "mean": 4.65,
+          "spread": 0.205,
+          "tested": 0.594
+        }
+      },
+      "EDGE": {
+        "invitees": 678,
+        "ht": {
+          "mean": 75.2,
+          "spread": 1.648,
+          "tested": 1
+        },
+        "wt": {
+          "mean": 256.24,
+          "spread": 16.261,
+          "tested": 1
+        },
+        "forty": {
+          "mean": 4.74,
+          "spread": 0.148,
+          "tested": 0.872
+        },
+        "bench": {
+          "mean": 23.09,
+          "spread": 4.556,
+          "tested": 0.68
+        },
+        "vertical": {
+          "mean": 33.75,
+          "spread": 3.244,
+          "tested": 0.78
+        },
+        "broad_jump": {
+          "mean": 117.84,
+          "spread": 6.347,
+          "tested": 0.777
+        },
+        "cone": {
+          "mean": 7.19,
+          "spread": 0.231,
+          "tested": 0.556
+        },
+        "shuttle": {
+          "mean": 4.39,
+          "spread": 0.162,
+          "tested": 0.569
+        }
+      },
+      "FB": {
+        "invitees": 43,
+        "ht": {
+          "mean": 72.7,
+          "spread": 1.518,
+          "tested": 1
+        },
+        "wt": {
+          "mean": 242.6,
+          "spread": 9.81,
+          "tested": 1
+        },
+        "forty": {
+          "mean": 4.79,
+          "spread": 0.134,
+          "tested": 0.93
+        },
+        "bench": {
+          "mean": 22.8,
+          "spread": 5.258,
+          "tested": 0.814
+        },
+        "vertical": {
+          "mean": 33.17,
+          "spread": 3.075,
+          "tested": 0.814
+        },
+        "broad_jump": {
+          "mean": 113.89,
+          "spread": 5.064,
+          "tested": 0.814
+        },
+        "cone": {
+          "mean": 7.22,
+          "spread": 0.189,
+          "tested": 0.698
+        },
+        "shuttle": {
+          "mean": 4.36,
+          "spread": 0.144,
+          "tested": 0.721
+        }
+      },
+      "K": {
+        "invitees": 76,
+        "ht": {
+          "mean": 71.91,
+          "spread": 2.174,
+          "tested": 0.987
+        },
+        "wt": {
+          "mean": 194.29,
+          "spread": 17.738,
+          "tested": 1
+        },
+        "forty": {
+          "mean": 4.92,
+          "spread": 0.139,
+          "tested": 0.408
+        },
+        "bench": {
+          "mean": 12.67,
+          "spread": 0.943,
+          "tested": 0.039
+        },
+        "vertical": {
+          "mean": 33.5,
+          "spread": 0,
+          "tested": 0.013
+        },
+        "broad_jump": {
+          "mean": 113.5,
+          "spread": 2.5,
+          "tested": 0.026
+        },
+        "cone": {
+          "mean": 0,
+          "spread": 0,
+          "tested": 0
+        },
+        "shuttle": {
+          "mean": 0,
+          "spread": 0,
+          "tested": 0
+        }
+      },
+      "LB": {
+        "invitees": 394,
+        "ht": {
+          "mean": 73.46,
+          "spread": 1.489,
+          "tested": 0.992
+        },
+        "wt": {
+          "mean": 236.59,
+          "spread": 9.675,
+          "tested": 0.992
+        },
+        "forty": {
+          "mean": 4.68,
+          "spread": 0.148,
+          "tested": 0.754
+        },
+        "bench": {
+          "mean": 21.17,
+          "spread": 4.154,
+          "tested": 0.589
+        },
+        "vertical": {
+          "mean": 34.24,
+          "spread": 3.175,
+          "tested": 0.723
+        },
+        "broad_jump": {
+          "mean": 118.88,
+          "spread": 6.016,
+          "tested": 0.723
+        },
+        "cone": {
+          "mean": 7.12,
+          "spread": 0.211,
+          "tested": 0.437
+        },
+        "shuttle": {
+          "mean": 4.33,
+          "spread": 0.153,
+          "tested": 0.467
+        }
+      },
+      "LS": {
+        "invitees": 22,
+        "ht": {
+          "mean": 74.1,
+          "spread": 1.9,
+          "tested": 0.955
+        },
+        "wt": {
+          "mean": 239.52,
+          "spread": 10.966,
+          "tested": 0.955
+        },
+        "forty": {
+          "mean": 5.06,
+          "spread": 0.172,
+          "tested": 0.909
+        },
+        "bench": {
+          "mean": 16.55,
+          "spread": 5.582,
+          "tested": 0.5
+        },
+        "vertical": {
+          "mean": 29.28,
+          "spread": 2.789,
+          "tested": 0.727
+        },
+        "broad_jump": {
+          "mean": 108.82,
+          "spread": 6.555,
+          "tested": 0.773
+        },
+        "cone": {
+          "mean": 7.47,
+          "spread": 0.223,
+          "tested": 0.545
+        },
+        "shuttle": {
+          "mean": 4.55,
+          "spread": 0.177,
+          "tested": 0.591
+        }
+      },
+      "OG": {
+        "invitees": 411,
+        "ht": {
+          "mean": 76.26,
+          "spread": 1.407,
+          "tested": 0.995
+        },
+        "wt": {
+          "mean": 313.24,
+          "spread": 14.468,
+          "tested": 0.998
+        },
+        "forty": {
+          "mean": 5.24,
+          "spread": 0.191,
+          "tested": 0.856
+        },
+        "bench": {
+          "mean": 25.89,
+          "spread": 5.583,
+          "tested": 0.625
+        },
+        "vertical": {
+          "mean": 27.95,
+          "spread": 3.213,
+          "tested": 0.803
+        },
+        "broad_jump": {
+          "mean": 103.79,
+          "spread": 6.942,
+          "tested": 0.793
+        },
+        "cone": {
+          "mean": 7.81,
+          "spread": 0.303,
+          "tested": 0.667
+        },
+        "shuttle": {
+          "mean": 4.77,
+          "spread": 0.193,
+          "tested": 0.689
+        }
+      },
+      "OT": {
+        "invitees": 385,
+        "ht": {
+          "mean": 77.74,
+          "spread": 1.196,
+          "tested": 1
+        },
+        "wt": {
+          "mean": 315.04,
+          "spread": 11.988,
+          "tested": 1
+        },
+        "forty": {
+          "mean": 5.2,
+          "spread": 0.176,
+          "tested": 0.852
+        },
+        "bench": {
+          "mean": 24.24,
+          "spread": 4.785,
+          "tested": 0.553
+        },
+        "vertical": {
+          "mean": 28.58,
+          "spread": 3.264,
+          "tested": 0.782
+        },
+        "broad_jump": {
+          "mean": 105.17,
+          "spread": 6.7,
+          "tested": 0.753
+        },
+        "cone": {
+          "mean": 7.81,
+          "spread": 0.291,
+          "tested": 0.603
+        },
+        "shuttle": {
+          "mean": 4.76,
+          "spread": 0.19,
+          "tested": 0.621
+        }
+      },
+      "P": {
+        "invitees": 89,
+        "ht": {
+          "mean": 74.38,
+          "spread": 1.845,
+          "tested": 1
+        },
+        "wt": {
+          "mean": 213.3,
+          "spread": 14.609,
+          "tested": 1
+        },
+        "forty": {
+          "mean": 4.89,
+          "spread": 0.156,
+          "tested": 0.64
+        },
+        "bench": {
+          "mean": 16.5,
+          "spread": 5.445,
+          "tested": 0.112
+        },
+        "vertical": {
+          "mean": 31.57,
+          "spread": 2.344,
+          "tested": 0.157
+        },
+        "broad_jump": {
+          "mean": 114.08,
+          "spread": 4.462,
+          "tested": 0.135
+        },
+        "cone": {
+          "mean": 7.16,
+          "spread": 0.125,
+          "tested": 0.022
+        },
+        "shuttle": {
+          "mean": 4.42,
+          "spread": 0.241,
+          "tested": 0.034
+        }
+      },
+      "QB": {
+        "invitees": 283,
+        "ht": {
+          "mean": 74.74,
+          "spread": 1.802,
+          "tested": 0.996
+        },
+        "wt": {
+          "mean": 221.12,
+          "spread": 10.877,
+          "tested": 0.996
+        },
+        "forty": {
+          "mean": 4.79,
+          "spread": 0.173,
+          "tested": 0.777
+        },
+        "bench": {
+          "mean": 17.38,
+          "spread": 2.826,
+          "tested": 0.028
+        },
+        "vertical": {
+          "mean": 31.64,
+          "spread": 3.224,
+          "tested": 0.739
+        },
+        "broad_jump": {
+          "mean": 113.16,
+          "spread": 6.866,
+          "tested": 0.735
+        },
+        "cone": {
+          "mean": 7.1,
+          "spread": 0.199,
+          "tested": 0.654
+        },
+        "shuttle": {
+          "mean": 4.33,
+          "spread": 0.145,
+          "tested": 0.671
+        }
+      },
+      "RB": {
+        "invitees": 506,
+        "ht": {
+          "mean": 70.33,
+          "spread": 1.814,
+          "tested": 0.996
+        },
+        "wt": {
+          "mean": 211.95,
+          "spread": 13.121,
+          "tested": 0.998
+        },
+        "forty": {
+          "mean": 4.55,
+          "spread": 0.108,
+          "tested": 0.879
+        },
+        "bench": {
+          "mean": 19.22,
+          "spread": 4.526,
+          "tested": 0.668
+        },
+        "vertical": {
+          "mean": 34.6,
+          "spread": 3.112,
+          "tested": 0.838
+        },
+        "broad_jump": {
+          "mean": 119.55,
+          "spread": 5.337,
+          "tested": 0.804
+        },
+        "cone": {
+          "mean": 7.06,
+          "spread": 0.191,
+          "tested": 0.455
+        },
+        "shuttle": {
+          "mean": 4.29,
+          "spread": 0.151,
+          "tested": 0.502
+        }
+      },
+      "S": {
+        "invitees": 374,
+        "ht": {
+          "mean": 72.26,
+          "spread": 1.522,
+          "tested": 0.989
+        },
+        "wt": {
+          "mean": 205.54,
+          "spread": 9.184,
+          "tested": 0.989
+        },
+        "forty": {
+          "mean": 4.54,
+          "spread": 0.102,
+          "tested": 0.842
+        },
+        "bench": {
+          "mean": 16.79,
+          "spread": 3.989,
+          "tested": 0.666
+        },
+        "vertical": {
+          "mean": 35.48,
+          "spread": 2.987,
+          "tested": 0.789
+        },
+        "broad_jump": {
+          "mean": 121.93,
+          "spread": 6.03,
+          "tested": 0.773
+        },
+        "cone": {
+          "mean": 6.96,
+          "spread": 0.201,
+          "tested": 0.444
+        },
+        "shuttle": {
+          "mean": 4.22,
+          "spread": 0.13,
+          "tested": 0.479
+        }
+      },
+      "TE": {
+        "invitees": 330,
+        "ht": {
+          "mean": 76.37,
+          "spread": 1.386,
+          "tested": 0.991
+        },
+        "wt": {
+          "mean": 250.56,
+          "spread": 8.527,
+          "tested": 0.991
+        },
+        "forty": {
+          "mean": 4.73,
+          "spread": 0.139,
+          "tested": 0.821
+        },
+        "bench": {
+          "mean": 20.22,
+          "spread": 4.263,
+          "tested": 0.624
+        },
+        "vertical": {
+          "mean": 33.72,
+          "spread": 3.118,
+          "tested": 0.724
+        },
+        "broad_jump": {
+          "mean": 117.63,
+          "spread": 5.773,
+          "tested": 0.7
+        },
+        "cone": {
+          "mean": 7.16,
+          "spread": 0.204,
+          "tested": 0.533
+        },
+        "shuttle": {
+          "mean": 4.38,
+          "spread": 0.142,
+          "tested": 0.561
+        }
+      },
+      "WR": {
+        "invitees": 803,
+        "ht": {
+          "mean": 72.76,
+          "spread": 2.321,
+          "tested": 0.994
+        },
+        "wt": {
+          "mean": 200.99,
+          "spread": 15.061,
+          "tested": 0.994
+        },
+        "forty": {
+          "mean": 4.5,
+          "spread": 0.1,
+          "tested": 0.895
+        },
+        "bench": {
+          "mean": 14.53,
+          "spread": 4.186,
+          "tested": 0.608
+        },
+        "vertical": {
+          "mean": 35.6,
+          "spread": 3.148,
+          "tested": 0.842
+        },
+        "broad_jump": {
+          "mean": 122.3,
+          "spread": 5.912,
+          "tested": 0.822
+        },
+        "cone": {
+          "mean": 6.96,
+          "spread": 0.214,
+          "tested": 0.553
+        },
+        "shuttle": {
+          "mean": 4.25,
+          "spread": 0.153,
+          "tested": 0.582
+        }
+      }
+    },
+    "correlations": {
+      "ht": {
+        "ht": 1,
+        "wt": 0.455,
+        "forty": 0.077,
+        "bench": -0.061,
+        "vertical": 0.028,
+        "broad_jump": 0.151,
+        "cone": 0.001,
+        "shuttle": 0.052
+      },
+      "wt": {
+        "ht": 0.455,
+        "wt": 1,
+        "forty": 0.299,
+        "bench": 0.228,
+        "vertical": -0.115,
+        "broad_jump": -0.123,
+        "cone": 0.213,
+        "shuttle": 0.212
+      },
+      "forty": {
+        "ht": 0.077,
+        "wt": 0.299,
+        "forty": 1,
+        "bench": -0.134,
+        "vertical": -0.464,
+        "broad_jump": -0.543,
+        "cone": 0.385,
+        "shuttle": 0.372
+      },
+      "bench": {
+        "ht": -0.061,
+        "wt": 0.228,
+        "forty": -0.134,
+        "bench": 1,
+        "vertical": 0.173,
+        "broad_jump": 0.116,
+        "cone": -0.042,
+        "shuttle": -0.083
+      },
+      "vertical": {
+        "ht": 0.028,
+        "wt": -0.115,
+        "forty": -0.464,
+        "bench": 0.173,
+        "vertical": 1,
+        "broad_jump": 0.674,
+        "cone": -0.322,
+        "shuttle": -0.342
+      },
+      "broad_jump": {
+        "ht": 0.151,
+        "wt": -0.123,
+        "forty": -0.543,
+        "bench": 0.116,
+        "vertical": 0.674,
+        "broad_jump": 1,
+        "cone": -0.306,
+        "shuttle": -0.323
+      },
+      "cone": {
+        "ht": 0.001,
+        "wt": 0.213,
+        "forty": 0.385,
+        "bench": -0.042,
+        "vertical": -0.322,
+        "broad_jump": -0.306,
+        "cone": 1,
+        "shuttle": 0.664
+      },
+      "shuttle": {
+        "ht": 0.052,
+        "wt": 0.212,
+        "forty": 0.372,
+        "bench": -0.083,
+        "vertical": -0.342,
+        "broad_jump": -0.323,
+        "cone": 0.664,
+        "shuttle": 0.999
+      }
+    }
+  }
+}

@@ -90,16 +90,17 @@ export const DRAFT_CLASS = {
     [1, 72],
     [32, 65],
     [64, 61],
-    [100, 58],
-    [160, 55],
+    [100, 57],
+    [160, 54],
     [224, 52],
-    [424, 46],
+    [300, 51],
+    [424, 47],
   ] as [number, number][],
-  overallSpread: 4,
+  overallSpread: 6,
   /** Potential above the current overall: mean (best prospects get the extra) and spread. */
   growthMean: 12,
   growthTopExtra: 5,
-  growthSpread: 4,
+  growthSpread: 7,
   ages: [21, 23] as [number, number],
   /**
    * Kickers, punters and long snappers arrive close to ready (their position's growth is

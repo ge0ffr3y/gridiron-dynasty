@@ -27,7 +27,7 @@ import {
   type Position,
   type Side,
 } from "@fgm/foundation";
-import { fortyTime } from "@fgm/foundation";
+import { estimatedForty } from "./scouting/measurables";
 import { LONGEST_STATS, type StatKey, type StatLine } from "@fgm/game-engine";
 
 export interface TeamCard {
@@ -138,12 +138,18 @@ export interface PlayerView {
   heightIn: number;
   weightLb: number;
   fortyTime: number;
+  /** True when the 40 was run (combine or pro day); otherwise it's the scouts' estimate from tape. */
+  fortyMeasured: boolean;
   experience: number;
   college: string;
   drafted: { season: number; round: number; pick: number; team: string } | null;
   overall: number;
   positionOveralls: { position: Position; overall: number; familiarity: number }[];
   confidence: number;
+  /** The overall's likely range, as the viewer's staff sees it. */
+  overallRange: [number, number];
+  /** The staff's read of what he could become (never the hidden number itself). */
+  potential: { estimate: number; range: [number, number] };
   attributeGroups: {
     group: AttributeGroup;
     attributes: { key: string; label: string; value: number }[];
@@ -545,7 +551,8 @@ export function playerView(league: League, playerId: number, viewer: Viewer): Pl
     birthDate: player.birthDate,
     heightIn: player.heightIn,
     weightLb: player.weightLb,
-    fortyTime: fortyTime(seen.ratings.speed),
+    fortyTime: player.measurables?.forty ?? estimatedForty(seen.ratings, player.position),
+    fortyMeasured: player.measurables?.forty != null,
     experience: player.experience,
     college: player.college,
     drafted: player.drafted
@@ -557,6 +564,8 @@ export function playerView(league: League, playerId: number, viewer: Viewer): Pl
     overall: seen.overall,
     positionOveralls: seen.positionOveralls,
     confidence: seen.confidence,
+    overallRange: seen.range,
+    potential: seen.potential,
     attributeGroups: groups.map((group) => ({
       group,
       attributes: ATTRIBUTES.filter((a) => a.group === group).map((a) => ({

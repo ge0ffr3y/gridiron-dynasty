@@ -13,7 +13,15 @@ import {
 } from "../coaches/carousel";
 import { staffInput } from "../coaches/style";
 import { STARTERS } from "../generate/config";
-import { addDays, POSITIONS, overallAt, Rng, RngStreams, streamSeed } from "@fgm/foundation";
+import {
+  addDays,
+  daysBetween,
+  POSITIONS,
+  overallAt,
+  Rng,
+  RngStreams,
+  streamSeed,
+} from "@fgm/foundation";
 import type {
   CalendarStage,
   Game,
@@ -49,6 +57,9 @@ import {
 } from "../lifecycle/development";
 import { batch } from "../contracts/operations";
 import { runDraft } from "../roster/draft";
+import { ensureDraftClass, upcomingDraftYear } from "../scouting/classes";
+import { assignScouts, offseasonScouting, pruneStudy, scoutingWeeks } from "../scouting/study";
+import { SCOUTING } from "../scouting/config";
 import { assignJerseys } from "../roster/jerseys";
 import { gradePreseason, playPreseasonWeek, schedulePreseason } from "../roster/preseason";
 import {
@@ -266,12 +277,30 @@ const NEXT_ROUND: Record<PlayoffRound, PlayoffRound | null> = {
   championship: null,
 };
 
+/** The upcoming draft has a class, and teams that haven't assigned their scouts to it do. */
+export function ensureClassAndScouts(league: League): void {
+  const year = upcomingDraftYear(league);
+  if (league.prospects.some((p) => p.draftYear === year)) return;
+  ensureDraftClass(league);
+  assignScouts(league);
+  // A class that appears late (a new league in February, an older save) gets the study its
+  // scouts would have done since September.
+  scoutingWeeks(
+    league,
+    Math.floor(Math.max(0, daysBetween(`${year - 1}-${SCOUTING.studyStarts}`, league.date)) / 7),
+  );
+}
+
 /** One step's events (see `advance`). */
 function advanceOnce(league: League, hooks: SimHooks): string {
   const cal = league.calendar;
   const dates = seasonDates(league.rules, league.season);
+  // A save from before Phase 11 gets its draft class on its first step.
+  if (!hooks.historyOnly) ensureClassAndScouts(league);
   switch (cal.stage) {
     case "offseason":
+      // Scouting through the combine and the first pro days.
+      if (!hooks.historyOnly) offseasonScouting(league, league.date, dates.leagueYear);
       // The new League Year: last season's deals run out, re-signings, free agency, the cap.
       league.date = dates.leagueYear;
       // Players develop first, so contracts and free agency see who they are now.
@@ -281,9 +310,13 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       cal.stage = "free-agency";
       return "The new League Year opens: free agency";
     case "free-agency": {
+      // Spring scouting: visits and the rest of the pro days.
+      if (!hooks.historyOnly) offseasonScouting(league, league.date, dates.draft);
       league.date = dates.draft;
       const { drafted, undrafted } = batch(league, () => runDraft(league));
       cal.stage = "after-draft";
+      // Next year's class appears, and every team assigns its scouts to it.
+      ensureClassAndScouts(league);
       return `Draft: ${drafted} picks, ${undrafted} undrafted signings`;
     }
     case "after-draft":
@@ -337,6 +370,7 @@ function advanceOnce(league: League, hooks: SimHooks): string {
           week >= league.rules.schedule.regularSeasonWeeks ? "the playoffs" : `Week ${week + 1}`,
         );
         freeAgentsHeal(league);
+        scoutingWeeks(league, 1);
         // Rarely, a head coach is fired during the season (Phase 10b).
         inSeasonFirings(league, week);
       }
@@ -368,6 +402,7 @@ function advanceOnce(league: League, hooks: SimHooks): string {
         addPlayoffRound(league, next);
         if (!hooks.historyOnly) {
           practiceWeek(league, `the ${next} round`);
+          scoutingWeeks(league, 1);
           weeklyRosterUpkeep(league);
           // Coaches on teams just eliminated can now sign elsewhere.
           hiringRound(league, false);
@@ -521,6 +556,8 @@ export function startNextSeason(league: League, options: { agePlayers: boolean }
 
   scheduleSeason(league, new Map(last.standings.map((s) => [s.teamId, s.divisionRank])));
   league.preseasonGames = [];
+  // Study on last year's class is done (its rookies have NFL tape now).
+  pruneStudy(league);
   // Contracts that ran out, fifth-year options and re-signings wait for the new League Year in March.
 }
 

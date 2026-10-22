@@ -5,7 +5,7 @@ import { ROSTER_MIX } from "./generate/config";
 import { createLeague } from "./generate/league";
 import { perceivePlayer } from "./perception";
 import { POSITIONS, type Position } from "@fgm/foundation";
-import { overallAt } from "@fgm/foundation";
+import { overallAt, overallWithFamiliarity } from "@fgm/foundation";
 import { fingerprint, parseLeague, serializeLeague } from "./serialize";
 import { leagueSummary, playerView, playersView, teamView } from "./views";
 
@@ -88,7 +88,7 @@ describe("generated league: contents", () => {
   });
 
   it("uses unique names and ids that all resolve", () => {
-    const people = [...league.players, ...league.coaches];
+    const people = [...league.players, ...league.coaches, ...league.prospects];
     expect(new Set(people.map((p) => `${p.firstName} ${p.lastName}`)).size).toBe(people.length);
     expect(league.players.map((p) => p.id)).toEqual(league.players.map((_, i) => i));
     const teamIds = new Set(league.teams.map((t) => t.id));
@@ -96,7 +96,11 @@ describe("generated league: contents", () => {
       expect(teamIds.has(p.teamId!)).toBe(true);
       if (p.drafted) expect(teamIds.has(p.drafted.teamId)).toBe(true);
     }
-    expect(league.nextIds.player).toBe(league.players.length);
+    // Prospects for the first draft share the players' id numbers (they become players).
+    expect(league.prospects.map((p) => p.id)).toEqual(
+      league.prospects.map((_, i) => league.players.length + i),
+    );
+    expect(league.nextIds.player).toBe(league.players.length + league.prospects.length);
   });
 
   it("has realistic shapes: linemen heavy, corners light and fast, quarterbacks throw", () => {
@@ -130,9 +134,13 @@ describe("generated league: contents", () => {
   });
 
   it("rates players best (or nearly) at their own position", () => {
+    // The truth (generation), not a scouting read: the noise can blur a close second position.
     for (const p of league.players) {
-      const seen = perceivePlayer(league, p, LEAGUE_VIEW);
-      expect(seen.positionOveralls[0]!.overall - seen.overall).toBeLessThanOrEqual(5);
+      const own = overallAt(p.ratings, p.position);
+      for (const [pos, fam] of Object.entries(p.familiarity))
+        expect(overallWithFamiliarity(p.ratings, pos as Position, fam) - own).toBeLessThanOrEqual(
+          5,
+        );
     }
     const flexible = league.players.filter((p) => Object.keys(p.familiarity).length > 1);
     expect(flexible.length).toBeGreaterThan(200);
@@ -140,12 +148,29 @@ describe("generated league: contents", () => {
 });
 
 describe("perception and views", () => {
-  it("in Phase 1, what a staff believes equals the truth", () => {
-    const player = league.players[100]!;
-    const seen = perceivePlayer(league, player, { kind: "team", teamId: "SEA" });
-    expect(seen.ratings).toEqual(player.ratings);
-    expect(seen.overall).toBe(overallAt(player.ratings, player.position));
-    expect(seen.confidence).toBe(1);
+  it("staffs see players through noise that shrinks with tape and coaching him every day", () => {
+    const vets = league.players.filter((p) => p.teamId && p.experience >= 5);
+    const rookies = league.players.filter((p) => p.teamId && p.experience === 0);
+    const office = { kind: "league" } as const;
+    const avgConfidence = (ps: typeof vets) =>
+      mean(ps.map((p) => perceivePlayer(league, p, office).confidence));
+    expect(avgConfidence(vets)).toBeGreaterThan(avgConfidence(rookies));
+    // Never the truth for everyone, but close for veterans.
+    const vet = vets[0]!;
+    const seen = perceivePlayer(league, vet, office);
+    expect(Math.abs(seen.overall - overallAt(vet.ratings, vet.position))).toBeLessThan(8);
+    expect(seen.range[0]).toBeLessThanOrEqual(seen.overall);
+    expect(seen.range[1]).toBeGreaterThanOrEqual(seen.overall);
+    // His own team sees him more clearly than another team does.
+    const own = perceivePlayer(league, vet, { kind: "team", teamId: vet.teamId! });
+    const other = league.teams.find((t) => t.id !== vet.teamId)!.id;
+    expect(own.confidence).toBeGreaterThan(
+      perceivePlayer(league, vet, { kind: "team", teamId: other }).confidence,
+    );
+    // The same view every time (no random draws).
+    expect(perceivePlayer(league, vet, office)).toEqual(seen);
+    // Measured physical traits are nearly exact.
+    expect(Math.abs(seen.ratings.speed - vet.ratings.speed)).toBeLessThanOrEqual(2);
   });
 
   it("builds every screen's data", () => {

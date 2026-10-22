@@ -1,20 +1,21 @@
 /**
- * The placeholder draft (Phase 8; Phase 11 brings scouting, the real 2026
- * class and draft day). On draft day a generated class (the size and position
- * mix of a real draft) is picked in the draft order already set when last
- * season ended: each team takes the best prospect left, counting his room to
- * grow and nudged toward thin positions. Every pick signs a rookie deal on the
- * real wage scale; then teams fill out to 90 with undrafted free agents.
+ * The draft (Phase 8, scouted boards from Phase 11; draft day's clock and
+ * trades come in 11b). The class (scouting/classes.ts) is picked in the draft
+ * order set when last season ended: each team takes the best prospect left as
+ * its own scouts see him, counting his room to grow and nudged toward thin
+ * positions. Every pick signs a rookie deal on the real wage scale; then teams
+ * fill out to 90 with undrafted free agents, and everyone left is a free agent.
  */
-import { addDays, overallAt, POSITIONS, Rng, streamSeed, type Position } from "@fgm/foundation";
+import type { Position } from "@fgm/foundation";
 import { rookieContract } from "../contracts/generate";
 import { minimumSalary } from "../contracts/cap";
 import { recordTransaction } from "../contracts/operations";
-import { generatePlayer, generateRatings } from "../generate/players";
-import { COLLEGES } from "../generate/names";
-import { NamePicker } from "../generate/people";
 import { ROSTER_MIX } from "../generate/config";
-import type { Contract, League, Player } from "../league/schema";
+import type { Contract, League, Player, Prospect } from "../league/schema";
+import { perceiveProspect } from "../perception";
+import { draftClass, prospectToPlayer } from "../scouting/classes";
+import { runProDays } from "../scouting/study";
+import { draftValue } from "../scouting/value";
 import { getUnderCap } from "../contracts/upkeep";
 import { DRAFT_CLASS } from "./config";
 import { onTeam, openSpots } from "./lists";
@@ -23,86 +24,31 @@ import { playerValue, waivePlayer } from "./moves";
 const ordinal = (n: number) =>
   `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th")}`;
 
-function meanOverall(rank: number): number {
-  const knots = DRAFT_CLASS.overallByRank;
-  for (let i = 0; i < knots.length - 1; i++) {
-    const [r0, v0] = knots[i]!;
-    const [r1, v1] = knots[i + 1]!;
-    if (rank <= r1) return v0 + ((v1 - v0) * (Math.max(rank, r0) - r0)) / (r1 - r0);
-  }
-  return knots[knots.length - 1]![1];
+/** A prospect's worth to a team (before need), as its scouts see him. */
+function scoutedValue(league: League, teamId: string, p: Prospect): number {
+  return draftValue(perceiveProspect(league, p, { kind: "team", teamId }), p.position);
 }
 
-/** This year's prospects, best first (free agents until drafted or signed). */
-export function generateClass(league: League, size: number): Player[] {
-  const season = league.season;
-  const rng = new Rng(streamSeed(league.meta.seed, `draft-class:${season}`));
-  const names = new NamePicker(new Rng(streamSeed(league.meta.seed, `draft-names:${season}`)));
-  const ctx = {
-    rng,
-    names,
-    date: league.date,
-    season,
-    teamIds: league.teams.map((t) => t.id),
-    draftRounds: league.rules.draft.rounds,
-    colleges: COLLEGES,
-  };
-  // Positions in the proportions of a 90-man roster (as real drafts roughly are).
-  const mix = POSITIONS.flatMap((pos) => Array<Position>(ROSTER_MIX[pos]).fill(pos));
-  const prospects: Player[] = [];
-  for (let rank = 1; rank <= size; rank++) {
-    const position = mix[rng.int(mix.length)]!;
-    const p = generatePlayer(ctx, league.nextIds.player++, "", position, "camp", 0, new Set());
-    const specialist = position === "K" || position === "P" || position === "LS";
-    const target = rng.gaussian(
-      meanOverall(rank) + (specialist ? DRAFT_CLASS.specialistBonus : 0),
-      DRAFT_CLASS.overallSpread,
-    );
-    p.ratings = generateRatings(rng, position, target);
-    const age = rng.intBetween(DRAFT_CLASS.ages[0], DRAFT_CLASS.ages[1]);
-    p.birthDate = addDays(`${season - age}${league.date.slice(4)}`, -rng.int(365));
-    p.experience = 0;
-    p.drafted = null;
-    p.teamId = null;
-    const growth =
-      DRAFT_CLASS.growthMean +
-      DRAFT_CLASS.growthTopExtra * Math.max(0, 1 - rank / size) +
-      (DRAFT_CLASS.growthByPosition[position] ?? 0);
-    const overall = overallAt(p.ratings, position);
-    p.hidden.potential = Math.min(
-      99,
-      Math.max(overall, Math.round(overall + rng.gaussian(growth, DRAFT_CLASS.growthSpread))),
-    );
-    prospects.push(p);
-  }
-  return prospects;
-}
-
-/** A prospect's worth to any team (before need): his overall plus some of his room to grow. */
-function baseDraftValue(p: Player): number {
-  const overall = overallAt(p.ratings, p.position);
-  // Teams don't spend early picks on kickers: a specialist's head start doesn't count here.
-  const specialist = p.position === "K" || p.position === "P" || p.position === "LS";
-  return (
-    overall +
-    DRAFT_CLASS.potentialWeight * (p.hidden.potential - overall) -
-    (specialist ? DRAFT_CLASS.specialistBonus : 0)
-  );
-}
-
-/** The team's favorite prospect left: base value, nudged toward positions it's thin at. */
+/** The team's favorite prospect left: its scouts' value, nudged toward positions it's thin at. */
 function bestFor(
   league: League,
   teamId: string,
-  available: Map<number, { p: Player; value: number }>,
-): Player | null {
+  available: Map<number, Prospect>,
+  boards: Map<string, Map<number, number>>,
+): Prospect | null {
   const counts = new Map<Position, number>();
   for (const x of onTeam(league, teamId)) counts.set(x.position, (counts.get(x.position) ?? 0) + 1);
-  let best: Player | null = null;
+  let board = boards.get(teamId);
+  if (!board) {
+    board = new Map([...available.values()].map((p) => [p.id, scoutedValue(league, teamId, p)]));
+    boards.set(teamId, board);
+  }
+  let best: Prospect | null = null;
   let bestValue = -Infinity;
-  for (const { p, value } of available.values()) {
+  for (const p of available.values()) {
     const v =
-      value + ((counts.get(p.position) ?? 0) < ROSTER_MIX[p.position] ? DRAFT_CLASS.needBonus : 0);
+      (board.get(p.id) ?? scoutedValue(league, teamId, p)) +
+      ((counts.get(p.position) ?? 0) < ROSTER_MIX[p.position] ? DRAFT_CLASS.needBonus : 0);
     if (v > bestValue || (v === bestValue && best !== null && p.id < best.id)) {
       best = p;
       bestValue = v;
@@ -152,16 +98,23 @@ export function runDraft(league: League): { drafted: number; undrafted: number }
   const picks = league.draftPicks
     .filter((p) => p.season === league.season && p.overall !== null)
     .sort((a, b) => a.overall! - b.overall!);
-  const prospects = generateClass(league, picks.length + DRAFT_CLASS.undraftedPool);
-  league.players.push(...prospects);
-  const available = new Map(prospects.map((p) => [p.id, { p, value: baseDraftValue(p) }]));
+  // Anyone not yet measured has his pro day before the draft.
+  runProDays(league, league.date);
+  const prospects = draftClass(league, league.season);
+  const available = new Map(prospects.map((p) => [p.id, p]));
+  // Each team's board, built the first time it picks (its scouts' read of everyone left).
+  const boards = new Map<string, Map<number, number>>();
   const teamCount = league.teams.length;
+  // The whole class joins the league as players without a team (in id order), then is picked.
+  const asPlayers = new Map(prospects.map((p) => [p.id, prospectToPlayer(p)]));
+  league.players.push(...[...asPlayers.values()].sort((a, b) => a.id - b.id));
+  const join = (prospect: Prospect): Player => asPlayers.get(prospect.id)!;
 
   for (const pick of picks) {
     const teamId = pick.ownerTeamId;
-    const choice = bestFor(league, teamId, available);
-    if (!choice) break;
-    available.delete(choice.id);
+    const pickedProspect = bestFor(league, teamId, available, boards);
+    if (!pickedProspect) break;
+    available.delete(pickedProspect.id);
     if (openSpots(league, teamId) <= 0) {
       // Never this year's own picks: a team doesn't draft a player to cut him for the next one.
       const weakest = onTeam(league, teamId)
@@ -174,6 +127,7 @@ export function runDraft(league: League): { drafted: number; undrafted: number }
       );
     }
     const round = Math.ceil(pick.overall! / teamCount);
+    const choice = join(pickedProspect);
     choice.drafted = { season: league.season, round, pick: pick.overall!, teamId };
     choice.teamId = teamId;
     choice.jersey = freeJersey(league, teamId, choice);
@@ -184,7 +138,7 @@ export function runDraft(league: League): { drafted: number; undrafted: number }
       playerIds: [choice.id],
       text: `${teamId} drafted ${choice.firstName} ${choice.lastName} (${choice.position}), ${ordinal(round)} round, ${ordinal(pick.overall!)} overall, and signed him to a rookie-scale deal.`,
       reason:
-        "Best prospect left on the board for this team (placeholder draft until Phase 11), counting room to grow and thin positions.",
+        "Top of this team's board: its scouts' read of the best prospect left, counting room to grow and thin positions.",
     });
   }
 
@@ -195,9 +149,10 @@ export function runDraft(league: League): { drafted: number; undrafted: number }
     let signed = false;
     for (const teamId of order) {
       if (openSpots(league, teamId) <= 0) continue;
-      const choice = bestFor(league, teamId, available);
-      if (!choice) break;
-      available.delete(choice.id);
+      const signedProspect = bestFor(league, teamId, available, boards);
+      if (!signedProspect) break;
+      available.delete(signedProspect.id);
+      const choice = join(signedProspect);
       choice.teamId = teamId;
       choice.jersey = freeJersey(league, teamId, choice);
       choice.contract = undraftedDeal(league, teamId);
@@ -209,11 +164,13 @@ export function runDraft(league: League): { drafted: number; undrafted: number }
         playerIds: [choice.id],
         text: `${teamId} signed undrafted free agent ${choice.firstName} ${choice.lastName} (${choice.position}).`,
         reason:
-          "Undrafted free-agent rush after the draft: an open camp spot, best prospect left for this team.",
+          "Undrafted free-agent rush after the draft: an open camp spot, the best prospect left on this team's board.",
       });
     }
     if (!signed) break;
   }
+  // Everyone left is a free agent now; the class is done, and scouts turn to next year's.
+  league.prospects = league.prospects.filter((p) => p.draftYear !== league.season);
   // First-round deals can push a tight team over the cap: it restructures or releases, with reasons.
   for (const team of league.teams) getUnderCap(league, team.id);
   return { drafted: picks.length, undrafted };

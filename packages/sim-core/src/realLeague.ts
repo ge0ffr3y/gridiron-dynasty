@@ -8,6 +8,7 @@
  * attributes, ratings for players with no rating source) is generated here
  * from a seed per person, so rebuilding gives the same league.
  */
+import { emptyScouting } from "./scouting/config";
 import { NEW_PLAYER_ROSTER } from "./roster/defaults";
 import {
   ALTERNATE_POSITIONS,
@@ -38,7 +39,9 @@ import { generateContracts } from "./contracts/generate";
 import { seedSalaryHistory } from "./contracts/tags";
 import { settleUnsigned } from "./contracts/upkeep";
 import { COACH_AGE_FALLBACK } from "./coaches/config";
-import { completeSeasonFromResults, startNextSeason } from "./season/flow";
+import { completeSeasonFromResults, ensureClassAndScouts, startNextSeason } from "./season/flow";
+import { realClass, redrawClass, type RealProspectInput } from "./scouting/classes";
+import { assignScouts } from "./scouting/study";
 import { stadiumFor } from "./season/weather";
 import { fillStaff, generateCoach } from "./generate/coaches";
 import {
@@ -140,6 +143,8 @@ export interface RealLeagueInput {
   names: NamePicker;
   /** Real contracts are on the players; these are each team's starting dead money and carryover. */
   teamCaps?: Record<string, RealTeamCapInput>;
+  /** The real draft class for the league's first draft (Phase 11), renamed. */
+  prospects?: RealProspectInput[];
 }
 
 /** A seeded random stream for one person, independent of everyone else. */
@@ -266,6 +271,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
           colors: { primary: identity.colors[0], secondary: identity.colors[1] },
           controller: "ai",
           reserveReturns: [],
+          scouting: emptyScouting(),
           elevated: [],
           depthChart: { auto: true, slots: {} },
           stadium: stadiumFor(id),
@@ -322,10 +328,11 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     draftPicks,
     games,
     preseasonGames: [],
-    settings: { preseasonGames: true },
+    settings: { preseasonGames: true, viewingAs: null },
     history: [],
     salaryHistory: [],
     coachingMoves: [],
+    prospects: [],
     development: [],
     transactions: [
       {
@@ -398,6 +405,11 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     generateContracts(league, new Rng(streamSeed(input.seed, "contracts")));
     seedSalaryHistory(league);
   }
+  // The 2026 draft class (the real one when the file has it), with scouts assigned (Phase 11).
+  if (input.prospects?.length) {
+    league.prospects = realClass(league, input.prospects, league.season);
+    assignScouts(league);
+  } else ensureClassAndScouts(league);
   return league;
 }
 
@@ -411,6 +423,8 @@ export function startRealLeague(base: League, options: { name: string; seed: num
   const league = JSON.parse(JSON.stringify(base)) as League;
   league.meta = { ...league.meta, name: options.name, seed: options.seed };
   league.rng = {};
+  // This game's own busts and gems in the real class.
+  redrawClass(league);
   league.transactions = league.transactions.map((t) =>
     t.type === "league-created"
       ? {

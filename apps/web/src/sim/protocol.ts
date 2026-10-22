@@ -3,6 +3,10 @@
  * league; the page asks for screen data by name and gets plain data back.
  */
 import type {
+  DraftClassView,
+  ProspectView,
+  ScoutingDepartmentView,
+  ScoutingMove,
   CalendarPageView,
   CampReportView,
   CarouselView,
@@ -131,7 +135,21 @@ export interface SimApi {
   previewTrade(params: { a: TradeSide; b: TradeSide }): TradePreview;
   /** Makes a legal trade (saved). Returns what happened. */
   makeTrade(params: { a: TradeSide; b: TradeSide }): { message: string };
+  /** Whose eyes the screens see through, and the teams to choose from. */
+  viewingOptions(params: Record<string, never>): ViewingOptions;
+  /** Switches "Viewing as" (null: the league office's consensus). Saved. */
+  setViewingAs(params: { teamId: string | null }): ViewingOptions;
+  /** The upcoming draft class, as the viewer's scouts rank it. */
+  draftClassView(params: Record<string, never>): DraftClassView;
+  /** One prospect's scouting report. */
+  prospectView(params: { id: number }): ProspectView;
+  /** A team's scouting department: budget, scouts and assignments. */
+  scoutingDepartmentView(params: { teamId: string }): ScoutingDepartmentView;
+  /** A league-office scouting move (saved): a team's budget or a scout's assignment. */
+  scoutingMove(params: ScoutingMove): { message: string };
 }
+
+export type ViewingOptions = { current: string | null; teams: { id: string; name: string }[] };
 
 export type Method = keyof SimApi;
 export type Params<M extends Method> = Parameters<SimApi[M]>[0];

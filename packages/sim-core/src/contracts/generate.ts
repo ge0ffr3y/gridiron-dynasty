@@ -14,6 +14,7 @@ import type { TagCategory } from "../rules";
 import { minimumSalary, rookieSlot, salaryCap, tagCategory } from "./cap";
 import { prorationSeasons } from "./contract";
 import { capSheet } from "./team";
+import { marketValue as marketValueOf } from "./market";
 
 export const MARKET = {
   /** Starters per team in each tag category (who counts as a starter when ranking). */
@@ -308,9 +309,12 @@ export function leagueMarketScale(league: League, season: number): number {
  */
 export function generateContracts(league: League, rng: Rng): void {
   const season = league.season;
-  const ranks = marketRanks(league);
   const cap = league.rules.cap;
   const capNow = salaryCap(cap, season);
+  // Rookie deals first, so players on them don't take veterans' places in the market (Phase 12).
+  for (const p of league.players)
+    if (p.teamId !== null && onRookieDeal(league, p))
+      p.contract = rookieContract(league, p, p.teamId, p.drafted!.season, p.drafted!.pick);
   for (const team of league.teams) {
     const roster = league.players.filter((p) => p.teamId === team.id).sort((a, b) => a.id - b.id);
     const roomShare = rng.range(0, 2 * MARKET.targetRoomShare);
@@ -319,23 +323,17 @@ export function generateContracts(league: League, rng: Rng): void {
       .filter((p) => !onRookieDeal(league, p))
       .map((p) => {
         const age = ageOn(p.birthDate, league.date);
-        const length = yearsForAge(rng, age + 1);
-        return { p, ...ranks.get(p.id)!, length, served: rng.int(length) };
+        const value = marketValueOf(league, p);
+        const length = Math.max(1, value.years + (rng.chance(0.3) ? rng.pick([-1, 1]) : 0));
+        return { p, apy: value.apy, length, served: rng.int(length), age };
       });
     const budget =
       capNow * (1 - roomShare) - rookies.reduce((a, p) => a + rookieCost(league, p), 0);
-    let scale = 1;
-    for (let i = 0; i < 4; i++) {
-      const total = veterans.reduce(
-        (a, v) => a + marketValue(league, season, v.category, v.rank, v.p.experience, scale),
-        0,
-      );
-      scale *= budget / Math.max(1, total);
-    }
-    for (const p of rookies)
-      p.contract = rookieContract(league, p, team.id, p.drafted!.season, p.drafted!.pick);
+    const total = veterans.reduce((a, v) => a + v.apy, 0);
+    const scale = budget / Math.max(1, total);
     for (const v of veterans) {
-      const apy = marketValue(league, season, v.category, v.rank, v.p.experience, scale);
+      const minimum = minimumSalary(cap, season, v.p.experience);
+      const apy = Math.max(minimum, Math.round(v.apy * scale));
       // Signed `served` years ago: the years behind him are dropped, so only what's left shows.
       const full = veteranContract(league, rng, v.p, team.id, season - v.served, apy, v.length);
       full.years = full.years.filter((y) => y.season >= season);

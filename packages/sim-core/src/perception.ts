@@ -324,3 +324,24 @@ export function perceiveChange(
     after: Math.max(1, Math.min(99, after + error)),
   };
 }
+
+// A viewer's read of players' overalls, kept while nothing changes (same date, no new
+// transactions): free agency and contract talks ask for the same reads many times.
+const OVERALLS = new WeakMap<League, { key: string; reads: Map<string, number> }>();
+
+/** The viewer's read of a player's overall at his position (cached; see perceivePlayer). */
+export function readOverall(league: League, player: Player, viewer: Viewer): number {
+  const key = `${league.date}:${league.transactions.length}`;
+  let cache = OVERALLS.get(league);
+  if (!cache || cache.key !== key) {
+    cache = { key, reads: new Map() };
+    OVERALLS.set(league, cache);
+  }
+  const id = `${viewer.kind === "team" ? viewer.teamId : "office"}:${player.id}`;
+  let overall = cache.reads.get(id);
+  if (overall === undefined) {
+    overall = perceivePlayer(league, player, viewer).overall;
+    cache.reads.set(id, overall);
+  }
+  return overall;
+}

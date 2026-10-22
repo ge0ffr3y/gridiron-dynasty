@@ -202,7 +202,8 @@ describe("determinism and saving", () => {
     const seen = new Set<string>();
     // Through the whole League Year: offseason, free agency, the draft, camp and preseason,
     // final cuts, the season and playoffs, and the season's end.
-    for (let i = 0; i < 31; i++) {
+    // (Free agency takes about a dozen steps since Phase 12: day by day, then weekly.)
+    for (let i = 0; i < 80 && seen.size < CALENDAR_STAGES.length; i++) {
       const text = serializeLeague(league);
       expect(serializeLeague(parseLeague(text))).toBe(text);
       seen.add(league.calendar.stage);

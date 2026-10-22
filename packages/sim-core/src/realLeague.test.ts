@@ -136,5 +136,6 @@ describe("assembling a real league", () => {
         .map((g) => `${g.result?.homeScore}-${g.result?.awayScore}`);
     expect(scores(a)).not.toEqual(scores(b));
     expect(() => startRealLeague(played, { name: "X", seed: 1 })).toThrow(/real-league/);
-  });
+    // Two offseasons (free agency, the draft, camp) and a week each: longer than the default.
+  }, 180_000);
 });

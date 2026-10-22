@@ -10,7 +10,7 @@
 import { ageOn, POSITIONS, type Position } from "@fgm/foundation";
 import { ROSTER_MIX, STARTERS } from "../generate/config";
 import type { League, Prospect } from "../league/schema";
-import { perceivePlayer, perceiveProspect } from "../perception";
+import { perceiveProspect, readOverall } from "../perception";
 import { onTeam } from "../roster/lists";
 import { draftClass } from "../scouting/classes";
 import { uniformFrom } from "../scouting/noise";
@@ -47,7 +47,7 @@ export function teamNeeds(league: League, teamId: string): Map<Position, number>
     const at = players
       .filter((p) => p.position === pos)
       .map((p) => ({
-        overall: perceivePlayer(league, p, viewer).overall,
+        overall: readOverall(league, p, viewer),
         age: ageOn(p.birthDate, league.date),
       }))
       .sort((a, b) => b.overall - a.overall);

@@ -299,19 +299,27 @@ export async function buildLeague(): Promise<{
 
   // The real-name check: generated people (special teams coaches, scouts) too.
   let fixed = 0;
-  for (const person of [...league.players, ...league.coaches, ...league.prospects]) {
+  for (const person of [
+    ...league.players,
+    ...league.coaches,
+    ...league.prospects,
+    ...league.agents,
+  ]) {
     if (!renamer.isReal(person.firstName, person.lastName)) continue;
     Object.assign(
       person,
       renamer.name(
-        `fix:${"role" in person ? "coach" : "draftYear" in person ? "prospect" : "player"}:${person.id}`,
+        `fix:${"role" in person ? "coach" : "draftYear" in person ? "prospect" : "agency" in person ? "agent" : "player"}:${person.id}`,
       ),
     );
     fixed += 1;
   }
-  const stillReal = [...league.players, ...league.coaches, ...league.prospects].filter((p) =>
-    renamer.isReal(p.firstName, p.lastName),
-  );
+  const stillReal = [
+    ...league.players,
+    ...league.coaches,
+    ...league.prospects,
+    ...league.agents,
+  ].filter((p) => renamer.isReal(p.firstName, p.lastName));
   if (stillReal.length > 0) throw new Error(`${stillReal.length} real names survived renaming`);
   report.push(
     `Real-name check: 0 real names in the league (${renamer.clashes + fixed} drawn names matched a real person and were redrawn).`,

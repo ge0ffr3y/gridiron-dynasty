@@ -34,6 +34,8 @@ import { cn } from "@/lib/utils";
 import { CalendarPage } from "@/pages/CalendarPage";
 import { CampPage } from "@/pages/CampPage";
 import { DraftPage } from "@/pages/DraftPage";
+import { FreeAgencyPage } from "@/pages/FreeAgencyPage";
+import { NegotiationPage } from "@/pages/NegotiationPage";
 import { ProspectPage } from "@/pages/ProspectPage";
 import { Select } from "@/components/ui/input";
 import { CoachingPage } from "@/pages/CoachingPage";
@@ -83,7 +85,7 @@ const NAV: NavItem[] = [
   { label: "Development", icon: TrendingUp, href: "/development", needsLeague: true },
   { label: "Coaching", icon: BriefcaseBusiness, href: "/coaching", needsLeague: true },
   { label: "Draft", icon: ClipboardList, href: "/draft", needsLeague: true },
-  { label: "Free agency", icon: Handshake, phase: 12 },
+  { label: "Free agency", icon: Handshake, href: "/free-agency", needsLeague: true },
 ];
 
 export function App() {
@@ -238,6 +240,18 @@ function Shell() {
               {(params) => (
                 <NeedsLeague>
                   <GamePage gameId={Number(params.id)} />
+                </NeedsLeague>
+              )}
+            </Route>
+            <Route path="/free-agency">
+              <NeedsLeague>
+                <FreeAgencyPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/negotiate/:id">
+              {(params) => (
+                <NeedsLeague>
+                  <NegotiationPage playerId={Number(params.id)} />
                 </NeedsLeague>
               )}
             </Route>

@@ -185,7 +185,7 @@ describe.skipIf(!ready)("the real league build", () => {
         (line) => `${line.key}: ${line.sim.toFixed(3)} (real ${line.range[0]} to ${line.range[1]})`,
       );
     expect(misses).toEqual([]);
-  }, 240_000);
+  }, 480_000);
 
   it("the best players at each position are real 2025 regulars", () => {
     for (const position of ["QB", "RB", "WR", "TE", "EDGE", "DT", "LB", "CB", "S"] as const) {

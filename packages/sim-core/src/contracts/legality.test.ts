@@ -40,7 +40,7 @@ describe("a league stays legal year after year", () => {
     let lastHeads: Map<string, number> | null = null;
     const headChanges: number[] = [];
     let seasons = 0;
-    for (let step = 0; step < 400 && seasons < 10; step++) {
+    for (let step = 0; step < 800 && seasons < 10; step++) {
       advance(league);
       // The audit already ran after every move; also check between steps.
       expect(rosterProblems(league), `${league.date}`).toEqual([]);

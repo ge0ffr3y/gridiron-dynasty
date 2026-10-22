@@ -8,6 +8,7 @@
  * attributes, ratings for players with no rating source) is generated here
  * from a seed per person, so rebuilding gives the same league.
  */
+import { generateAgents } from "./people/agents";
 import { emptyScouting } from "./scouting/config";
 import { NEW_PLAYER_ROSTER } from "./roster/defaults";
 import {
@@ -37,7 +38,7 @@ import { rulesFor, teamIdsInOrder } from "./rules";
 import { emptyTeamCap } from "./contracts/team";
 import { generateContracts } from "./contracts/generate";
 import { seedSalaryHistory } from "./contracts/tags";
-import { settleUnsigned } from "./contracts/upkeep";
+import { minimumSalary } from "./contracts/cap";
 import { COACH_AGE_FALLBACK } from "./coaches/config";
 import { completeSeasonFromResults, ensureClassAndScouts, startNextSeason } from "./season/flow";
 import { realClass, redrawClass, type RealProspectInput } from "./scouting/classes";
@@ -339,6 +340,9 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     coachingMoves: [],
     prospects: [],
     freeAgentMoves: [],
+    agents: generateAgents(input.seed),
+    negotiations: [],
+    freeAgency: null,
     development: [],
     transactions: [
       {
@@ -400,13 +404,12 @@ export function assembleRealLeague(input: RealLeagueInput): League {
         team.cap.carryover.push({ season: league.season, amount: facts.carryover });
     }
     seedSalaryHistory(league);
-    // Pending free agents (deals that ended with the last season) re-sign or move on, as every League Year.
-    settleUnsigned(
-      league,
-      league.players
-        .filter((p) => p.teamId !== null && p.contract === null)
-        .sort((a, b) => a.id - b.id),
-    );
+    // Pending free agents (deals that ended with the last season) still belong to their teams until
+    // the League Year: a one-year deal for the season just played stands in for the real one, so
+    // they go through the re-signing window and free agency like anyone whose deal runs out.
+    for (const p of league.players)
+      if (p.teamId !== null && p.contract === null)
+        p.contract = endedDeal(league, p, p.teamId, league.season - 1);
   } else {
     generateContracts(league, new Rng(streamSeed(input.seed, "contracts")));
     seedSalaryHistory(league);
@@ -481,4 +484,30 @@ function applyRealDraftOrder(
         selection: null,
       });
   }
+}
+
+/** A one-year deal at the minimum for a season already played (it has run out by the League Year). */
+function endedDeal(league: League, p: Player, teamId: string, season: number): Contract {
+  return {
+    teamId,
+    type: "veteran",
+    signedOn: `${season}-03-12`,
+    years: [
+      {
+        season,
+        base: minimumSalary(league.rules.cap, season, Math.max(0, p.experience - 1)),
+        guaranteed: 0,
+        injuryGuaranteed: 0,
+        vestsOn: null,
+        rosterBonus: 0,
+        workoutBonus: 0,
+        perGameBonus: 0,
+        incentives: [],
+        void: false,
+      },
+    ],
+    bonuses: [],
+    fifthYearOption: null,
+    veteranSalaryBenefit: false,
+  };
 }

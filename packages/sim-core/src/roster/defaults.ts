@@ -6,4 +6,5 @@ export const NEW_PLAYER_ROSTER = {
   retiredAfter: null,
   preseason: null,
   measurables: null,
+  rights: null,
 } as const;

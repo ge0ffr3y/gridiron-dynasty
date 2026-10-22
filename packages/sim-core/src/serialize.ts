@@ -19,6 +19,7 @@ import {
 } from "./league/schema";
 import { rulesFor } from "./rules";
 import { emptyScouting } from "./scouting/config";
+import { generateAgents } from "./people/agents";
 import { stadiumFor } from "./season/weather";
 
 function sortKeys(value: unknown): unknown {
@@ -221,6 +222,18 @@ function upgrade(data: Record<string, unknown>): void {
     const rules = data["rules"] as Record<string, unknown> | undefined;
     if (rules) rules["draft"] = rulesFor(Number(data["season"])).draft;
     data["formatVersion"] = 14;
+  }
+  // Version 14 -> 15: free agency and negotiation (Phase 12). Agents from the seed, no talks or
+  // free agency under way, no tenders held, and the free-agency rules.
+  if (data["formatVersion"] === 14) {
+    const seed = Number((data["meta"] as Record<string, unknown>)?.["seed"] ?? 0);
+    data["agents"] = generateAgents(seed);
+    data["negotiations"] = [];
+    data["freeAgency"] = null;
+    for (const p of (data["players"] as Record<string, unknown>[]) ?? []) p["rights"] = null;
+    const rules = data["rules"] as Record<string, unknown> | undefined;
+    if (rules) rules["freeAgency"] = rulesFor(Number(data["season"])).freeAgency;
+    data["formatVersion"] = 15;
   }
 }
 

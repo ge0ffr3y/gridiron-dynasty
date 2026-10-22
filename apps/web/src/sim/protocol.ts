@@ -3,6 +3,9 @@
  * league; the page asks for screen data by name and gets plain data back.
  */
 import type {
+  FreeAgencyView,
+  NegotiationView,
+  Offer,
   BigBoardView,
   DraftAction,
   DraftHistoryView,
@@ -152,6 +155,16 @@ export interface SimApi {
   scoutingDepartmentView(params: { teamId: string }): ScoutingDepartmentView;
   /** A league-office scouting move (saved): a team's budget or a scout's assignment. */
   scoutingMove(params: ScoutingMove): { message: string };
+  /** The free-agent market: who's available, interest, signings, tags and tenders. */
+  freeAgencyView(params: Record<string, never>): FreeAgencyView;
+  /** A player's demands and how talks with a team stand. */
+  negotiationView(params: { playerId: number; teamId: string }): NegotiationView;
+  /** The league office's offer for a team (saved): his answer, and a signing if he accepts. */
+  makeOffer(params: { playerId: number; teamId: string; offer: Offer }): {
+    decision: string;
+    message: string;
+    counter: Offer | null;
+  };
   /** The draft room: the pick on the clock, its team's board and needs, trade offers, the log. */
   draftRoomView(params: Record<string, never>): DraftRoomView;
   /** A draft-room action (saved): make the pick, sim picks, or accept a trade offer. */

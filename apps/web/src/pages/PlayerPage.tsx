@@ -73,6 +73,11 @@ export function PlayerPage({ playerId }: { playerId: number }) {
         <OverallBadge value={p.overall} className="h-14 w-14 text-xl" />
         <div className="min-w-0">
           <h2 className="text-2xl font-semibold tracking-tight">{p.name}</h2>
+          {p.retiredAfter === null && (
+            <Link href={`/negotiate/${p.id}`} className="text-xs text-primary hover:underline">
+              Contract talks
+            </Link>
+          )}
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             {p.team && <TeamChip team={p.team} />}
             <span>

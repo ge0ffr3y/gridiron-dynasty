@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 14;
+export const LEAGUE_FORMAT_VERSION = 15;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -76,6 +76,36 @@ export const BonusSchema = z.object({
   seasons: z.array(z.number().int()).min(1),
   /** The League Year it's paid in cash. */
   paidIn: z.number().int(),
+});
+
+/** Tenders and tags a club can hold a player's rights with (Phase 12, CBA Articles 8-10). */
+export const RIGHTS_KINDS = [
+  "franchise-exclusive",
+  "franchise",
+  "transition",
+  "rfa-first",
+  "rfa-second",
+  "rfa-original",
+  "rfa-rofr",
+  "erfa",
+] as const;
+
+/** An offer: years, average yearly value, total guaranteed, signing bonus (whole dollars). */
+export const OfferSchema = z.object({
+  years: z.number().int().positive(),
+  apy: z.number().int().nonnegative(),
+  guaranteed: z.number().int().nonnegative(),
+  signingBonus: z.number().int().nonnegative(),
+});
+
+/** An agent (Phase 12): fictional, with a negotiating style. */
+export const AGENT_STYLES = ["hardball", "fair", "relationship", "money"] as const;
+export const AgentSchema = z.object({
+  id: z.number().int().nonnegative(),
+  firstName: z.string(),
+  lastName: z.string(),
+  agency: z.string(),
+  style: z.enum(AGENT_STYLES),
 });
 
 export const CONTRACT_TYPES = [
@@ -287,6 +317,17 @@ export const PlayerSchema = z.object({
     .nullable(),
   /** His combine or pro-day results (Phase 11), if he was a prospect in this league. */
   measurables: MeasurablesSchema.nullable(),
+  /**
+   * A team's rights to him while his tender or tag is unsigned (Phase 12): which tender, for
+   * which League Year. Offer sheets from other clubs are possible except for exclusive ones.
+   */
+  rights: z
+    .object({
+      kind: z.enum(RIGHTS_KINDS),
+      teamId: z.string(),
+      season: z.number().int(),
+    })
+    .nullable(),
 });
 
 /**
@@ -748,6 +789,52 @@ export const LeagueSchema = z.object({
   }),
   /** Upcoming draft classes' prospects (Phase 11). */
   prospects: z.array(ProspectSchema),
+  /** Agents (Phase 12); each player's agent follows from a hash of his id. */
+  agents: z.array(AgentSchema),
+  /** Contract talks this League Year (Phase 12): rounds so far, the last offer and counter, why. */
+  negotiations: z.array(
+    z.object({
+      playerId: z.number().int(),
+      teamId: z.string(),
+      season: z.number().int(),
+      kind: z.enum(["re-sign", "free-agent", "extension"]),
+      rounds: z.number().int().nonnegative(),
+      status: z.enum(["open", "agreed", "ended"]),
+      offer: OfferSchema.nullable(),
+      counter: OfferSchema.nullable(),
+      reason: z.string(),
+      date: IsoDate,
+    }),
+  ),
+  /**
+   * Free agency under way (Phase 12): the day, open offers, and offer sheets waiting for the
+   * prior club to match. Null outside free agency.
+   */
+  freeAgency: z
+    .object({
+      season: z.number().int(),
+      day: z.number().int().nonnegative(),
+      offers: z.array(
+        z.object({
+          playerId: z.number().int(),
+          teamId: z.string(),
+          offer: OfferSchema,
+          date: IsoDate,
+          reason: z.string(),
+        }),
+      ),
+      offerSheets: z.array(
+        z.object({
+          playerId: z.number().int(),
+          teamId: z.string(),
+          priorTeamId: z.string(),
+          offer: OfferSchema,
+          date: IsoDate,
+          matchBy: IsoDate,
+        }),
+      ),
+    })
+    .nullable(),
   /**
    * Unrestricted free agents who signed with a new club (Phase 11b): the compensatory-pick
    * formula (CBA Appendix V) weighs them a year later. Kept for two League Years.
@@ -803,6 +890,8 @@ export type Coach = z.infer<typeof CoachSchema>;
 export type CoachRole = z.infer<typeof CoachRoleSchema>;
 export type CoachingMove = z.infer<typeof CoachingMoveSchema>;
 export type Prospect = z.infer<typeof ProspectSchema>;
+export type Offer = z.infer<typeof OfferSchema>;
+export type Agent = z.infer<typeof AgentSchema>;
 export type Measurables = z.infer<typeof MeasurablesSchema>;
 export type Team = z.infer<typeof TeamSchema>;
 export type Stadium = z.infer<typeof StadiumSchema>;

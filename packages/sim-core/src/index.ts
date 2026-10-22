@@ -64,6 +64,13 @@ export { validateSchedule } from "./season/validate";
 export * from "./lifecycle/report";
 export * from "./lifecycle/views";
 export * from "./coaches/report";
+export {
+  carouselView,
+  careerView,
+  officeFire,
+  officeHire,
+  type CarouselView,
+} from "./coaches/carousel";
 export { DEVELOPMENT } from "./lifecycle/config";
 export { seasonDates } from "./season/calendar";
 

@@ -37,6 +37,9 @@ import {
   makeCapMove,
   calendarPageView,
   campReportView,
+  carouselView,
+  officeFire,
+  officeHire,
   developmentReportView,
   injuryReportView,
   makeRosterMove,
@@ -324,6 +327,21 @@ const handlers: Handlers = {
   async rosterMove({ teamId, playerId, kind }) {
     const league = requireLeague();
     const message = makeRosterMove(league, teamId, playerId, kind);
+    open = { saved: await save(league, open!.saved), league };
+    return { message };
+  },
+
+  carouselView({ season }) {
+    return carouselView(requireLeague(), season);
+  },
+
+  async coachingMove(params) {
+    const league = requireLeague();
+    // Both check everything before changing anything, so a refused move leaves the league as it was.
+    const message =
+      params.kind === "fire"
+        ? officeFire(league, params.coachId)
+        : officeHire(league, params.teamId, params.role, params.coachId);
     open = { saved: await save(league, open!.saved), league };
     return { message };
   },

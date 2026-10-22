@@ -193,6 +193,18 @@ export const RulesSchema = z
         draftOrderThroughWeek: z.number().int().nonnegative(),
       }),
     }),
+    /** Hiring coaches under contract with other clubs (Phase 10b). */
+    staff: z.object({
+      source: z.string(),
+      /** Interviews of another club's assistant may start this many days after his team's last game. */
+      interviewDaysAfterLastGame: z.number().int().nonnegative(),
+      /** In-person interviews of assistants under contract elsewhere wait until after this playoff round. */
+      inPersonAfterRound: z.enum(["wildcard", "divisional", "conference", "championship"]),
+      /** No coach signs or agrees to a contract until his own season is over. */
+      signAfterSeasonEnds: z.boolean(),
+      /** Clubs can't block their assistants from interviewing for coordinator jobs elsewhere. */
+      coordinatorInterviewsOpen: z.boolean(),
+    }),
     draft: z.object({
       source: z.string(),
       rounds: z.number().int().positive(),

@@ -2,15 +2,21 @@
  * The league file format: JSON with object keys in sorted order, so the same
  * league always produces exactly the same text (and the same fingerprint).
  */
-import { COACH_SKILL } from "./coaches/config";
+import { COACH_SKILL, ROLE_FOCUS } from "./coaches/config";
 import { drawStyle } from "./coaches/style";
-import { fillStaff } from "./generate/coaches";
+import { careerStart, fillStaff } from "./generate/coaches";
 import { severityFor } from "./season/injuries";
 import { Rng, streamSeed } from "@fgm/foundation";
 import { generateContracts } from "./contracts/generate";
 import { seedSalaryHistory } from "./contracts/tags";
 import { emptyTeamCap } from "./contracts/team";
-import { LEAGUE_FORMAT, LEAGUE_FORMAT_VERSION, LeagueSchema, type League } from "./league/schema";
+import {
+  LEAGUE_FORMAT,
+  LEAGUE_FORMAT_VERSION,
+  LeagueSchema,
+  type CoachRole,
+  type League,
+} from "./league/schema";
 import { rulesFor } from "./rules";
 import { stadiumFor } from "./season/weather";
 
@@ -163,6 +169,32 @@ function upgrade(data: Record<string, unknown>): void {
     }
     data["formatVersion"] = 11;
     data[NEEDS_STAFF] = true;
+  }
+  // Version 11 -> 12: coaching careers. Every coach starts a career record now, partway through
+  // a contract, with a reputation from his experience and skill; no carousel moves yet.
+  if (data["formatVersion"] === 11) {
+    const seed = Number((data["meta"] as Record<string, unknown>)?.["seed"] ?? 0);
+    const year = Number(String(data["date"]).slice(0, 4));
+    for (const c of (data["coaches"] as Record<string, unknown>[]) ?? []) {
+      const rng = new Rng(streamSeed(seed, `coach-career:${String(c["id"])}`));
+      const role = c["role"] as CoachRole;
+      const ratings = c["ratings"] as Record<string, number>;
+      Object.assign(
+        c,
+        careerStart(
+          rng,
+          role,
+          Number(c["experience"]),
+          ratings[ROLE_FOCUS[role]] ?? 58,
+          year,
+          c["teamId"] !== null,
+        ),
+      );
+    }
+    data["coachingMoves"] = [];
+    const rules = data["rules"] as Record<string, unknown> | undefined;
+    if (rules) rules["staff"] = rulesFor(Number(data["season"])).staff;
+    data["formatVersion"] = 12;
   }
 }
 

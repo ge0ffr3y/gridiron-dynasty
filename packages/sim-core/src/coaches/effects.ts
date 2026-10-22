@@ -2,12 +2,13 @@
  * What staffs do beyond calling plays (Phase 10): position coaches and the head
  * coach speed or slow development, a player's scheme fit adds to it, the
  * strength coach moves injury risk and the head trainer recovery time. Each is
- * 1 for a typical staff, so the league's totals hold.
+ * measured against the league's own average coach in that job, so they balance
+ * exactly and the league's totals hold.
  */
 import type { League, Player } from "../league/schema";
-import { COACH_SKILL, POSITION_COACH, STAFF_EFFECTS } from "./config";
+import { POSITION_COACH, STAFF_EFFECTS } from "./config";
 import { FIT_DEVELOPMENT, playerFit } from "./fit";
-import { coachIn, staffMultiplier } from "./style";
+import { coachIn, leagueTypical, staffMultiplier } from "./style";
 
 /** Development speed for a player this year: his position coach, the head coach, and his fit. */
 export function developmentMultiplier(league: League, p: Player): number {
@@ -15,13 +16,17 @@ export function developmentMultiplier(league: League, p: Player): number {
   const coach = coachIn(league, p.teamId, POSITION_COACH[p.position]);
   const hc = coachIn(league, p.teamId, "HC");
   return (
-    staffMultiplier(coach?.ratings.development, STAFF_EFFECTS.positionCoachDevelopment) *
-    // Development isn't a head coach's main job: typical for him is the league's usual level.
+    staffMultiplier(
+      coach?.ratings.development,
+      STAFF_EFFECTS.positionCoachDevelopment,
+      false,
+      leagueTypical(league, POSITION_COACH[p.position], "development"),
+    ) *
     staffMultiplier(
       hc?.ratings.development,
       STAFF_EFFECTS.headCoachDevelopment,
       false,
-      COACH_SKILL.mean,
+      leagueTypical(league, "HC", "development"),
     ) *
     (1 + playerFit(league, p) * FIT_DEVELOPMENT)
   );
@@ -34,6 +39,7 @@ export function injuryRiskMultiplier(league: League, teamId: string | null): num
     coachIn(league, teamId, "STR")?.ratings.health,
     STAFF_EFFECTS.strengthInjuryRisk,
     true,
+    leagueTypical(league, "STR", "health"),
   );
 }
 
@@ -44,5 +50,6 @@ export function recoveryMultiplier(league: League, teamId: string | null): numbe
     coachIn(league, teamId, "MED")?.ratings.health,
     STAFF_EFFECTS.trainerRecovery,
     true,
+    leagueTypical(league, "MED", "health"),
   );
 }

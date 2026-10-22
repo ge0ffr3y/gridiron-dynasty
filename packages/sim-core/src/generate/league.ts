@@ -131,6 +131,7 @@ export function createLeague(options: NewLeagueOptions): League {
     settings: { preseasonGames: options.preseasonGames ?? true },
     history: [],
     salaryHistory: [],
+    coachingMoves: [],
     development: [],
     transactions: [
       {

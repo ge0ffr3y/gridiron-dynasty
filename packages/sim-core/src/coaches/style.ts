@@ -65,7 +65,7 @@ export function skillStep(rating: number, typical = TYPICAL_FOCUS): number {
   return Math.max(-1, Math.min(1, (rating - typical) / SKILL_POINTS_PER_STEP));
 }
 
-/** A multiplier of 1 for a typical coach, moved by `range` per skill step (lower is better if `invert`). */
+/** A multiplier of 1 for a typical coach (`typical`), moved by `range` per skill step (lower is better if `invert`). */
 export function staffMultiplier(
   rating: number | undefined,
   range: number,
@@ -75,6 +75,26 @@ export function staffMultiplier(
   if (rating === undefined) return 1;
   const step = skillStep(rating, typical);
   return 1 + (invert ? -1 : 1) * step * range;
+}
+
+/**
+ * The league's typical coach in a job at one skill: the average among those holding it. Effects
+ * are measured against this, so they balance exactly across the league (a league whose defensive
+ * coordinators happen to be weaker doesn't hand every offense an edge).
+ */
+export function leagueTypical(
+  league: League,
+  role: Coach["role"],
+  key: keyof Coach["ratings"],
+): number {
+  let sum = 0;
+  let n = 0;
+  for (const c of league.coaches)
+    if (c.teamId !== null && c.role === role) {
+      sum += c.ratings[key];
+      n += 1;
+    }
+  return n ? sum / n : TYPICAL_FOCUS;
 }
 
 /** The coach in a job on a team (the first, for jobs with more than one). */
@@ -100,13 +120,13 @@ export function staffInput(
     noHuddle: oc.style.noHuddle,
     deepShare: oc.style.deepShare,
     personnel11: oc.style.personnel11,
-    skill: skillStep(oc.ratings.offense),
+    skill: skillStep(oc.ratings.offense, leagueTypical(league, "OC", "offense")),
   };
   const defenseStyle: DefenseStyle = {
     extraBlitz: dc.style.blitz,
     manCoverage: dc.style.manCoverage,
     stackedBox: dc.style.stackedBox,
-    skill: skillStep(dc.ratings.defense),
+    skill: skillStep(dc.ratings.defense, leagueTypical(league, "DC", "defense")),
   };
   const M = STYLE_MAPPING;
   const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -118,7 +138,12 @@ export function staffInput(
       twoPointAggressiveness: clamp01(0.5 + hc.style.twoPoint * M.twoPointAggressivenessPerUnit),
       adaptability: hc.style.adaptability,
     },
-    discipline: staffMultiplier(hc.ratings.leadership, STAFF_EFFECTS.disciplinePenalties, true),
+    discipline: staffMultiplier(
+      hc.ratings.leadership,
+      STAFF_EFFECTS.disciplinePenalties,
+      true,
+      leagueTypical(league, "HC", "leadership"),
+    ),
   };
 }
 

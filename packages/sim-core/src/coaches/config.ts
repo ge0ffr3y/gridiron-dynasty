@@ -114,3 +114,78 @@ export const STYLE_MAPPING = {
   /** Generated coaches' adaptability: spread around 0.5. */
   adaptabilitySpread: 0.12,
 };
+
+/**
+ * Coaching careers (Phase 10b). Contract lengths, the starting reputation, and the carousel's
+ * odds, tuned so head-coach changes match the real 7.2 a year between seasons and 1.65 during
+ * them (calibration/coaching.json headCoachChanges).
+ */
+export const CAREERS = {
+  /** Years a new contract runs, by job (the rest: assistants). */
+  contractYears: { HC: [4, 5], OC: [2, 3], DC: [2, 3], other: [1, 3] } as Record<
+    "HC" | "OC" | "DC" | "other",
+    [number, number]
+  >,
+  /** Reputation for a new coach: a base, per year of experience, per point of main skill above typical. */
+  reputation: { base: 30, perYear: 1, perSkillPoint: 0.8 },
+  /** Position groups a scout can specialize in (used from Phase 11). */
+  scoutSpecialties: ["QB", "RB/WR/TE", "OL", "DL/EDGE", "LB", "DB", "All"],
+};
+
+/**
+ * The coaching carousel (Phase 10b). Odds are on the log-odds scale; the bases are tuned so
+ * head-coach changes match the real league (calibration/coaching.json headCoachChanges: 7.2 a
+ * year between seasons, 1.65 during them). Other sizes are judgment, documented here.
+ */
+export const CAROUSEL = {
+  /** Black Monday: the chance a head coach is fired after the regular season. */
+  firing: {
+    base: -2.0,
+    /** Per unit of win share below what his roster should have won. */
+    perWinShareBelow: 7,
+    /** Per losing season in a row beyond the first. */
+    perLosingSeasonInRow: 0.5,
+    /** His first and second seasons with the team. */
+    newCoachGrace: [-1.6, -0.8] as [number, number],
+    /** Made the playoffs this season. */
+    playoffs: -1.5,
+    /** His contract runs out this season. */
+    contractUp: 0.5,
+  },
+  /** During the season, checked after each week in this range (rare). */
+  inSeason: { fromWeek: 4, toWeek: 15, base: -6.65, perWinShareBelow: 9 },
+  /** A coordinator whose unit ranked in the bottom few is sometimes let go (judgment). */
+  coordinatorFiring: { base: -2.0, perRankFromBottom: 0.09 },
+  /** A new head coach keeps each coordinator this often (otherwise he picks his own). */
+  newHeadCoachKeepsCoordinator: 0.35,
+  /** An interim head coach keeps the job this often. */
+  interimKept: 0.2,
+  /** Candidates a team interviews for a head-coach or coordinator job. */
+  interviews: 5,
+  /** New faces (college and assistant ranks) join a search when it has fewer than `minimumField` candidates. */
+  newcomersPerOpening: 2,
+  minimumField: 8,
+  /** A hire is announced this many days after the candidate's interview (judgment). */
+  hireDaysAfterInterview: 4,
+  /** A team waits for a candidate still in the playoffs if he's this much better (score points). */
+  waitMargin: 4,
+  /** Hiring score weights for head coaches and coordinators. */
+  headCoachScore: { leadership: 0.35, gameManagement: 0.2, playCalling: 0.25, reputation: 0.2 },
+  coordinatorScore: { playCalling: 0.6, development: 0.15, reputation: 0.25 },
+  /** Random spread in how each team rates a candidate (score points). */
+  taste: 6,
+  /** Retirement: even odds at this age, years per step; out of work this many seasons retires. */
+  retirement: { evenOddsAge: 71, yearsPerStep: 3, idleSeasons: 2 },
+  /** Coaches improve until about 50 and slip after 64 (main skill points a year; judgment). */
+  development: { growthUntil: 50, growth: 1, declineFrom: 64, decline: 1.5, noise: 1.5 },
+  /** Reputation: per win above expectation (head coaches), playoffs, titles, firing; drifts to 50. */
+  reputation: {
+    perWinAboveExpected: 2,
+    playoffs: 4,
+    title: 10,
+    fired: -8,
+    promoted: 5,
+    unitPerRank: 0.4,
+    drift: 0.1,
+  },
+};

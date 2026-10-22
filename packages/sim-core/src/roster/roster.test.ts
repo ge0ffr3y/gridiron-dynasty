@@ -216,8 +216,14 @@ describe("injured reserve", () => {
     expect(star.roster).toBe("injured-reserve");
     for (let w = 0; w < 3; w++) advance(league);
     expect(star.roster).toBe("injured-reserve"); // still inside the minimum
-    for (let w = 0; w < 3; w++) advance(league);
+    // Back once healthy and past the minimum (a bye week can add a week).
+    let missed = 0;
+    for (let w = 0; w < 8 && star.roster === "injured-reserve"; w++) {
+      missed = star.reserve!.gamesMissed;
+      advance(league);
+    }
     expect(star.roster).toBe("active");
+    expect(missed).toBeGreaterThanOrEqual(4);
     expect(star.reserve).toBeNull();
     // His return used one of the season's designations (teammates may have used others).
     const used = league.teams.find((t) => t.id === team)!.reserveReturns;

@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 11;
+export const LEAGUE_FORMAT_VERSION = 12;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -347,6 +347,44 @@ export const CoachSchema = z.object({
   }),
   offensiveScheme: z.enum(OFFENSIVE_SCHEMES).nullable(),
   defensiveScheme: z.enum(DEFENSIVE_SCHEMES).nullable(),
+  /**
+   * His career (Phase 10b), oldest first: each season's job and the head coach he worked under
+   * (for coaching trees). `teamId` null: out of the league that season.
+   */
+  career: z.array(
+    z.object({
+      season: z.number().int(),
+      teamId: z.string().nullable(),
+      role: CoachRoleSchema,
+      underId: z.number().int().nullable(),
+      /** Head coaches: the team's record that season. */
+      record: z
+        .object({ wins: z.number().int(), losses: z.number().int(), ties: z.number().int() })
+        .nullable(),
+    }),
+  ),
+  /** The last season of his contract (null for a coach out of work). */
+  contractThrough: z.number().int().nullable(),
+  /** How the league regards him, 0-100 (results and promotions; Phase 10b). */
+  reputation: z.number().min(0).max(100),
+  /** An interim head coach, until the offseason. */
+  interim: z.boolean(),
+  /** The season after which he retired; retired coaches stay for history. */
+  retiredAfter: z.number().int().nullable(),
+  /** Scouts: the position group he knows best (used from Phase 11). */
+  specialty: z.string().nullable(),
+});
+
+/** A move in the coaching carousel (Phase 10b), with its reason. */
+export const CoachingMoveSchema = z.object({
+  season: z.number().int(),
+  date: IsoDate,
+  kind: z.enum(["fired", "hired", "promoted", "interim", "interviewed", "retired", "left"]),
+  coachId: z.number().int(),
+  teamId: z.string().nullable(),
+  role: CoachRoleSchema,
+  text: z.string(),
+  reason: z.string(),
 });
 
 export const StadiumSchema = z.object({
@@ -624,6 +662,8 @@ export const LeagueSchema = z.object({
   /** One summary per completed season, oldest first. */
   history: z.array(SeasonHistorySchema),
   transactions: z.array(TransactionSchema),
+  /** The coaching carousel's moves (Phase 10b), oldest first. */
+  coachingMoves: z.array(CoachingMoveSchema),
   /** This season's development rounds (Phase 9); last season's go at the new League Year. */
   development: z.array(DevelopmentRoundSchema),
   /**
@@ -653,6 +693,7 @@ export type SeasonStats = z.infer<typeof SeasonStatsSchema>;
 export type HiddenTraits = z.infer<typeof HiddenTraitsSchema>;
 export type Coach = z.infer<typeof CoachSchema>;
 export type CoachRole = z.infer<typeof CoachRoleSchema>;
+export type CoachingMove = z.infer<typeof CoachingMoveSchema>;
 export type Team = z.infer<typeof TeamSchema>;
 export type Stadium = z.infer<typeof StadiumSchema>;
 export type Weather = z.infer<typeof WeatherSchema>;

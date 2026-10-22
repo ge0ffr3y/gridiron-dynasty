@@ -341,13 +341,66 @@ export async function coaching(): Promise<void> {
     };
   }
 
-  // Head-coach changes between seasons (for the carousel, 10b).
-  const changesBySeason: Record<number, number> = {};
-  for (const t of list) {
-    const prev = teamSeasons.get(`${t.season - 1}|${t.team}`);
-    if (prev?.coach && prev.coach !== t.coach)
-      changesBySeason[t.season] = (changesBySeason[t.season] ?? 0) + 1;
+  // Head-coach changes since 2000 from the schedules (head coach of every game): between seasons,
+  // and during them (the coach who started the season gone for good before it ended).
+  const schedule = new Map<string, { week: number; coach: string; result: number | null }[]>();
+  await readCsv(await ensure("games.csv.gz", `${RELEASE}/schedules/games.csv.gz`), (r) => {
+    const season = Number(r["season"]);
+    if (r["game_type"] !== "REG" || season < 2000 || season > SEASONS.at(-1)!) return;
+    const margin = Number(r["home_score"]) - Number(r["away_score"]);
+    const played = r["home_score"] !== "" && r["home_score"] !== "NA";
+    for (const [team, coach, sign] of [
+      [r["home_team"], r["home_coach"], 1],
+      [r["away_team"], r["away_coach"], -1],
+    ] as [string, string, number][]) {
+      const k = `${season}|${team}`;
+      schedule.set(k, [
+        ...(schedule.get(k) ?? []),
+        { week: Number(r["week"]), coach, result: played ? Math.sign(margin * sign) : null },
+      ]);
+    }
+  });
+  const mainCoach = (games: { coach: string }[]) => {
+    const n = new Map<string, number>();
+    for (const g of games) n.set(g.coach, (n.get(g.coach) ?? 0) + 1);
+    return [...n].sort((a, b) => b[1] - a[1])[0]![0];
+  };
+  const between: Record<number, number> = {};
+  const during: Record<number, number> = {};
+  for (const [k, games] of schedule) {
+    const [season, team] = k.split("|") as [string, string];
+    games.sort((a, b) => a.week - b.week);
+    const first = games[0]!.coach;
+    const lastIdx = games.map((g) => g.coach).lastIndexOf(first);
+    if (lastIdx < games.length - 1 && !games.slice(lastIdx + 1).some((g) => g.coach === first))
+      during[Number(season)] = (during[Number(season)] ?? 0) + 1;
+    const prev = schedule.get(`${Number(season) - 1}|${team}`);
+    if (prev && mainCoach(prev) !== mainCoach(games))
+      between[Number(season)] = (between[Number(season)] ?? 0) + 1;
   }
+  const years = Object.keys(between).map(Number);
+  // Head coaches' careers (private): each season he was a team's main head coach, and his record.
+  const careers = new Map<
+    string,
+    { season: number; team: string; wins: number; losses: number; ties: number }[]
+  >();
+  for (const [k, games] of [...schedule].sort((a, b) => a[0].localeCompare(b[0]))) {
+    const [season, team] = k.split("|") as [string, string];
+    const coach = mainCoach(games);
+    const mine = games.filter((g) => g.coach === coach && g.result !== null);
+    careers.set(coach, [
+      ...(careers.get(coach) ?? []),
+      {
+        season: Number(season),
+        team,
+        wins: mine.filter((g) => g.result === 1).length,
+        losses: mine.filter((g) => g.result === -1).length,
+        ties: mine.filter((g) => g.result === 0).length,
+      },
+    ]);
+  }
+  const meanOf = (o: Record<number, number>, ys: number[]) =>
+    ys.reduce((a, y) => a + (o[y] ?? 0), 0) / ys.length;
 
   writeFileSync(
     join(ROOT, "calibration", "coaching.json"),
@@ -357,7 +410,13 @@ export async function coaching(): Promise<void> {
           "nflverse play-by-play and participation 2016-2025 regular seasons (CC-BY-4.0), built by `npm run pipeline -- coaching`.",
         note: "Per team-season tendencies. spread = standard deviation across team-seasons; trueSpread takes out the sampling noise of one season's plays. yearToYear = correlation with the same team's previous season, when the head coach stayed and when he changed.",
         tendencies: out,
-        headCoachChanges: changesBySeason,
+        headCoachChanges: {
+          note: "From nflverse schedules 2000-2025 (each game's head coaches). betweenSeasons: teams whose main head coach changed from the season before. duringSeason: teams whose opening-day head coach was gone for good before the season ended.",
+          betweenSeasons: between,
+          duringSeason: during,
+          betweenMean: round(meanOf(between, years), 2),
+          duringMean: round(meanOf(during, [...years, 2000]), 2),
+        },
       },
       null,
       2,
@@ -407,7 +466,20 @@ export async function coaching(): Promise<void> {
   );
   writeFileSync(
     join(privateOut, "coach-tendencies.json"),
-    JSON.stringify({ teams2025: real, headCoaches: coaches }, null, 2),
+    JSON.stringify(
+      {
+        teams2025: real,
+        headCoaches: coaches,
+        careers: Object.fromEntries(
+          [...careers].map(([name, seasons]) => [
+            name,
+            seasons.sort((a, b) => a.season - b.season),
+          ]),
+        ),
+      },
+      null,
+      2,
+    ),
   );
 
   console.log(`Wrote calibration/coaching.json (${list.length} team-seasons).`);
@@ -422,5 +494,7 @@ export async function coaching(): Promise<void> {
       `  ${key.padEnd(26)} mean ${t.mean.toFixed(3)}  spread ${t.spread.toFixed(3)} (true ${t.trueSpread.toFixed(3)})  year to year: same coach ${t.yearToYear.sameHeadCoach}, new coach ${t.yearToYear.newHeadCoach}`,
     );
   }
-  console.log(`  Head-coach changes: ${JSON.stringify(changesBySeason)}`);
+  console.log(
+    `  Head-coach changes per season: ${meanOf(between, years).toFixed(2)} between seasons, ${meanOf(during, [...years, 2000]).toFixed(2)} during them.`,
+  );
 }

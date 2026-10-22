@@ -1,5 +1,5 @@
 import { addDays, Rng, streamSeed, type LeagueDate } from "@fgm/foundation";
-import { COACH_SKILL, ROLE_FOCUS, STAFF_ROLES } from "../coaches/config";
+import { CAREERS, COACH_SKILL, ROLE_FOCUS, STAFF_ROLES } from "../coaches/config";
 import { drawStyle } from "../coaches/style";
 import {
   DEFENSIVE_SCHEMES,
@@ -66,6 +66,43 @@ export function generateCoach(
     style: drawStyle(rng),
     offensiveScheme: offensive ? rng.pick(OFFENSIVE_SCHEMES) : null,
     defensiveScheme: defensive ? rng.pick(DEFENSIVE_SCHEMES) : null,
+    ...careerStart(
+      rng,
+      role,
+      age - startedAt,
+      ratings[ROLE_FOCUS[role]],
+      Number(date.slice(0, 4)),
+      teamId !== null,
+    ),
+  };
+}
+
+/** A new coach's career bookkeeping: no history yet, a contract if he has a job, a reputation. */
+export function careerStart(
+  rng: Rng,
+  role: CoachRole,
+  experience: number,
+  mainSkill: number,
+  year: number,
+  employed: boolean,
+): Pick<
+  Coach,
+  "career" | "contractThrough" | "reputation" | "interim" | "retiredAfter" | "specialty"
+> {
+  const C = CAREERS;
+  const span = C.contractYears[role === "HC" || role === "OC" || role === "DC" ? role : "other"];
+  const reputation =
+    C.reputation.base +
+    experience * C.reputation.perYear +
+    (mainSkill - COACH_SKILL.mean - COACH_SKILL.focusBonus) * C.reputation.perSkillPoint;
+  return {
+    career: [],
+    // A coach already in his job is partway through his deal.
+    contractThrough: employed ? year + rng.intBetween(0, span[1] - 1) : null,
+    reputation: Math.round(Math.max(0, Math.min(100, reputation))),
+    interim: false,
+    retiredAfter: null,
+    specialty: role === "SCOUT" ? rng.pick(C.scoutSpecialties) : null,
   };
 }
 

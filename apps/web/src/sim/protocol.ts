@@ -5,6 +5,8 @@
 import type {
   CalendarPageView,
   CampReportView,
+  CarouselView,
+  CoachRole,
   DevelopmentReportView,
   InjuryReportView,
   RosterManagementView,
@@ -102,6 +104,14 @@ export interface SimApi {
   calendarPageView(params: Record<string, never>): CalendarPageView;
   /** Preseason standouts, who improved, and the waiver claims at final cuts. */
   campReportView(params: Record<string, never>): CampReportView;
+  /** This season's coaching carousel: firings, searches and interviews, hires, open jobs. */
+  carouselView(params: { season?: number }): CarouselView;
+  /** A league-office coaching move (saved): fire a coach, or hire a candidate for an open job. */
+  coachingMove(
+    params:
+      | { kind: "fire"; coachId: number }
+      | { kind: "hire"; teamId: string; role: CoachRole; coachId: number },
+  ): { message: string };
   /** This week's injury report: every team's (or one team's) listed players and reserve lists. */
   injuryReportView(params: { teamId?: string }): InjuryReportView;
   /** This season's development rounds: biggest risers and fallers, with reasons. */

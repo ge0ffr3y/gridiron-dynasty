@@ -7,6 +7,7 @@ import { capHit, span, totalValue } from "./contracts/contract";
 import { ageOn } from "@fgm/foundation";
 import { STARTERS } from "./generate/config";
 import { stageLabel } from "./season/calendar";
+import { careerView } from "./coaches/carousel";
 import { ROLE_NAMES, STAFF_ROLES } from "./coaches/config";
 import {
   jobEffects,
@@ -211,6 +212,8 @@ export interface CoachView {
   summary: string;
   /** What his job does for his team, in plain English. */
   effects: string[];
+  /** His career, reputation and coaching tree (Phase 10b). */
+  career: ReturnType<typeof careerView>;
 }
 
 const COACH_RATING_LABELS: Record<keyof Coach["ratings"], string> = {
@@ -357,7 +360,7 @@ export function teamView(league: League, teamId: string, viewer: Viewer): TeamVi
           label: COACH_RATING_LABELS[main.key as keyof Coach["ratings"]],
           value: main.value,
         },
-        summary: styleSummary(c) || jobEffects(c)[0] || "",
+        summary: styleSummary(c) || jobEffects(league, c)[0] || "",
       };
     });
   const picks = league.draftPicks
@@ -625,6 +628,7 @@ export function coachView(league: League, coachId: number): CoachView {
     defensiveScheme: coach.defensiveScheme,
     philosophy: philosophy(coach),
     summary: styleSummary(coach),
-    effects: jobEffects(coach),
+    effects: jobEffects(league, coach),
+    career: careerView(league, coach.id),
   };
 }

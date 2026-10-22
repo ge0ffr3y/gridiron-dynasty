@@ -6,6 +6,7 @@ import {
   Dumbbell,
   HeartPulse,
   TrendingUp,
+  BriefcaseBusiness,
   ScrollText,
   CalendarDays,
   ClipboardList,
@@ -32,6 +33,7 @@ import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { CalendarPage } from "@/pages/CalendarPage";
 import { CampPage } from "@/pages/CampPage";
+import { CoachingPage } from "@/pages/CoachingPage";
 import { DevelopmentPage } from "@/pages/DevelopmentPage";
 import { InjuriesPage } from "@/pages/InjuriesPage";
 import { CoachPage } from "@/pages/CoachPage";
@@ -76,6 +78,7 @@ const NAV: NavItem[] = [
   { label: "Training camp", icon: Dumbbell, href: "/camp", needsLeague: true },
   { label: "Injuries", icon: HeartPulse, href: "/injuries", needsLeague: true },
   { label: "Development", icon: TrendingUp, href: "/development", needsLeague: true },
+  { label: "Coaching", icon: BriefcaseBusiness, href: "/coaching", needsLeague: true },
   { label: "Draft", icon: ClipboardList, phase: 11 },
   { label: "Free agency", icon: Handshake, phase: 12 },
 ];
@@ -201,6 +204,11 @@ function Shell() {
             <Route path="/injuries">
               <NeedsLeague>
                 <InjuriesPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/coaching">
+              <NeedsLeague>
+                <CoachingPage />
               </NeedsLeague>
             </Route>
             <Route path="/development">

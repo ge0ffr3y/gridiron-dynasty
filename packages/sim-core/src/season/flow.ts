@@ -4,6 +4,13 @@
  * -> training camp -> preseason weeks -> final cuts -> Weeks 1-18 -> wild card
  * -> divisional -> conference -> championship -> season complete -> next year.
  */
+import {
+  blackMonday,
+  hiringRound,
+  inSeasonFirings,
+  offseasonStaffing,
+  recordStaffSeason,
+} from "../coaches/carousel";
 import { staffInput } from "../coaches/style";
 import { STARTERS } from "../generate/config";
 import { addDays, POSITIONS, overallAt, Rng, RngStreams, streamSeed } from "@fgm/foundation";
@@ -330,10 +337,14 @@ function advanceOnce(league: League, hooks: SimHooks): string {
           week >= league.rules.schedule.regularSeasonWeeks ? "the playoffs" : `Week ${week + 1}`,
         );
         freeAgentsHeal(league);
+        // Rarely, a head coach is fired during the season (Phase 10b).
+        inSeasonFirings(league, week);
       }
       if (week >= league.rules.schedule.regularSeasonWeeks) {
         cal.stage = "wildcard";
         addPlayoffRound(league, "wildcard");
+        // Black Monday: firings, interviews, and the first hires (Phase 10b).
+        if (!hooks.historyOnly) blackMonday(league);
       } else cal.week = week + 1;
       // Next week's roster moves happen now, so every game next week sees the same rosters
       // whether it's simmed with the week or played early.
@@ -358,6 +369,8 @@ function advanceOnce(league: League, hooks: SimHooks): string {
         if (!hooks.historyOnly) {
           practiceWeek(league, `the ${next} round`);
           weeklyRosterUpkeep(league);
+          // Coaches on teams just eliminated can now sign elsewhere.
+          hiringRound(league, false);
         }
       } else {
         cal.stage = "complete";
@@ -367,6 +380,8 @@ function advanceOnce(league: League, hooks: SimHooks): string {
     }
     case "complete": {
       const ended = league.season;
+      // The last coaching hires, coaches a year older, and coaching retirements (Phase 10b).
+      if (!hooks.historyOnly) offseasonStaffing(league);
       seasonEnds(league);
       startNextSeason(league, { agePlayers: true });
       retirePlayers(league, ended);
@@ -456,6 +471,7 @@ function completeSeason(league: League): void {
   };
   league.history.push(entry);
   recordRatingHistory(league);
+  recordStaffSeason(league);
 
   // Number the next draft's picks.
   const draftSeason = league.season + 1;

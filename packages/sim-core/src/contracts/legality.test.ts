@@ -37,6 +37,8 @@ describe("a league stays legal year after year", () => {
     setTransactionAudit(checkLegal);
     const rooms: number[] = [];
     const snapshots: LifecycleSnapshot[] = [];
+    let lastHeads: Map<string, number> | null = null;
+    const headChanges: number[] = [];
     let seasons = 0;
     for (let step = 0; step < 400 && seasons < 10; step++) {
       advance(league);
@@ -47,6 +49,16 @@ describe("a league stays legal year after year", () => {
           rooms.push(
             capSheet(league, t.id, league.season).room / capSheet(league, t.id, league.season).cap,
           );
+      // Phase 10b: each season opens with one head coach per team; count changes from last year.
+      if (league.calendar.stage === "regular" && league.calendar.week === 1) {
+        const heads = new Map(
+          league.coaches.filter((c) => c.role === "HC" && c.teamId).map((c) => [c.teamId!, c.id]),
+        );
+        expect(heads.size).toBe(league.teams.length);
+        if (lastHeads)
+          headChanges.push([...heads].filter(([t, id]) => lastHeads!.get(t) !== id).length);
+        lastHeads = heads;
+      }
       if (league.calendar.stage === "regular" && league.calendar.week === 1)
       // Final cuts left every team with 53, and nearly every one with a practice squad (a team in
       // cap trouble may not afford one: legal, and real).
@@ -84,6 +96,12 @@ describe("a league stays legal year after year", () => {
     expect(
       new Set(league.players.filter((p) => p.drafted).map((p) => p.drafted!.season)).size,
     ).toBeGreaterThanOrEqual(10);
+
+    // Phase 10b: head-coach turnover near the real 7.2 a year (a band for nine changeovers).
+    const meanChanges = headChanges.reduce((a, b) => a + b, 0) / headChanges.length;
+    expect(headChanges.length).toBeGreaterThanOrEqual(8);
+    expect(meanChanges).toBeGreaterThan(3);
+    expect(meanChanges).toBeLessThan(12);
 
     // Phase 9: players develop, age and retire, and the league keeps its shape. The age mix
     // stays near the real league's, starters neither inflate nor collapse, and stars remain.

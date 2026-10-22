@@ -7,6 +7,7 @@
  *   npm run sim -- --seasons 10 --seed 42                 simulate seasons, checking every schedule
  *   npm run sim -- --calibrate [--leagues 4 --seasons 2 --seed 42]   compare simulated seasons with real NFL ranges
  *   npm run sim -- --calibrate --league pipeline/private/out/real-league-2026.json   the same, from the real league
+ *   npm run sim -- --carousel 10 [--seed 42] [--league file]   head-coach changes, firings, hires, retirements vs. real
  *   npm run sim -- --coaching 2 [--seed 42] [--league file]   how much teams differ in style, sim vs. real
  *   npm run sim -- --injuries 3 [--seed 42] [--league file]   injuries, report statuses and reserve lists vs. real
  *   npm run sim -- --lifecycle 30 [--seed 42] [--league file] [--out file]   long run: age mix, starter quality, stars, careers
@@ -86,6 +87,12 @@ if (args.includes("--calibrate")) {
         )
       : null,
   );
+  process.exit(0);
+}
+
+const carouselArg = option(args, "--carousel");
+if (carouselArg !== undefined) {
+  runCarousel(readSeed(args), Number(carouselArg), option(args, "--league"));
   process.exit(0);
 }
 
@@ -491,4 +498,68 @@ function runCoaching(seed: number, count: number, file?: string): void {
     console.log(
       `${key.padEnd(26)}  ${s.sim.toFixed(3).padStart(10)}  ${s.real.toFixed(3).padStart(11)}  ${s.simMean.toFixed(3).padStart(9)}  ${s.realMean.toFixed(3).padStart(9)}`,
     );
+}
+
+/**
+ * The coaching carousel (Phase 10b): plays seasons and counts head-coach changes the way the
+ * real numbers were counted (calibration/coaching.json): a team's opening-day head coach
+ * different from last season's, and opening-day coaches gone before the season ended.
+ */
+function runCarousel(seed: number, count: number, file?: string): void {
+  const league = file
+    ? fromFile(parseLeague(readFileSync(fromCaller(file), "utf8")), seed)
+    : createLeague({ seed, name: `League ${seed}` });
+  const real = JSON.parse(
+    readFileSync(resolve(import.meta.dirname, "../../../calibration/coaching.json"), "utf8"),
+  ).headCoachChanges;
+  const hcOf = (l: League) =>
+    new Map(l.coaches.filter((c) => c.role === "HC" && c.teamId).map((c) => [c.teamId!, c.id]));
+  console.log(`\nCoaching carousel: ${count} seasons from seed ${seed}\n`);
+  console.log(
+    "season  HC changes  in-season  coordinators out  retirements  out of work  avg HC tenure",
+  );
+  let previous: Map<string, number> | null = null;
+  let totalChanges = 0;
+  let totalIn = 0;
+  for (let i = 0; i < count; i++) {
+    advanceUntil(league, (l) => l.calendar.stage === "regular");
+    const opening = hcOf(league);
+    const season = league.season;
+    const changes = previous ? [...opening].filter(([t, id]) => previous!.get(t) !== id).length : 0;
+    advanceUntil(league, (l) => l.calendar.stage === "complete");
+    const moves = league.coachingMoves.filter((m) => m.season === season);
+    const inSeason = moves.filter((m) => m.kind === "interim").length;
+    const coordinators = moves.filter(
+      (m) => (m.kind === "fired" || m.kind === "left") && (m.role === "OC" || m.role === "DC"),
+    ).length;
+    advance(league); // offseason staffing
+    const retired = league.coachingMoves.filter(
+      (m) => m.season === season && m.kind === "retired",
+    ).length;
+    const idle = league.coaches.filter((c) => c.teamId === null && c.retiredAfter === null).length;
+    const tenures = league.coaches
+      .filter((c) => c.role === "HC" && c.teamId)
+      .map((c) => {
+        let n = 0;
+        for (
+          let j = c.career.length - 1;
+          j >= 0 && c.career[j]!.teamId === c.teamId && c.career[j]!.role === "HC";
+          j--
+        )
+          n += 1;
+        return n;
+      });
+    const avgTenure = tenures.reduce((a, b) => a + b, 0) / tenures.length;
+    if (previous) {
+      totalChanges += changes;
+      totalIn += inSeason;
+    }
+    console.log(
+      `${season}    ${previous ? String(changes).padStart(9) : "        -"}  ${String(inSeason).padStart(9)}  ${String(coordinators).padStart(16)}  ${String(retired).padStart(11)}  ${String(idle).padStart(11)}  ${avgTenure.toFixed(1).padStart(13)}`,
+    );
+    previous = opening;
+  }
+  console.log(
+    `\nAverage head-coach changes between seasons ${(totalChanges / Math.max(1, count - 1)).toFixed(2)} (real ${real.betweenMean}); during seasons ${(totalIn / Math.max(1, count - 1)).toFixed(2)} (real ${real.duringMean}).`,
+  );
 }

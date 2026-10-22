@@ -107,6 +107,8 @@ export interface RealCoachInput {
   experience: number | null;
   /** Tendencies measured from his real teams (Phase 10); the rest are drawn as for generated coaches. */
   style?: Partial<Coach["style"]>;
+  /** His real career so far (Phase 10b): head coaches' seasons and records. */
+  career?: Coach["career"];
 }
 
 /** A real game from the season before the league starts. */
@@ -237,6 +239,7 @@ function realCoach(input: RealCoachInput, id: number, date: LeagueDate, seed: nu
   if (input.birthDate) coach.birthDate = input.birthDate;
   if (input.experience !== null) coach.experience = input.experience;
   if (input.style) Object.assign(coach.style, input.style);
+  if (input.career) coach.career = input.career;
   return coach;
 }
 
@@ -322,6 +325,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     settings: { preseasonGames: true },
     history: [],
     salaryHistory: [],
+    coachingMoves: [],
     development: [],
     transactions: [
       {

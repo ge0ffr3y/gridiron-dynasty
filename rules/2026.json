@@ -101,6 +101,13 @@
       "draftOrderThroughWeek": 3
     }
   },
+  "staff": {
+    "source": "NFL Anti-Tampering Policy as reported for the 2023-24 and 2025 hiring cycles (CBS Sports, 'NFL distributes 2023-24 anti-tampering policy'; AP, 'NFL coaching searches have complicated rules about timing and interviews', Jan 7, 2025): another club's assistants may be interviewed (virtually) starting three days after their team's final game; in-person interviews of assistants under contract elsewhere wait until after the divisional round (or their elimination); no coach can sign or agree to a contract until his season is completed. Since 2020 clubs can't block assistants from interviewing for coordinator jobs (league resolution, May 2020). The 2026 policy text wasn't found; these follow the 2025 cycle.",
+    "interviewDaysAfterLastGame": 3,
+    "inPersonAfterRound": "divisional",
+    "signAfterSeasonEnds": true,
+    "coordinatorInterviewsOpen": true
+  },
   "draft": {
     "source": "Seven rounds; teams hold their picks for the current draft and the next two. Verify trading-window rules in Phase 8.",
     "rounds": 7,

@@ -7,7 +7,7 @@ import type { Coach, CoachRole, League, Player } from "../league/schema";
 import { perceivePlayer, type Viewer } from "../perception";
 import { COACH_SKILL, POSITION_COACH, ROLE_FOCUS, STAFF_EFFECTS } from "./config";
 import { fitLabel, fitScore, teamScheme } from "./fit";
-import { skillStep, STYLE_SPREAD, staffMultiplier } from "./style";
+import { leagueTypical, skillStep, STYLE_SPREAD, staffMultiplier } from "./style";
 
 type StyleKey = keyof typeof STYLE_SPREAD;
 
@@ -142,7 +142,7 @@ export function styleSummary(coach: Coach): string {
 }
 
 /** What his job does for his team, in plain English (multipliers against a typical staff). */
-export function jobEffects(coach: Coach): string[] {
+export function jobEffects(league: League, coach: Coach): string[] {
   const pct = (m: number) => `${m >= 1 ? "+" : "−"}${Math.abs(Math.round((m - 1) * 100))}%`;
   const out: string[] = [];
   const r = coach.ratings;
@@ -150,16 +150,22 @@ export function jobEffects(coach: Coach): string[] {
     case "HC":
       out.push(`Manages games: 4th-down, 2-point and clock calls, and in-game adjustments.`);
       out.push(
-        `Pre-snap penalties ${pct(staffMultiplier(r.leadership, STAFF_EFFECTS.disciplinePenalties, true))} (discipline).`,
+        `Pre-snap penalties ${pct(staffMultiplier(r.leadership, STAFF_EFFECTS.disciplinePenalties, true, leagueTypical(league, "HC", "leadership")))} (discipline).`,
       );
       out.push(
-        `Development for the whole roster ${pct(staffMultiplier(r.development, STAFF_EFFECTS.headCoachDevelopment, false, COACH_SKILL.mean))}.`,
+        `Development for the whole roster ${pct(staffMultiplier(r.development, STAFF_EFFECTS.headCoachDevelopment, false, leagueTypical(league, "HC", "development")))}.`,
       );
       break;
     case "OC":
     case "DC": {
       const skill = coach.role === "OC" ? r.offense : r.defense;
-      const edge = Math.round(skillStep(skill) * 10) / 10;
+      const edge =
+        Math.round(
+          skillStep(
+            skill,
+            leagueTypical(league, coach.role, coach.role === "OC" ? "offense" : "defense"),
+          ) * 10,
+        ) / 10;
       out.push(
         `Calls the ${coach.role === "OC" ? "offense" : "defense"} and sets its scheme; play-calling edge ${edge >= 0 ? "+" : ""}${edge} (−1 to +1).`,
       );
@@ -167,12 +173,12 @@ export function jobEffects(coach: Coach): string[] {
     }
     case "STR":
       out.push(
-        `Injury risk ${pct(staffMultiplier(r.health, STAFF_EFFECTS.strengthInjuryRisk, true))}.`,
+        `Injury risk ${pct(staffMultiplier(r.health, STAFF_EFFECTS.strengthInjuryRisk, true, leagueTypical(league, "STR", "health")))}.`,
       );
       break;
     case "MED":
       out.push(
-        `Recovery time ${pct(staffMultiplier(r.health, STAFF_EFFECTS.trainerRecovery, true))}.`,
+        `Recovery time ${pct(staffMultiplier(r.health, STAFF_EFFECTS.trainerRecovery, true, leagueTypical(league, "MED", "health")))}.`,
       );
       break;
     case "SCOUT":
@@ -183,7 +189,7 @@ export function jobEffects(coach: Coach): string[] {
         .filter(([, role]) => role === coach.role)
         .map(([pos]) => pos);
       out.push(
-        `Development for ${positions.join(", ")} ${pct(staffMultiplier(r.development, STAFF_EFFECTS.positionCoachDevelopment))}.`,
+        `Development for ${positions.join(", ")} ${pct(staffMultiplier(r.development, STAFF_EFFECTS.positionCoachDevelopment, false, leagueTypical(league, coach.role, "development")))}.`,
       );
     }
   }

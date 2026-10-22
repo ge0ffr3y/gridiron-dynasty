@@ -390,21 +390,21 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** Coaches become the strategy layer: who you hire decides how your team plays.
 
 ### Steps
-- [ ] **Coach model:** offensive and defensive philosophies, game-management traits (4th-down aggressiveness, 2-point tendency, clock management, timeout use, run/pass balance, in-game adaptability, halftime adjustments), leadership traits (development, discipline, locker room, staff building), career history
+- [x] **Coach model:** offensive and defensive philosophies, game-management traits (4th-down aggressiveness, 2-point tendency, clock management, timeout use, run/pass balance, in-game adaptability, halftime adjustments), leadership traits (development, discipline, locker room, staff building), career history *(10a/10b: styles in real units, skills incl. development, discipline and health, careers with records and the head coach above; locker-room effects wait for Phase 12's chemistry)*
 - [x] **Real coaches' traits derived from their teams' play-by-play** (pass rate over expected, 4th-down decisions vs. the model, tempo, 2-point rate, blitz and coverage tendencies where data allows) *(10a: `calibration/coaching.json` from 2016-25 team-seasons; 94 of 96 real head coaches and coordinators get their tendencies, shrunk by sample noise)*
 - [x] **AI play callers:** the offensive and defensive coordinators' traits now drive the engine's play calling; the head coach owns game management *(10a: pass rate, tempo, deep shots, personnel, blitz, man coverage, stacked boxes, 4th-down and 2-point aggressiveness, discipline, and a small zero-sum play-calling edge)*
 - [x] **Scheme fit:** each scheme defines what it wants at each position; fit changes on-field effectiveness and development *(10a: up to ±3 overall on game day and the depth chart, ±5% development; neutral for a typical player)*
 - [x] **Position coaches** affect development; strength and medical staff affect injuries *(10a: development ±10% by position group and ±3% from the head coach; injury risk and recovery time ±10%; neutral on average)*
-- [ ] **Scouts** (accuracy, regional and positional expertise; used in Phase 11)
-- [ ] **Staff market:** generated coaches, coach development and reputations
-- [ ] **Coaching carousel:** firings, interview requests, interview rules from config, assistants poached as coordinators and head coaches
-- [ ] **Coaching trees** recorded (who worked under whom)
-- [ ] **UI:** staff page, coach profile with philosophy chart, hiring screen (candidates, interviews), scheme-fit badges on the roster
+- [x] **Scouts** (accuracy, regional and positional expertise; used in Phase 11) *(10b: two per team with a scouting skill and a position-group specialty; regions wait for Phase 11's college data)*
+- [x] **Staff market:** generated coaches, coach development and reputations *(10b: new faces join thin searches; skills grow until ~50 and slip after 64; reputations from results; retirements)*
+- [x] **Coaching carousel:** firings, interview requests, interview rules from config, assistants poached as coordinators and head coaches *(10b: Black Monday and in-season firings with reasons; interviews and signing timing from `rules.staff` (2023-25 policy as reported); hires as each playoff round ends)*
+- [x] **Coaching trees** recorded (who worked under whom) *(10b: each career line records the head coach above; the coach profile shows worked-under and his tree)*
+- [x] **UI:** staff page, coach profile with philosophy chart, hiring screen (candidates, interviews), scheme-fit badges on the roster *(checked in the browser; the carousel page doubles as the hiring screen, with league-office hiring until GM Mode)*
 
 ### Done when
 - [x] Two identical rosters with different coaching staffs play visibly differently (pass rate, 4th-down attempts, blitz rate) *(10a: test in CI; team spreads match real ones within about 15%)*
 - [x] Changing coordinators moves players' scheme-fit ratings, and some players get better or worse *(10a: test in CI; fit tags on the roster in the browser)*
-- [ ] Each offseason's number of head-coach changes lands in a realistic range
+- [x] Each offseason's number of head-coach changes lands in a realistic range *(10b: 7.21 a year over 20 seasons vs. real 7.2, single seasons 4-11; in-season 1.58 vs. 1.65; a band check in the 10-season test)*
 - [x] Calibration scorecard still green with coaches calling plays *(10a: 61 of 63 on generated and real leagues, two seeds each; the misses are the long-standing success-rate gap and net punting a hair over its edge)*
 
 > [!example]- Kickoff prompt

@@ -15,6 +15,10 @@ type Measure = { value: number | null; n: number };
 interface Tendencies {
   teams2025: Record<string, Record<string, Measure>>;
   headCoaches: Record<string, Record<string, Measure>>;
+  careers?: Record<
+    string,
+    { season: number; team: string; wins: number; losses: number; ties: number }[]
+  >;
 }
 
 const FILE = join(ROOT, "pipeline", "private", "out", "coach-tendencies.json");
@@ -74,4 +78,24 @@ export function realCoachStyle(
     if (v !== undefined) style[styleKey] = v;
   }
   return Object.keys(style).length ? style : undefined;
+}
+
+/** Old team codes in the schedules, as today's teams (relocations). */
+const MOVED: Record<string, string> = { OAK: "LV", SD: "LAC", STL: "LA" };
+
+/**
+ * A real head coach's seasons as a head coach since 2000 (private), with each season's record,
+ * as career entries on the league's team ids. Empty for coaches who never were one.
+ */
+export function realCoachCareer(name: string, teamId: (code: string) => string): Coach["career"] {
+  const seasons = tendencies()?.careers?.[name] ?? [];
+  return seasons
+    .filter((s) => s.season <= 2025)
+    .map((s) => ({
+      season: s.season,
+      teamId: teamId(MOVED[s.team] ?? s.team),
+      role: "HC" as const,
+      underId: null,
+      record: { wins: s.wins, losses: s.losses, ties: s.ties },
+    }));
 }

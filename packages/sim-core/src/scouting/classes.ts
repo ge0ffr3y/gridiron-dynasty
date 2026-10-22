@@ -41,7 +41,7 @@ const SPECIALISTS = new Set<Position>(["K", "P", "LS"]);
 
 /** The draft year the next class belongs to: this season's, until its draft is done. */
 export function upcomingDraftYear(league: League): number {
-  const done = league.calendar.stage !== "offseason" && league.calendar.stage !== "free-agency";
+  const done = !["offseason", "free-agency", "draft"].includes(league.calendar.stage);
   return done ? league.season + 1 : league.season;
 }
 

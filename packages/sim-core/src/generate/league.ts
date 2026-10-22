@@ -140,6 +140,7 @@ export function createLeague(options: NewLeagueOptions): League {
     salaryHistory: [],
     coachingMoves: [],
     prospects: [],
+    freeAgentMoves: [],
     development: [],
     transactions: [
       {

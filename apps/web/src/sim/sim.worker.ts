@@ -39,6 +39,12 @@ import {
   calendarPageView,
   campReportView,
   carouselView,
+  bigBoardView,
+  draftAction,
+  draftHistoryView,
+  draftRoomView,
+  mockDraftView,
+  setBoard,
   draftClassView,
   makeScoutingMove,
   prospectView,
@@ -368,6 +374,36 @@ const handlers: Handlers = {
     const message = makeScoutingMove(league, move);
     open = { saved: await save(league, open!.saved), league };
     return { message };
+  },
+
+  draftRoomView() {
+    return draftRoomView(requireLeague());
+  },
+
+  async draftAction(action) {
+    const league = requireLeague();
+    const message = draftAction(league, action);
+    open = { saved: await save(league, open!.saved), league };
+    return { message };
+  },
+
+  bigBoardView({ teamId }) {
+    return bigBoardView(requireLeague(), teamId);
+  },
+
+  async setBoard({ teamId, ids }) {
+    const league = requireLeague();
+    setBoard(league, teamId, ids);
+    open = { saved: await save(league, open!.saved), league };
+    return bigBoardView(league, teamId);
+  },
+
+  mockDraftView() {
+    return mockDraftView(requireLeague(), viewer());
+  },
+
+  draftHistoryView({ season }) {
+    return draftHistoryView(requireLeague(), viewer(), season);
   },
 
   carouselView({ season }) {

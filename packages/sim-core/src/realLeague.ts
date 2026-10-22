@@ -145,6 +145,11 @@ export interface RealLeagueInput {
   teamCaps?: Record<string, RealTeamCapInput>;
   /** The real draft class for the league's first draft (Phase 11), renamed. */
   prospects?: RealProspectInput[];
+  /**
+   * The real first draft's order (Phase 11b): each pick's number, round and the club that made
+   * it, compensatory picks included. Regular picks keep their original club from the standings.
+   */
+  draftOrder?: { overall: number; round: number; teamId: string }[];
 }
 
 /** A seeded random stream for one person, independent of everyone else. */
@@ -333,6 +338,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     salaryHistory: [],
     coachingMoves: [],
     prospects: [],
+    freeAgentMoves: [],
     development: [],
     transactions: [
       {
@@ -405,6 +411,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     generateContracts(league, new Rng(streamSeed(input.seed, "contracts")));
     seedSalaryHistory(league);
   }
+  if (input.draftOrder?.length) applyRealDraftOrder(league, input.draftOrder);
   // The 2026 draft class (the real one when the file has it), with scouts assigned (Phase 11).
   if (input.prospects?.length) {
     league.prospects = realClass(league, input.prospects, league.season);
@@ -434,4 +441,44 @@ export function startRealLeague(base: League, options: { name: string; seed: num
       : t,
   );
   return league;
+}
+
+/**
+ * The real first draft's order: regular picks go to the club that really made them (trades
+ * before the draft), and the real compensatory picks are added. A round's picks beyond one per
+ * club are its compensatory picks (they come at each round's end).
+ */
+function applyRealDraftOrder(
+  league: League,
+  order: { overall: number; round: number; teamId: string }[],
+): void {
+  const season = league.season;
+  const teams = league.teams.length;
+  const known = new Set(league.teams.map((t) => t.id));
+  const regular = league.draftPicks
+    .filter((p) => p.season === season)
+    .sort((a, b) => a.round - b.round || (a.overall ?? 0) - (b.overall ?? 0));
+  const seenInRound = new Map<number, number>();
+  for (const real of order) {
+    if (!known.has(real.teamId)) continue;
+    const index = seenInRound.get(real.round) ?? 0;
+    seenInRound.set(real.round, index + 1);
+    if (index < teams) {
+      const pick = regular.filter((p) => p.round === real.round)[index];
+      if (!pick) continue;
+      pick.ownerTeamId = real.teamId;
+      pick.overall = real.overall;
+    } else
+      league.draftPicks.push({
+        id: league.nextIds.draftPick++,
+        season,
+        round: real.round,
+        originalTeamId: real.teamId,
+        ownerTeamId: real.teamId,
+        overall: real.overall,
+        // The real list doesn't say which kind; all count as formula picks here.
+        compensatory: "formula",
+        selection: null,
+      });
+  }
 }

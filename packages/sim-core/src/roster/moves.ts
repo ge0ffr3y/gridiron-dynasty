@@ -188,7 +188,7 @@ function weakestIn(league: League, roster: Player[], position: Player["position"
   let worst: Player | null = null;
   let worstValue = Infinity;
   // Before camp, a team doesn't cut a player it just drafted to make room for a waiver claim.
-  const spring = league.calendar.stage === "free-agency" || league.calendar.stage === "after-draft";
+  const spring = ["free-agency", "draft", "after-draft"].includes(league.calendar.stage);
   for (const x of roster) {
     if (x.position !== position || x.roster !== "active") continue;
     if (spring && x.drafted?.season === league.season) continue;

@@ -114,6 +114,7 @@ export function campReportView(league: League): CampReportView {
   const cutsDone =
     league.calendar.stage !== "offseason" &&
     league.calendar.stage !== "free-agency" &&
+    league.calendar.stage !== "draft" &&
     league.calendar.stage !== "after-draft" &&
     league.calendar.stage !== "preseason" &&
     league.calendar.stage !== "cutdown";

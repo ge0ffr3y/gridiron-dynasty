@@ -17,6 +17,7 @@ export function offseasonRuleApplies(league: League, season: number): boolean {
   const offseason: League["calendar"]["stage"][] = [
     "offseason",
     "free-agency",
+    "draft",
     "after-draft",
     "preseason",
     "cutdown",

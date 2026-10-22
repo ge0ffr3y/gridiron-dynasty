@@ -32,6 +32,7 @@ import {
 import { formatHeight, formatLeagueDate } from "@/lib/format";
 import { useLeagueKey, useSession } from "@/lib/session";
 import { call, useSim } from "@/sim/client";
+import { BigBoardTab, DraftHistoryTab, DraftRoomTab, MockDraftTab } from "./DraftRoom";
 
 /** "71" with its likely range underneath in small type. */
 export function RangeCell({ value, range }: { value: number; range: [number, number] }) {
@@ -45,13 +46,56 @@ export function RangeCell({ value, range }: { value: number; range: [number, num
   );
 }
 
+type DraftTab = "room" | "class" | "board" | "mock" | "history";
+
 export function DraftPage() {
-  const view = useSim("draftClassView", {}, useLeagueKey());
   const options = useSim("viewingOptions", {}, useLeagueKey());
+  const calendar = useSim("calendar", {}, useLeagueKey());
+  const live = calendar.data?.stage === "draft";
+  const [tab, setTab] = useState<DraftTab | null>(null);
+  const shown: DraftTab = tab ?? (live ? "room" : "class");
+  const team = options.data?.current ?? null;
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex gap-1 overflow-x-auto border-b">
+        {(
+          [
+            ["room", "Draft room"],
+            ["class", "Class"],
+            ["board", "Big board"],
+            ["mock", "Mock draft"],
+            ["history", "History"],
+          ] as [DraftTab, string][]
+        ).map(([id, label]) => (
+          <Button
+            key={id}
+            variant="ghost"
+            size="sm"
+            onClick={() => setTab(id)}
+            className={
+              shown === id
+                ? "rounded-b-none border-b-2 border-primary"
+                : "rounded-b-none text-muted-foreground"
+            }
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+      {shown === "room" && <DraftRoomTab viewingTeam={team} />}
+      {shown === "class" && <ClassTab team={team} />}
+      {shown === "board" && <BigBoardTab viewingTeam={team} />}
+      {shown === "mock" && <MockDraftTab />}
+      {shown === "history" && <DraftHistoryTab />}
+    </div>
+  );
+}
+
+function ClassTab({ team }: { team: string | null }) {
+  const view = useSim("draftClassView", {}, useLeagueKey());
   if (view.error) return <ErrorNote message={view.error} />;
   if (!view.data) return <Loading what="Loading the draft class" />;
   const v = view.data;
-  const team = options.data?.current ?? null;
   return (
     <div className="flex flex-col gap-6">
       <PageHeader

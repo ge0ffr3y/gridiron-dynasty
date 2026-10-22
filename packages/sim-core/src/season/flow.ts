@@ -56,7 +56,8 @@ import {
   weeklyDevelopment,
 } from "../lifecycle/development";
 import { batch } from "../contracts/operations";
-import { runDraft } from "../roster/draft";
+import { finishDraft, startDraft } from "../draft/day";
+import { awardCompensatoryPicks } from "../draft/compensatory";
 import { ensureDraftClass, upcomingDraftYear } from "../scouting/classes";
 import { assignScouts, offseasonScouting, pruneStudy, scoutingWeeks } from "../scouting/study";
 import { SCOUTING } from "../scouting/config";
@@ -306,6 +307,8 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       // Players develop first, so contracts and free agency see who they are now.
       league.development = [];
       recordDevelopment(league, "league-year", offseasonDevelopment(league));
+      // Compensatory picks for this year's draft, from last year's free agency (Phase 11b).
+      if (!hooks.historyOnly) awardCompensatoryPicks(league);
       batch(league, () => openLeagueYear(league));
       cal.stage = "free-agency";
       return "The new League Year opens: free agency";
@@ -313,7 +316,13 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       // Spring scouting: visits and the rest of the pro days.
       if (!hooks.historyOnly) offseasonScouting(league, league.date, dates.draft);
       league.date = dates.draft;
-      const { drafted, undrafted } = batch(league, () => runDraft(league));
+      startDraft(league);
+      cal.stage = "draft";
+      return "Draft day: the first pick is on the clock";
+    }
+    case "draft": {
+      // The picks still to make, the undrafted rush, and the class closes.
+      const { drafted, undrafted } = batch(league, () => finishDraft(league));
       cal.stage = "after-draft";
       // Next year's class appears, and every team assigns its scouts to it.
       ensureClassAndScouts(league);

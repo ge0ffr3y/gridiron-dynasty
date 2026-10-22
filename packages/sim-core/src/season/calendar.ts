@@ -161,6 +161,8 @@ export function stageLabel(stage: CalendarStage, week: number): string {
       return "Offseason";
     case "free-agency":
       return "Free agency";
+    case "draft":
+      return "Draft day";
     case "after-draft":
       return "After the draft";
     case "preseason":

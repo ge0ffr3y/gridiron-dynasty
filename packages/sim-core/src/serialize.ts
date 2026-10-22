@@ -208,6 +208,20 @@ function upgrade(data: Record<string, unknown>): void {
     for (const p of (data["players"] as Record<string, unknown>[]) ?? []) p["measurables"] = null;
     data["formatVersion"] = 13;
   }
+  // Version 13 -> 14: draft day. Picks are regular and unused, no hand-set boards, and free-agent
+  // moves start being recorded at the next League Year (no compensatory picks until then).
+  if (data["formatVersion"] === 13) {
+    for (const p of (data["draftPicks"] as Record<string, unknown>[]) ?? []) {
+      p["compensatory"] = null;
+      p["selection"] = null;
+    }
+    for (const t of (data["teams"] as Record<string, unknown>[]) ?? [])
+      (t["scouting"] as Record<string, unknown>)["board"] = null;
+    data["freeAgentMoves"] = [];
+    const rules = data["rules"] as Record<string, unknown> | undefined;
+    if (rules) rules["draft"] = rulesFor(Number(data["season"])).draft;
+    data["formatVersion"] = 14;
+  }
 }
 
 /** Set on an upgraded save whose teams still need their Phase 10 staff (removed before validation). */

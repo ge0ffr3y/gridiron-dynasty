@@ -33,7 +33,7 @@ export * from "./contracts/views";
 export * from "./roster/lists";
 export * from "./roster/legality";
 export * from "./roster/moves";
-export { runDraft } from "./roster/draft";
+
 export * from "./roster/trades";
 export * from "./roster/office";
 export * from "./roster/views";
@@ -79,6 +79,10 @@ export { draftClass, upcomingDraftYear } from "./scouting/classes";
 export { DRILLS } from "./scouting/measurables";
 export { REGIONS, SCOUT_GROUPS, SCOUTING } from "./scouting/config";
 export * from "./scouting/views";
+// Draft day (Phase 11b).
+export * from "./draft/views";
+export { draftAction, tradeOffers, type DraftAction, type TradeOffer } from "./draft/day";
+export { compensatoryAwards } from "./draft/compensatory";
 export {
   draftOutcomes,
   draftOutcomesByPick,

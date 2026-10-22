@@ -255,8 +255,10 @@ export async function buildLeague(): Promise<{
     `${coachInputs.length} real coaches (head coaches and coordinators) from end-of-2025 staffs; ${coachInputs.filter((c) => c.style).length} with tendencies measured from their real teams.`,
   );
 
-  // The real 2026 draft class (npm run pipeline -- draft), renamed like everyone else.
+  // The real 2026 draft class (npm run pipeline -- draft), renamed like everyone else, and the
+  // real 2026 draft order (who owned each pick on draft day, compensatory picks included).
   const prospectInputs = realProspects(renamer);
+  const draftOrder2026 = realDraftOrder();
   report.push(
     prospectInputs.length > 0
       ? `Draft class: ${prospectInputs.length} real 2026 prospects (${prospectInputs.filter((p) => p.pick).length} drafted, ${prospectInputs.filter((p) => p.invited).length} at the combine); the rest of the pool is generated.`
@@ -275,6 +277,7 @@ export async function buildLeague(): Promise<{
     games: seasonGames(games, touchdowns),
     names: new NamePicker(new Rng(streamSeed(REAL_LEAGUE_SEED, "generated-names"))),
     prospects: prospectInputs,
+    draftOrder: draftOrder2026,
     ...(snapshot
       ? {
           teamCaps: Object.fromEntries(
@@ -475,4 +478,32 @@ function realProspects(renamer: Renamer): RealProspectInput[] {
     invited: r.invited,
     pick: r.pick?.overall ?? null,
   }));
+}
+
+/** Pro Football Reference team codes (the draft data's) that differ from this league's ids. */
+const PFR_TEAM: Record<string, string> = {
+  GNB: "GB",
+  KAN: "KC",
+  LVR: "LV",
+  NOR: "NO",
+  NWE: "NE",
+  SFO: "SF",
+  TAM: "TB",
+};
+
+/** The real 2026 draft: every pick's number, round and the club that made it. */
+function realDraftOrder(): { overall: number; round: number; teamId: string }[] {
+  const file = join(OUT, "class-2026.json");
+  if (!existsSync(file)) return [];
+  const rows = JSON.parse(readFileSync(file, "utf8")) as {
+    pick: { round: number; overall: number; team: string } | null;
+  }[];
+  return rows
+    .flatMap((r) => (r.pick ? [r.pick] : []))
+    .sort((a, b) => a.overall - b.overall)
+    .map((p) => ({
+      overall: p.overall,
+      round: p.round,
+      teamId: leagueTeam(PFR_TEAM[p.team] ?? p.team),
+    }));
 }

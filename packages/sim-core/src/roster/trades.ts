@@ -67,24 +67,32 @@ export function tradingOpen(league: League): { open: boolean; why: string } {
 /** Picks a team can trade: future drafts it holds, and this year's until the draft is made. */
 export function tradablePicks(league: League, teamId: string): DraftPick[] {
   const draftDay = seasonDates(league.rules, league.season).draft;
-  return league.draftPicks
-    .filter((p) => p.ownerTeamId === teamId)
-    .filter(
-      (p) => p.season > league.season || (p.season === league.season && league.date < draftDay),
-    )
-    .sort(
-      (a, b) =>
-        a.season - b.season ||
-        a.round - b.round ||
-        (a.overall ?? 999) - (b.overall ?? 999) ||
-        a.id - b.id,
-    );
+  return (
+    league.draftPicks
+      .filter((p) => p.ownerTeamId === teamId)
+      // This year's picks trade until they're used: before draft day, or on it while the draft runs.
+      .filter(
+        (p) =>
+          p.season > league.season ||
+          (p.season === league.season &&
+            p.selection === null &&
+            (league.date < draftDay || league.calendar.stage === "draft")),
+      )
+      .sort(
+        (a, b) =>
+          a.season - b.season ||
+          a.round - b.round ||
+          (a.overall ?? 999) - (b.overall ?? 999) ||
+          a.id - b.id,
+      )
+  );
 }
 
 export function pickLabel(league: League, p: DraftPick): string {
   const ordinal = ["", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th"][p.round] ?? `${p.round}th`;
   const own = p.originalTeamId === p.ownerTeamId ? "" : ` (from ${p.originalTeamId})`;
-  return `${p.season} ${ordinal} round${p.overall ? `, #${p.overall}` : ""}${own}`;
+  const comp = p.compensatory ? " (compensatory)" : "";
+  return `${p.season} ${ordinal} round${p.overall ? `, #${p.overall}` : ""}${comp}${own}`;
 }
 
 function teamName(league: League, id: string): string {

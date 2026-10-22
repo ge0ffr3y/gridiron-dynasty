@@ -155,9 +155,16 @@ function lastGameDate(league: League, teamId: string): LeagueDate {
 function careerLine(league: League, c: Coach, teamId: string | null, role: CoachRole): void {
   if (c.career.some((e) => e.season === league.season && e.teamId === teamId && e.role === role))
     return;
+  // The head coach above him: the current one, or, while the job is open (right after a firing),
+  // whoever was this team's head coach this season.
   const hc =
     teamId && role !== "HC"
-      ? league.coaches.find((x) => x.teamId === teamId && x.role === "HC")
+      ? (league.coaches.find((x) => x.teamId === teamId && x.role === "HC") ??
+        league.coaches.find((x) =>
+          x.career.some(
+            (e) => e.season === league.season && e.teamId === teamId && e.role === "HC",
+          ),
+        ))
       : undefined;
   c.career.push({
     season: league.season,

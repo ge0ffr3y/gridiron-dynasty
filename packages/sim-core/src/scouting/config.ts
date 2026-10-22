@@ -64,6 +64,7 @@ export function emptyScouting(): {
   budget: "normal";
   assignments: never[];
   points: Record<string, number>;
+  board: null;
 } {
-  return { budget: "normal", assignments: [], points: {} };
+  return { budget: "normal", assignments: [], points: {}, board: null };
 }

@@ -258,6 +258,8 @@ export async function draft(): Promise<void> {
     (r) => r["draft_round"] && r["draft_round"] !== "NA",
   ).length;
 
+  const trades = await draftDayTrades(pickValue);
+
   writeFileSync(
     join(ROOT, "calibration", "draft.json"),
     JSON.stringify(
@@ -269,6 +271,7 @@ export async function draft(): Promise<void> {
         pickValue,
         positionMix,
         ages,
+        trades,
         combine: {
           invitesPerYear,
           draftedShare: round(
@@ -347,6 +350,9 @@ export async function draft(): Promise<void> {
   writeFileSync(join(privateOut, "class-2026.json"), JSON.stringify(prospects, null, 1));
 
   console.log(`Wrote calibration/draft.json (${hits.length} picks for hit rates).`);
+  console.log(
+    `  Draft-day trades: ${trades.perDraft} a draft (${TRADE_YEARS.join("-")}); pick-for-pick price (value given by the team moving up / value received): median ${trades.pickOnlyPrice.median}, middle half ${trades.pickOnlyPrice.p25}-${trades.pickOnlyPrice.p75} (${trades.pickOnlyPrice.trades} trades)`,
+  );
   for (const r of byRound)
     console.log(
       `  Round ${r.round}: starters 3+ seasons ${(r.starter3Plus * 100).toFixed(0)}%, never started ${(r.neverStarted * 100).toFixed(0)}%, Pro Bowl ${(r.proBowl * 100).toFixed(0)}%, career value ${r.meanCareerValue}`,
@@ -357,4 +363,64 @@ export async function draft(): Promise<void> {
   console.log(
     `  2026 class (private): ${prospects.length} prospects, ${prospects.filter((p) => p["pick"]).length} drafted, ${prospects.filter((p) => p["invited"]).length} at the combine.`,
   );
+}
+
+/** Drafts whose draft-day trades are measured (nflverse/nfldata trades, pick numbers known). */
+const TRADE_YEARS = [2011, 2025] as const;
+
+/**
+ * Draft-day trades: how many a draft, and what the team moving up pays. A trade counts when it
+ * moves a pick in that year's draft and happens between April 20 and May 12 (the draft window
+ * 2011-25). Price: for trades of only that year's picks, the career value (pickValue) the team
+ * moving up gave, divided by what it got.
+ */
+async function draftDayTrades(pickValue: number[]): Promise<{
+  perDraft: number;
+  pickOnlyPrice: { trades: number; p25: number; median: number; p75: number };
+  note: string;
+}> {
+  const rows: Row[] = [];
+  await readCsv(
+    await ensure("trades.csv", "https://github.com/nflverse/nfldata/raw/master/data/trades.csv"),
+    (r) => {
+      rows.push(r);
+    },
+  );
+  const byTrade = new Map<string, Row[]>();
+  for (const r of rows) byTrade.set(r["trade_id"]!, [...(byTrade.get(r["trade_id"]!) ?? []), r]);
+  let count = 0;
+  const prices: number[] = [];
+  for (const items of byTrade.values()) {
+    const season = Number(items[0]!["season"]);
+    const date = items[0]!["trade_date"] ?? "";
+    if (season < TRADE_YEARS[0] || season > TRADE_YEARS[1]) continue;
+    const md = date.slice(5);
+    if (md < "04-20" || md > "05-12") continue;
+    const current = (r: Row) =>
+      Number(r["pick_season"]) === season && num(r["pick_number"]) !== null;
+    if (!items.some(current)) continue;
+    count += 1;
+    // Pick-only trades within this draft: every item is a numbered pick of this year.
+    if (!items.every(current)) continue;
+    const teams = [...new Set(items.map((r) => r["gave"]!))];
+    if (teams.length !== 2) continue;
+    const value = (r: Row) =>
+      pickValue[Math.min(pickValue.length, num(r["pick_number"])!) - 1] ?? 0;
+    const gaveBy = (t: string) => items.filter((r) => r["gave"] === t);
+    const best = (t: string) => Math.min(...gaveBy(t).map((r) => num(r["pick_number"])!));
+    // The team moving up gives up the later best pick and receives the earliest one.
+    const [a, b] = teams as [string, string];
+    const up = best(a) > best(b) ? a : b;
+    const down = up === a ? b : a;
+    const given = gaveBy(up).reduce((x, r) => x + value(r), 0);
+    const got = gaveBy(down).reduce((x, r) => x + value(r), 0);
+    if (got > 0) prices.push(given / got);
+  }
+  const sorted = [...prices].sort((x, y) => x - y);
+  const q = (p: number) => round(sorted[Math.round(p * (sorted.length - 1))] ?? 0, 3);
+  return {
+    perDraft: round(count / (TRADE_YEARS[1] - TRADE_YEARS[0] + 1), 1),
+    pickOnlyPrice: { trades: sorted.length, p25: q(0.25), median: q(0.5), p75: q(0.75) },
+    note: `Draft-day trades ${TRADE_YEARS.join("-")} from nflverse/nfldata trades: any trade moving a pick in that year's draft between April 20 and May 12. Price: for trades of only that year's picks, the career value (pickValue) given by the team moving up over the value it received.`,
+  };
 }

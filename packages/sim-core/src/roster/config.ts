@@ -127,9 +127,8 @@ export const DRAFT_CLASS = {
     LB: -0.5,
     CB: 3.5,
   } as Partial<Record<Position, number>>,
-  /** How much a team weighs a prospect's room to grow, and filling a thin position. */
+  /** How much a team weighs a prospect's room to grow (needs: draft/config.ts). */
   potentialWeight: 0.25,
-  needBonus: 2,
   /** Undrafted deals: minimum salary for this many seasons. */
   undraftedYears: 3,
 } as const;

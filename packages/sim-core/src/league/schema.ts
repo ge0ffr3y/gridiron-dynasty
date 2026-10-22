@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 13;
+export const LEAGUE_FORMAT_VERSION = 14;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -482,6 +482,11 @@ export const TeamSchema = z.object({
       }),
     ),
     points: z.record(z.string(), z.number()),
+    /**
+     * A board set by hand (Phase 11b): prospect ids, best first. Null = the scouts' own board.
+     * The team drafts from it on draft day (unranked prospects follow, by the scouts' board).
+     */
+    board: z.array(z.number().int()).nullable(),
   }),
 });
 
@@ -526,6 +531,14 @@ export const DraftPickSchema = z.object({
   ownerTeamId: z.string(),
   /** Overall pick number, once the draft order is known (after the previous season). */
   overall: z.number().int().positive().nullable(),
+  /**
+   * Compensatory picks (Phase 11b, CBA Article 6 and Appendix V): for a net loss of free agents
+   * ("formula"), an equal loss by value ("equal-loss"), or filling the draft to one per club
+   * ("supplemental"). Null for a regular pick.
+   */
+  compensatory: z.enum(["formula", "equal-loss", "supplemental"]).nullable(),
+  /** The player taken with it, once used on draft day. */
+  selection: z.number().int().nullable(),
 });
 
 export const GAME_ROUNDS = [
@@ -576,6 +589,7 @@ export const GameSchema = z.object({
 export const CALENDAR_STAGES = [
   "offseason",
   "free-agency",
+  "draft",
   "after-draft",
   "preseason",
   "cutdown",
@@ -662,6 +676,8 @@ export const TransactionSchema = z.object({
     "practice-squad",
     "elevated",
     "development",
+    // Phase 11b: compensatory picks awarded.
+    "compensatory",
   ]),
   teamIds: z.array(z.string()),
   playerIds: z.array(z.number().int()),
@@ -732,6 +748,25 @@ export const LeagueSchema = z.object({
   }),
   /** Upcoming draft classes' prospects (Phase 11). */
   prospects: z.array(ProspectSchema),
+  /**
+   * Unrestricted free agents who signed with a new club (Phase 11b): the compensatory-pick
+   * formula (CBA Appendix V) weighs them a year later. Kept for two League Years.
+   */
+  freeAgentMoves: z.array(
+    z.object({
+      season: z.number().int(),
+      date: IsoDate,
+      playerId: z.number().int(),
+      fromTeamId: z.string(),
+      toTeamId: z.string(),
+      position: PositionSchema,
+      /** Average yearly compensation: total value over the maximum possible term. */
+      averagePerYear: z.number().int().nonnegative(),
+      years: z.number().int().positive(),
+      /** Accrued seasons when he signed (10+ non-quarterbacks can't bring a pick before round 5). */
+      accruedSeasons: z.number().int().nonnegative(),
+    }),
+  ),
   /** One summary per completed season, oldest first. */
   history: z.array(SeasonHistorySchema),
   transactions: z.array(TransactionSchema),

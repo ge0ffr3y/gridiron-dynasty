@@ -109,9 +109,45 @@
     "coordinatorInterviewsOpen": true
   },
   "draft": {
-    "source": "Seven rounds; teams hold their picks for the current draft and the next two. Verify trading-window rules in Phase 8.",
+    "source": "Seven rounds; teams hold their picks for the current draft and the next two. Pick clock: 8 minutes in round 1 from 2026 (league notice, December 2025; was 10), 7 in round 2, 5 in rounds 3-6 and compensatory picks, 4 in round 7 (NFL draft procedures as reported for 2025-26). Compensatory picks: CBA Article 6 Sections 2(a) and 10 and Appendix V; tradable since the 2017 draft (owners' resolution). Unrestricted free agents: four or more accrued seasons (Article 9 Section 1(a)).",
     "rounds": 7,
-    "seasonsOfPicksHeld": 3
+    "seasonsOfPicksHeld": 3,
+    "pickClockMinutes": [8, 7, 5, 5, 5, 5, 4],
+    "compensatory": {
+      "source": "CBA Appendix V: compensatory free agents are unrestricted free agents who signed with a new club by the Monday after the draft and rank in the top 35% by Final Numerical Value (average-yearly-compensation rank points, plus 1 point per percentage point of offensive or defensive snaps if 25% or more, kicker 2 per attempt and 1 per make, punter 1 per punt and 1 per punt inside the 20, 20 for first-team All-Pro or 5 for All-Conference). Net loss earns picks after rounds 3-7 by the lost player's percentile; at most 4 per club; an equal loss by count still earns one pick after round 7 when the value lost exceeds the value gained by more than 300 points; no pick before the end of round 5 for a non-quarterback with 10+ accrued seasons. One-year contracts up to $1.75M (2020-21, rising $20,000 every two years) and veteran-salary-benefit deals don't count. Article 6 Section 2(a): at most as many compensatory picks as clubs; fewer are filled with supplemental picks by draft order.",
+      "unrestrictedAccruedSeasons": 4,
+      "qualifyingTopShare": 0.35,
+      "roundsByTopShare": [
+        [0.05, 3],
+        [0.1, 4],
+        [0.15, 5],
+        [0.25, 6],
+        [0.35, 7]
+      ],
+      "maxPerClub": 4,
+      "minimumSnapShare": 0.25,
+      "honorPoints": {
+        "allPro": 20,
+        "allConference": 5
+      },
+      "kickerPoints": {
+        "perAttempt": 2,
+        "perMade": 1
+      },
+      "punterPoints": {
+        "perPunt": 1,
+        "perInside20": 1
+      },
+      "equalLossPoints": 300,
+      "veteranAccruedSeasons": 10,
+      "veteranEarliestRound": 5,
+      "oneYearExclusion": {
+        "from": 2020,
+        "amount": 1750000,
+        "step": 20000,
+        "everyYears": 2
+      }
+    }
   },
   "calendar": {
     "source": "NFL.com 2026 and 2026-27 important dates: tag window Feb 17 to Mar 3, combine Feb 23 to Mar 2, negotiating period from Mar 9, League Year and free agency Mar 11 (4 p.m.), draft Apr 23-25, fifth-year option deadline May 1, preseason weekends Aug 13-15, 20-23 and 27-29, final cutdown to 53 on Sunday Aug 30 (new in 2026: the Sunday after the last preseason game), waiver claims and practice squads Aug 31, Week 1 from Sept 9-10, trade deadline Nov 10 (the Tuesday after Week 9), Week 18 Jan 9-10, championship Feb 14, 2027. Later seasons follow the same rules (2027: draft Apr 29). Training camp opening is approximate (veterans report in late July).",

@@ -323,6 +323,16 @@
       "spread": 0.93
     }
   ],
+  "trades": {
+    "perDraft": 31.7,
+    "pickOnlyPrice": {
+      "trades": 338,
+      "p25": 1.296,
+      "median": 1.418,
+      "p75": 1.557
+    },
+    "note": "Draft-day trades 2011-2025 from nflverse/nfldata trades: any trade moving a pick in that year's draft between April 20 and May 12. Price: for trades of only that year's picks, the career value (pickValue) given by the team moving up over the value it received."
+  },
   "combine": {
     "invitesPerYear": 337,
     "draftedShare": 0.637,

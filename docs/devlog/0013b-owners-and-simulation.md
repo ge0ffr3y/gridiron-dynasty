@@ -30,6 +30,14 @@ Owners now hire and fire. Each judges his GM and head coach every season and wri
   - **Front-office moves:** with their reasons.
 - **`/executive/:id`:** a GM's or owner's page with his philosophy chart, career record, hirings and firings, and every trade he made with what he gave and got in his own eyes.
 
+## History cards and more names
+
+- **History cards** (your call): after four seasons gone (retired, or a free agent nobody signed), a player leaves the player list and keeps a short history card. The card holds his name, position, college, draft, seasons, teams, seasons as a starter, peak (the league office's read) and career totals.
+  - **What still works:** draft history, the draft reports and his page (now a short card).
+  - **Why:** a century of history no longer weighs on every step of the sim, and save files stop ballooning.
+  - **Saves:** format 18.
+- **More names** (your call): 337 first names, including AJ, TJ, JJ, CJ, DJ, KJ, RJ, Marshawn, Shaq and Deon, and 450 last names. That's about 152,000 combinations, three times as many.
+
 ## The balance check
 
 `npm run sim -- --frontoffices N` records every team's season with its GM's type, and measures the league's parity the way the real numbers were measured (2002-25, nflverse).
@@ -62,7 +70,9 @@ Owners now hire and fire. Each judges his GM and head coach every season and wri
 - **Turnover:**
   - 4.2-4.8 GM changes a year (real about 4.5), 0.36 of them during the season (real 0.4);
   - head-coach changes 7.8 between seasons and 1.4 during them (real 7.2 and 1.65).
-- **The long runs:** STABILITY
+- **The long runs:**
+  - **100 seasons** (`npm run sim -- --seasons 100`, seed 7): every roster legal after every move, 0 schedule problems, 22.6 points per team per game, home teams winning 54.2%. It took 38 minutes, against 2.2 hours before history cards (seasons late in the century had slowed to 4-5 minutes each).
+  - **30 seasons** (`--lifecycle 30`): mean age 26.2-26.6 and starters 75.4-77.0; stars rated 90+ mostly 45-60, with a brief rise to 72.
 
 ## What surprised us / what broke
 

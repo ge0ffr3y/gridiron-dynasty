@@ -69,7 +69,7 @@ Decisions that block a phase. Record the answer here when made.
 | League name, championship name, 32 team names, mascots, colors | Phase 6 | Deferred by the owner (Phase 6 planning): placeholder names stay; the naming session happens later |
 | Is the generated real-league file published in the public repo, or built locally only? | Phase 6 | Built locally only (git-ignored), rebuilt by `npm run pipeline -- league`; revisit when the repo goes public (decided in Phase 6) |
 | Real college names for prospects, or fictional schools? | Phase 11 | Fictional schools, the same mapping as players' colleges; each school has a scouting region (decided in Phase 11a) |
-| Can more than one team be human-controlled? | Phase 14 | |
+| Can more than one team be human-controlled? | Phase 14 | One person-run team for now. The owner has a long-range vision of multiplayer (see Stretch goals); decisions, delegation and the inbox are keyed by team so it stays possible (decided in Phase 14) |
 | How far back imported history goes (since 1920 vs. championship era + all-time record books) | Phase 15 | |
 | Fully fictional league as an alternative start? | Phase 1 | *Effectively yes: it's how we build Phases 1–5* (built in Phase 1) |
 | Release v0.1 timing | Phase 4 | When the repo goes public: README with screenshots, GitHub Pages deploy and the v0.1 tag together (decided after Phase 4b) |
@@ -501,20 +501,20 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** Take over one team and live the job: deadlines, an owner watching, and the risk of getting fired.
 
 ### Steps
-- [ ] **Start a career:** pick a team, meet the owner, see expectations
-- [ ] **Inbox / decision queue:** every pending decision (tag deadline, offers, interview requests for your staff, trade proposals) with deadlines; the sim pauses when you must decide
-- [ ] **Delegation and autopilot:** per area (depth chart, re-signings, draft, waivers), and "sim to the next decision"
-- [ ] **Owner relationship:** patience, budget, approval of your moves, job security meter; getting fired; job offers from other teams; continuing the career elsewhere
-- [ ] **Your GM career page:** record, titles, trades, draft history
-- [ ] Decide on more than one human team (Decisions log); if yes, multiple human deciders
-- [ ] Save slots, autosave, league export
-- [ ] **Onboarding:** first-season guided tips, glossary of cap and roster terms in plain English
-- [ ] **🚀 Release v0.4** (GM Mode)
+- [x] **Start a career:** pick a team, meet the owner, see expectations *(14a: New League asks GM or Simulation Mode; the team list shows record, stance, owner and cap room; the owner meeting gives his traits, expectations and budget)*
+- [x] **Inbox / decision queue:** every pending decision (tag deadline, offers, interview requests for your staff, trade proposals) with deadlines; the sim pauses when you must decide *(14a/14b: re-signing and tags before the League Year, your pick on the clock, final cuts, extension windows, holdouts and trade requests, coaching vacancies, trade offers with their pieces, interview notices; your staff decide anything you sim past)*
+- [x] **Delegation and autopilot:** per area (depth chart, re-signings, draft, waivers), and "sim to the next decision" *(14a: 13 areas, big calls yours by default; one check, `staffDecides`, in every AI routine; a fully delegated team plays like an AI team)*
+- [x] **Owner relationship:** patience, budget, approval of your moves, job security meter; getting fired; job offers from other teams; continuing the career elsewhere *(14b: the AI GMs' own firing odds plus the owner's reactions; budget and a meddler's veto; Black Monday and rare in-season firings; offers, waiting, retiring)*
+- [x] **Your GM career page:** record, titles, trades, draft history *(14b: `/career`, with job security and the owner's words)*
+- [x] Decide on more than one human team (Decisions log); if yes, multiple human deciders *(one for now; multiplayer recorded as a stretch goal)*
+- [x] Save slots, autosave, league export *(14b: "Save a copy", a backup the first time each season is saved with restore as a copy; autosave after every action and export as before)*
+- [x] **Onboarding:** first-season guided tips, glossary of cap and roster terms in plain English *(14b: eight tips at the year's big moments; 28 glossary terms with numbers from the rules file)*
+- [ ] **🚀 Release v0.4** (GM Mode) *(deferred until the repo goes public, like v0.1-v0.3)*
 
 ### Done when
-- [ ] You can play three full seasons as one team without needing a spreadsheet
-- [ ] Missing expectations gets you fired, and you can take another job
-- [ ] Delegated areas are handled sensibly by your staff
+- [x] You can play three full seasons as one team without needing a spreadsheet *(scripted: `career.test.ts` plays three seasons through the screens' functions with the legality audit on; by hand: a season and the next re-signing window in the browser)*
+- [x] Missing expectations gets you fired, and you can take another job *(`job.test.ts`; the offers and career screens checked in the browser, but not right after a real firing)*
+- [x] Delegated areas are handled sensibly by your staff *(a fully delegated team plays two seasons legally and is never asked anything; staff decisions at deadlines leave a log line)*
 
 > [!example]- Kickoff prompt
 > "Phase 14: build the GM Mode career layer: team selection, the inbox/decision queue with deadlines, delegation and autopilot, the owner relationship and job security with firing and new job offers, a GM career page, save slots, and onboarding with a plain-English glossary. Plan first."
@@ -610,7 +610,7 @@ Decisions that block a phase. Record the answer here when made.
 ## ★ Stretch goals
 
 - [ ] Simple 2D "watch the play" viewer for individual snaps
-- [ ] Hot-seat multiplayer (several human GMs in one league)
+- [ ] Hot-seat multiplayer (several human GMs in one league) *(the owner's long-range vision, noted in Phase 14: a multiplayer league way down the road. Not a current goal. GM Mode keys decisions, delegation and the inbox by team; a league holds one person's career today, so a list of careers is the main change)*
 - [ ] Rules editor: change the cap, kickoff rules, overtime, playoff size (rules-as-data makes this cheap)
 - [ ] Prime-time slots, international games, flexible scheduling
 - [ ] Custom name packs / league files shared by players

@@ -211,45 +211,58 @@ export function DraftRoomTab({ viewingTeam }: { viewingTeam: string | null }) {
                 {v.needs.map((n) => `${n.position} (${Math.round(n.need * 100)}%)`).join(", ")}
               </div>
             )}
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" disabled={busy} onClick={() => act({ kind: "pick" })}>
-                Make their pick (top of their board)
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={() => setAuto((a) => !a)}
-              >
-                {auto ? <Pause /> : <Play />} {auto ? "Pause" : "Watch it live"}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={() => act({ kind: "sim", until: "round" })}
-              >
-                Sim to the next round
-              </Button>
-              {viewingTeam && v.onClock.teamId !== viewingTeam && (
+            {v.you && v.yours ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" disabled={busy} onClick={() => act({ kind: "pick" })}>
+                  Make your pick (top of your board)
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Or choose anyone with "Draft" on your board below.
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {!v.you && (
+                  <Button size="sm" disabled={busy} onClick={() => act({ kind: "pick" })}>
+                    Make their pick (top of their board)
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="outline"
                   disabled={busy}
-                  onClick={() => act({ kind: "sim", until: "team", teamId: viewingTeam })}
+                  onClick={() => setAuto((a) => !a)}
                 >
-                  Sim to {viewingTeam}'s pick
+                  {auto ? <Pause /> : <Play />} {auto ? "Pause" : "Watch it live"}
                 </Button>
-              )}
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy}
-                onClick={() => act({ kind: "sim", until: "all" })}
-              >
-                Sim every pick
-              </Button>
-            </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => act({ kind: "sim", until: "round" })}
+                >
+                  Sim to the next round
+                </Button>
+                {!v.you && viewingTeam && v.onClock.teamId !== viewingTeam && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => act({ kind: "sim", until: "team", teamId: viewingTeam })}
+                  >
+                    Sim to {viewingTeam}'s pick
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => act({ kind: "sim", until: "all" })}
+                >
+                  {v.you ? "Sim to your next pick" : "Sim every pick"}
+                </Button>
+              </div>
+            )}
             {message && <p className="text-xs text-muted-foreground">{message}</p>}
           </CardContent>
         </Card>
@@ -265,7 +278,7 @@ export function DraftRoomTab({ viewingTeam }: { viewingTeam: string | null }) {
         </Card>
       )}
 
-      {v.offers.length > 0 && (
+      {v.offers.length > 0 && (!v.you || v.yours) && (
         <Card>
           <CardHeader>
             <CardTitle>Trade offers for this pick</CardTitle>
@@ -300,14 +313,22 @@ export function DraftRoomTab({ viewingTeam }: { viewingTeam: string | null }) {
       {v.board.length > 0 && v.onClock && (
         <Card>
           <CardHeader>
-            <CardTitle>{v.onClock.teamId}'s board</CardTitle>
+            <CardTitle>{v.yours ? "Your board" : `${v.onClock.teamId}'s board`}</CardTitle>
             <CardDescription>
-              What's left, as their scouts rank it with their needs and philosophy. "Draft" makes
-              the pick for them (the league office, until GM Mode).
+              {v.you
+                ? v.yours
+                  ? 'What\'s left, as your scouts rank it with your needs. "Draft" takes him.'
+                  : "What's left, as their scouts rank it with their needs and philosophy."
+                : 'What\'s left, as their scouts rank it with their needs and philosophy. "Draft" makes the pick for them (the league office in Simulation Mode).'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <BoardTable rows={v.board} onDraft={(id) => act({ kind: "pick", prospectId: id })} />
+            <BoardTable
+              rows={v.board}
+              onDraft={
+                !v.you || v.yours ? (id) => act({ kind: "pick", prospectId: id }) : undefined
+              }
+            />
           </CardContent>
         </Card>
       )}

@@ -33,6 +33,12 @@ import type {
   ExecutiveView,
   FormerPlayerView,
   TradeOffersView,
+  GmCareerView,
+  CareerPageView,
+  GlossaryEntry,
+  OwnerMeeting,
+  InboxAnswer,
+  DelegationArea,
   TradePreview,
   TradeSide,
   TransactionsView,
@@ -172,6 +178,30 @@ export interface SimApi {
   respondToOffer(params: { offerId: number; accept: boolean }): { message: string };
   /** Run a team's trade decisions yourself (offers come to you) or hand them to its AI (saved). */
   setController(params: { teamId: string; human: boolean }): { message: string };
+  /** GM Mode (Phase 14): your career, inbox, log and delegation; inactive in Simulation Mode. */
+  gmCareerView(params: Record<string, never>): GmCareerView;
+  /** Take a team's GM job (saved). Returns the owner's first meeting. */
+  startCareer(params: { teamId: string; firstName: string; lastName: string }): OwnerMeeting;
+  /** Answer an inbox item (saved): it acts, or points to the screen where you act. */
+  answerInbox(params: { decisionId: number; choice: string }): InboxAnswer;
+  /** Keep an area of the job or hand it to your staff (saved). */
+  delegate(params: { area: DelegationArea; who: "you" | "staff" }): GmCareerView;
+  /** Your career: record, drafts, trades, job security, the owner's words, offers (Phase 14b). */
+  careerPageView(params: Record<string, never>): CareerPageView;
+  /** Dismiss a first-season tip ("all" for every one). Saved. */
+  dismissTip(params: { id: string }): GmCareerView;
+  /** Take a job offer after a firing (saved). */
+  takeJob(params: { teamId: string }): GmCareerView;
+  /** Retire from GM Mode: the league carries on in Simulation Mode (saved). */
+  retireCareer(params: Record<string, never>): GmCareerView;
+  /** Cap and roster terms in plain English, with this league's rule numbers. */
+  glossaryView(params: Record<string, never>): GlossaryEntry[];
+  /** Saves a copy of the open league under a new name (a save slot). */
+  saveCopy(params: { name: string }): SavedLeague;
+  /** A league's season backups, newest first. */
+  listBackups(params: { id: string }): { season: number; date: string; savedAt: number }[];
+  /** Restores a season backup as a new league in the list (the original is untouched). */
+  restoreBackup(params: { id: string; season: number }): SavedLeague;
   /** Whose eyes the screens see through, and the teams to choose from. */
   viewingOptions(params: Record<string, never>): ViewingOptions;
   /** Switches "Viewing as" (null: the league office's consensus). Saved. */

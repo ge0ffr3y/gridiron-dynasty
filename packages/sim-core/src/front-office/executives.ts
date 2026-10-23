@@ -153,6 +153,7 @@ export function generateExecutives(
       reputation: Math.round(rng.range(35, 65)),
       career: [],
       retiredAfter: null,
+      person: false,
     });
     out.push({
       id: id++,
@@ -167,6 +168,7 @@ export function generateExecutives(
       reputation: 50,
       career: [],
       retiredAfter: null,
+      person: false,
     });
   });
   return out.sort((a, b) => a.id - b.id);

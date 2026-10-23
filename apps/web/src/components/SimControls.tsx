@@ -1,7 +1,8 @@
 /**
  * The header's sim buttons: where we are in the season and what to do next.
  */
-import { Loader2, Play } from "lucide-react";
+import { Inbox, Loader2, Play } from "lucide-react";
+import { Link } from "wouter";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { formatLeagueDate } from "@/lib/format";
@@ -57,6 +58,24 @@ export function SimControls() {
             </Button>
           ))}
         </>
+      )}
+      {c.inbox && (
+        <Link
+          href="/inbox"
+          className="ml-auto flex items-center gap-1.5 rounded-md border px-2 py-1 text-sm hover:bg-accent"
+          title={
+            c.inbox.due > 0
+              ? "Due now: if you sim on, your staff decide these for you."
+              : "Decisions waiting for you"
+          }
+        >
+          <Inbox className="size-4" /> Inbox {c.inbox.open}
+          {c.inbox.due > 0 && (
+            <span className="rounded bg-destructive px-1.5 text-xs text-white">
+              {c.inbox.due} due
+            </span>
+          )}
+        </Link>
       )}
       {error && <span className="text-sm text-destructive">{error}</span>}
     </div>

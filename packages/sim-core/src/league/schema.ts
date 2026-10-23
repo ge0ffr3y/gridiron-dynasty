@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 18;
+export const LEAGUE_FORMAT_VERSION = 19;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -578,6 +578,8 @@ export const ExecutiveSchema = z.object({
     }),
   ),
   retiredAfter: z.number().int().nullable(),
+  /** The person playing GM Mode (Phase 14): his decisions come from the inbox, not knobs. */
+  person: z.boolean(),
 });
 
 /** A front-office move (Phase 13): hired, fired, retired, with its reason. */
@@ -894,12 +896,52 @@ export const TransactionSchema = z.object({
   reason: z.string(),
 });
 
+/**
+ * The areas of a GM's job (Phase 14). In GM Mode each is yours or your staff's; AI teams' staffs
+ * run them all.
+ */
+export const DELEGATION_AREAS = [
+  "draft",
+  "re-signing",
+  "free-agency",
+  "trades",
+  "extensions",
+  "disputes",
+  "coaching",
+  "cutdown",
+  "depth-chart",
+  "reserve-lists",
+  "waivers",
+  "elevations",
+  "cap",
+] as const;
+
+/** Kinds of decisions that reach a person (Phase 13-14). */
+export const DECISION_KINDS = [
+  "placeholder",
+  "trade-offer",
+  "re-sign",
+  "draft-pick",
+  "cutdown",
+  "dispute",
+  "extension",
+  "coach-vacancy",
+  "interview",
+  "owner",
+] as const;
+
 export const DecisionRequestSchema = z.object({
-  /** "trade-offer" (Phase 13): another team offers a trade; `offerId` names it. */
-  kind: z.enum(["placeholder", "trade-offer"]),
+  kind: z.enum(DECISION_KINDS),
   prompt: z.string(),
   options: z.array(z.string()).min(1),
+  /** "trade-offer" (Phase 13): the offer it answers. */
   offerId: z.number().int().optional(),
+  /** The player or coaching job it's about (Phase 14). */
+  playerId: z.number().int().optional(),
+  role: z.string().optional(),
+  /** The area of the job it belongs to (delegation), and where to act (a screen's path). */
+  area: z.enum(DELEGATION_AREAS).optional(),
+  link: z.string().optional(),
 });
 
 export const PendingDecisionSchema = z.object({
@@ -907,6 +949,39 @@ export const PendingDecisionSchema = z.object({
   teamId: z.string(),
   createdOn: IsoDate,
   request: DecisionRequestSchema,
+  /** If not answered by this date, the team's staff decide (Phase 14). Null: no deadline. */
+  deadline: IsoDate.nullable().optional(),
+});
+
+/** A GM Mode career (Phase 14): the person's team, delegation, and what's happened. */
+export const CareerSchema = z.object({
+  /** The team the person runs now (null between jobs). */
+  teamId: z.string().nullable(),
+  /** The person's executive record (a GM in `league.executives`). */
+  executiveId: z.number().int(),
+  startedSeason: z.number().int(),
+  status: z.enum(["active", "fired", "retired"]),
+  delegation: z.record(z.enum(DELEGATION_AREAS), z.enum(["you", "staff"])),
+  /** Decisions made, by the person or by the staff at a deadline, newest last (kept short). */
+  log: z.array(
+    z.object({
+      date: IsoDate,
+      kind: z.enum(DECISION_KINDS),
+      /** Who: you, your staff at a deadline, or the owner speaking (Phase 14b). */
+      by: z.enum(["you", "staff", "owner"]),
+      text: z.string(),
+    }),
+  ),
+  /** Tips already shown (onboarding). */
+  tipsSeen: z.array(z.string()),
+  /** Job offers after a firing (Phase 14b). */
+  offers: z.array(z.object({ teamId: z.string(), season: z.number().int(), reason: z.string() })),
+  /** The owner's view of your moves (log-odds on the firing odds; + is good), fading each season. */
+  standing: z.number().default(0),
+  /** The last transaction the owner has looked at (his reactions, Phase 14b). */
+  seenTransaction: z.number().int().default(0),
+  /** The team that fired you last (it won't offer you a job). */
+  firedFrom: z.string().nullable().default(null),
 });
 
 const RngStateSchema = z.tuple([z.number(), z.number(), z.number(), z.number()]).readonly();
@@ -1097,6 +1172,8 @@ export const LeagueSchema = z.object({
     z.object({ season: z.number().int(), category: z.string(), top: z.array(z.number().int()) }),
   ),
   pendingDecisions: z.array(PendingDecisionSchema),
+  /** GM Mode (Phase 14): the person's career, or null in Simulation Mode. */
+  career: CareerSchema.nullable(),
   rng: z.partialRecord(z.string(), RngStateSchema),
   nextIds: z.object({
     player: z.number().int(),
@@ -1143,3 +1220,5 @@ export type OwnerStyle = z.infer<typeof OwnerStyleSchema>;
 export type TradePackage = z.infer<typeof TradePackageSchema>;
 export type TeamPlan = NonNullable<Team["plan"]>;
 export type FormerPlayer = z.infer<typeof FormerPlayerSchema>;
+export type Career = z.infer<typeof CareerSchema>;
+export type DelegationArea = (typeof DELEGATION_AREAS)[number];

@@ -4,6 +4,7 @@
 import type { Game, League, PlayoffRound, Team } from "../league/schema";
 import { PLAYOFF_ROUNDS } from "../league/schema";
 import { availableActions, type SimAction } from "./actions";
+import { personTeam } from "../career/delegation";
 import { stageLabel } from "./calendar";
 import { canPlayNow, currentStandings, isPlaying } from "./flow";
 import { formatWLT, pctOf } from "./standings";
@@ -33,6 +34,8 @@ export interface CalendarView {
   label: string;
   date: string;
   actions: SimAction[];
+  /** GM Mode: open decisions in your inbox and how many are due now; null in Simulation Mode. */
+  inbox: { open: number; due: number } | null;
 }
 
 export function calendarView(league: League): CalendarView {
@@ -42,6 +45,18 @@ export function calendarView(league: League): CalendarView {
     label: stageLabel(league.calendar.stage, league.calendar.week),
     date: league.date,
     actions: availableActions(league),
+    inbox: inboxCounts(league),
+  };
+}
+
+/** GM Mode: open decisions in the person's inbox, and how many are due now (Phase 14). */
+function inboxCounts(league: League): { open: number; due: number } | null {
+  const team = personTeam(league);
+  if (!team) return null;
+  const mine = league.pendingDecisions.filter((d) => d.teamId === team);
+  return {
+    open: mine.length,
+    due: mine.filter((d) => d.deadline != null && d.deadline <= league.date).length,
   };
 }
 

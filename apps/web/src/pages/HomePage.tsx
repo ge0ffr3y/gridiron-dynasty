@@ -1,4 +1,4 @@
-import { Download, FolderOpen, Plus, Shuffle, Trash2, Upload } from "lucide-react";
+import { Copy, Download, FolderOpen, History, Plus, Shuffle, Trash2, Upload } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
 import { ErrorNote, Loading, PageHeader } from "@/components/shared";
@@ -30,6 +30,7 @@ export function HomePage() {
   const [, navigate] = useLocation();
   const [creating, setCreating] = useState(false);
   const [toDelete, setToDelete] = useState<SavedLeague | null>(null);
+  const [backupsOf, setBackupsOf] = useState<SavedLeague | null>(null);
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -68,6 +69,21 @@ export function HomePage() {
       setMessage({
         kind: "ok",
         text: `Imported "${saved.name}" (fingerprint ${saved.fingerprint}).`,
+      });
+      leagues.reload();
+    } catch (error) {
+      setMessage({ kind: "error", text: (error as Error).message });
+    }
+  }
+
+  async function saveCopy(league: SavedLeague) {
+    try {
+      const saved = await call("saveCopy", {
+        name: `${league.name} (${formatLeagueDate(league.date)})`,
+      });
+      setMessage({
+        kind: "ok",
+        text: `Saved a copy: "${saved.name}". Your league carries on as before.`,
       });
       leagues.reload();
     } catch (error) {
@@ -164,6 +180,14 @@ export function HomePage() {
                 <Button size="sm" variant="outline" onClick={() => void exportLeague(league)}>
                   <Download /> Export
                 </Button>
+                {openLeague?.id === league.id && (
+                  <Button size="sm" variant="outline" onClick={() => void saveCopy(league)}>
+                    <Copy /> Save a copy
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" onClick={() => setBackupsOf(league)}>
+                  <History /> Backups
+                </Button>
                 <Button
                   size="sm"
                   variant="ghost"
@@ -178,12 +202,22 @@ export function HomePage() {
         ))}
       </div>
 
+      <BackupsDialog
+        league={backupsOf}
+        onClose={() => setBackupsOf(null)}
+        onRestored={(saved) => {
+          setBackupsOf(null);
+          setMessage({ kind: "ok", text: `Restored as "${saved.name}".` });
+          leagues.reload();
+        }}
+      />
+
       <NewLeagueDialog
         open={creating}
         onOpenChange={setCreating}
-        onCreated={(saved) => {
+        onCreated={(saved, mode) => {
           setLeague(saved);
-          navigate("/league");
+          navigate(mode === "gm" ? "/career/start" : "/league");
         }}
       />
 
@@ -214,11 +248,12 @@ function NewLeagueDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (league: SavedLeague) => void;
+  onCreated: (league: SavedLeague, mode: "gm" | "simulation") => void;
 }) {
   const [name, setName] = useState("My League");
   const [seed, setSeed] = useState(() => String(randomSeed()));
   const [kind, setKind] = useState<"fictional" | "real">("fictional");
+  const [mode, setMode] = useState<"gm" | "simulation">("gm");
   const realAvailable = useSim("realLeagueAvailable", {}, String(open)).data ?? false;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -235,7 +270,7 @@ function NewLeagueDialog({
     try {
       const saved = await call("createLeague", { name, seed: seedNumber, kind });
       onOpenChange(false);
-      onCreated(saved);
+      onCreated(saved, mode);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -289,6 +324,33 @@ function NewLeagueDialog({
               </button>
             ))}
           </div>
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Mode">
+            {(
+              [
+                { value: "gm", title: "GM Mode", text: "Run one team. Your owner is watching." },
+                {
+                  value: "simulation",
+                  title: "Simulation Mode",
+                  text: "All 32 teams run themselves. Watch and tinker.",
+                },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={mode === option.value}
+                onClick={() => setMode(option.value)}
+                className={cn(
+                  "rounded-lg border p-3 text-left text-sm transition-colors",
+                  mode === option.value ? "border-primary bg-primary/10" : "hover:bg-accent",
+                )}
+              >
+                <div className="font-medium">{option.title}</div>
+                <div className="text-xs text-muted-foreground">{option.text}</div>
+              </button>
+            ))}
+          </div>
           <div className="grid gap-2">
             <Label htmlFor="league-name">League name</Label>
             <Input
@@ -325,6 +387,59 @@ function NewLeagueDialog({
             </Button>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** A league's season backups (kept automatically as each season begins): restore one as a copy. */
+function BackupsDialog({
+  league,
+  onClose,
+  onRestored,
+}: {
+  league: SavedLeague | null;
+  onClose: () => void;
+  onRestored: (saved: SavedLeague) => void;
+}) {
+  const backups = useSim("listBackups", { id: league?.id ?? "" }, `backups:${league?.id ?? ""}`);
+  const [error, setError] = useState<string | null>(null);
+  async function restore(season: number) {
+    if (!league) return;
+    try {
+      onRestored(await call("restoreBackup", { id: league.id, season }));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+  return (
+    <Dialog open={league !== null} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Backups of {league?.name}</DialogTitle>
+          <DialogDescription>
+            Kept automatically the first time each recent season is saved. Restoring makes a new
+            league in the list; this one stays as it is.
+          </DialogDescription>
+        </DialogHeader>
+        {backups.data && backups.data.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            None yet: the first is kept when the next season begins.
+          </p>
+        )}
+        <div className="flex flex-col divide-y">
+          {backups.data?.map((b) => (
+            <div key={b.season} className="flex items-center justify-between gap-3 py-2 text-sm">
+              <span>
+                {b.season} season · {formatLeagueDate(b.date)}
+              </span>
+              <Button size="sm" variant="outline" onClick={() => void restore(b.season)}>
+                Restore as a copy
+              </Button>
+            </div>
+          ))}
+        </div>
+        {error && <p className="text-sm text-destructive">{error}</p>}
       </DialogContent>
     </Dialog>
   );

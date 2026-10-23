@@ -3,6 +3,7 @@
  * cap outlook, needs, recent trades), the trade offers waiting for a person-run team, and the
  * league office's trades, which the other team's AI must now accept.
  */
+import { personTeam } from "../career/delegation";
 import { ageOn } from "@fgm/foundation";
 import type { League } from "../league/schema";
 import { teamNeeds } from "../draft/boards";
@@ -147,7 +148,11 @@ export interface TradeOfferRow {
   status: string;
 }
 
-function describe(league: League, side: { players: number[]; picks: number[] }): string[] {
+/** A trade side in words: players (position, the viewer's read) and picks. */
+export function describeSide(
+  league: League,
+  side: { players: number[]; picks: number[] },
+): string[] {
   return [
     ...side.players.map((id) => {
       const p = league.players.find((x) => x.id === id);
@@ -180,8 +185,8 @@ export function tradeOffersView(league: League, teamId: string): TradeOffersView
         date: o.date,
         expires: o.expires,
         from: o.fromTeamId,
-        get: describe(league, o.give),
-        give: describe(league, o.get),
+        get: describeSide(league, o.give),
+        give: describeSide(league, o.get),
         reason: o.reason,
         status: o.status,
       })),
@@ -202,7 +207,9 @@ export function respondToOffer(league: League, offerId: number, accept: boolean)
   const preview = previewTradeDeal(league, from, to);
   if (!preview.legal) {
     o.status = "expired";
-    throw new Error(`The trade can't go through any more: ${preview.problems.join(" ")}`);
+    throw new Error(
+      `The trade can't go through any more (${preview.problems.join("; ")}): the offer is withdrawn.`,
+    );
   }
   executeTrade(
     league,
@@ -229,7 +236,9 @@ export function proposeTrade(league: League, a: TradeSide, b: TradeSide): string
     a,
     b,
     "office",
-    `The league office proposed it for ${a.teamId} (until GM Mode); ${b.teamId}'s GM agreed.`,
+    personTeam(league) === a.teamId
+      ? `Your proposal; ${b.teamId}'s GM agreed.`
+      : `The league office proposed it for ${a.teamId}; ${b.teamId}'s GM agreed.`,
   );
   return league.transactions.at(-1)!.text;
 }

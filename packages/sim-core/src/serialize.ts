@@ -270,6 +270,13 @@ function upgrade(data: Record<string, unknown>): void {
     data["formerPlayers"] = [];
     data["formatVersion"] = 18;
   }
+  // Version 18 -> 19: GM Mode (Phase 14). Older saves open in Simulation Mode (no career);
+  // every executive is an AI one.
+  if (data["formatVersion"] === 18) {
+    data["career"] = null;
+    for (const e of (data["executives"] as Record<string, unknown>[]) ?? []) e["person"] = false;
+    data["formatVersion"] = 19;
+  }
 }
 
 /** Set on an upgraded save whose teams still need their Phase 10 staff (removed before validation). */

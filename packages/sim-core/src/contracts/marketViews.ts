@@ -6,6 +6,8 @@
  *
  * Ratings shown are the viewer's read (perception.ts).
  */
+import { personTeam } from "../career/delegation";
+import { ownerVeto } from "../career/job";
 import { ageOn, type Dollars } from "@fgm/foundation";
 import type { League, Offer, Player } from "../league/schema";
 import { readOverall, type Viewer } from "../perception";
@@ -212,6 +214,9 @@ export function makeOffer(
   const round = (talks?.rounds ?? 0) + 1;
   const answer = answerOffer(league, p, teamId, offer, round, talks?.counter ?? null);
   if (answer.decision === "accept") {
+    // GM Mode: a meddling owner may veto a deal far past his budget (Phase 14b).
+    const veto = ownerVeto(league, teamId, offer);
+    if (veto) throw new Error(veto);
     const after = capAfter(league, p, teamId, offer, kind);
     if (after.now < 0)
       throw new Error(
@@ -244,7 +249,7 @@ export function makeOffer(
   talks.status =
     answer.decision === "accept" ? "agreed" : answer.decision === "reject" ? "ended" : "open";
   if (answer.decision === "accept") {
-    const reason = `Negotiated by the league office. ${answer.reason}`;
+    const reason = `${personTeam(league) === teamId ? "Your decision" : "Negotiated by the league office"}. ${answer.reason}`;
     if (kind === "extension") {
       const add = contractFromOffer(
         league,

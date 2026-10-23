@@ -71,6 +71,18 @@ import {
   tradeOffersView,
   respondToOffer,
   setController,
+  gmCareerView,
+  startCareer,
+  answerInbox,
+  delegate,
+  tidyInbox,
+  assertYourTeam,
+  ownerWatch,
+  careerPageView,
+  dismissTip,
+  takeJob,
+  retireCareer,
+  glossaryView,
   previewTradeDeal,
   rosterManagementView,
   tradeAssetsView,
@@ -78,7 +90,7 @@ import {
   type Position,
 } from "@fgm/sim-core";
 import type { Play } from "@fgm/game-engine";
-import { db, PLAY_LOG_SEASONS_KEPT, type PlayLog } from "./db";
+import { BACKUPS_KEPT, db, PLAY_LOG_SEASONS_KEPT, type PlayLog } from "./db";
 import { decodeLeagueFile, encodeLeagueFile, leagueFileName } from "./leagueFile";
 import type { FromWorker, Method, SavedLeague, SimApi, ToWorker } from "./protocol";
 
@@ -103,6 +115,10 @@ function requireLeague(): League {
 }
 
 async function save(league: League, existing?: SavedLeague): Promise<SavedLeague> {
+  // GM Mode: inbox items you settled on a screen (a signing, a pick, cuts) close, and the owner
+  // looks at what you did.
+  tidyInbox(league);
+  ownerWatch(league);
   const text = serializeLeague(league);
   const now = Date.now();
   const saved: SavedLeague = {
@@ -122,6 +138,19 @@ async function save(league: League, existing?: SavedLeague): Promise<SavedLeague
     await db.leagues.put(saved);
     await db.leagueData.put({ id: saved.id, text });
   });
+  // A new season began: keep a backup of the league as it starts (the last few seasons).
+  if (existing && existing.season !== saved.season) {
+    await db.backups.put({
+      leagueId: saved.id,
+      season: saved.season,
+      date: saved.date,
+      savedAt: now,
+      text,
+    });
+    const all = await db.backups.where("leagueId").equals(saved.id).sortBy("season");
+    for (const old of all.slice(0, Math.max(0, all.length - BACKUPS_KEPT)))
+      await db.backups.delete([old.leagueId, old.season]);
+  }
   return saved;
 }
 
@@ -215,10 +244,11 @@ const handlers: Handlers = {
   },
 
   async deleteLeague({ id }) {
-    await db.transaction("rw", db.leagues, db.leagueData, db.playLogs, async () => {
+    await db.transaction("rw", [db.leagues, db.leagueData, db.playLogs, db.backups], async () => {
       await db.leagues.delete(id);
       await db.leagueData.delete(id);
       await db.playLogs.where("leagueId").equals(id).delete();
+      await db.backups.where("leagueId").equals(id).delete();
     });
     if (open?.saved.id === id) open = null;
   },
@@ -278,6 +308,86 @@ const handlers: Handlers = {
     return calendarView(league);
   },
 
+  gmCareerView() {
+    return gmCareerView(requireLeague());
+  },
+
+  async startCareer({ teamId, firstName, lastName }) {
+    const league = requireLeague();
+    const meeting = startCareer(league, teamId, { firstName, lastName });
+    open = { saved: await save(league, open!.saved), league };
+    return meeting;
+  },
+
+  async answerInbox({ decisionId, choice }) {
+    const league = requireLeague();
+    try {
+      return answerInbox(league, decisionId, choice);
+    } finally {
+      // Saved either way: a refused answer may still close the item (a stale trade offer).
+      open = { saved: await save(league, open!.saved), league };
+    }
+  },
+
+  careerPageView() {
+    return careerPageView(requireLeague(), viewer());
+  },
+
+  async dismissTip({ id }) {
+    const league = requireLeague();
+    dismissTip(league, id);
+    open = { saved: await save(league, open!.saved), league };
+    return gmCareerView(league);
+  },
+
+  async takeJob({ teamId }) {
+    const league = requireLeague();
+    takeJob(league, teamId);
+    open = { saved: await save(league, open!.saved), league };
+    return gmCareerView(league);
+  },
+
+  async retireCareer() {
+    const league = requireLeague();
+    retireCareer(league);
+    open = { saved: await save(league, open!.saved), league };
+    return gmCareerView(league);
+  },
+
+  glossaryView() {
+    return glossaryView(requireLeague());
+  },
+
+  async saveCopy({ name }) {
+    const league = requireLeague();
+    // A copy is its own league in the list: same file, a new name.
+    const copy = parseLeague(serializeLeague(league));
+    copy.meta.name = name.trim() || `${league.meta.name} (copy)`;
+    return save(copy);
+  },
+
+  async listBackups({ id }) {
+    const all = await db.backups.where("leagueId").equals(id).toArray();
+    return all
+      .sort((a, b) => b.season - a.season)
+      .map(({ season, date, savedAt }) => ({ season, date, savedAt }));
+  },
+
+  async restoreBackup({ id, season }) {
+    const backup = await db.backups.get([id, season]);
+    if (!backup) throw new Error("That backup isn't saved any more.");
+    const league = parseLeague(backup.text);
+    league.meta.name = `${league.meta.name} (${season} backup)`;
+    return save(league);
+  },
+
+  async delegate({ area, who }) {
+    const league = requireLeague();
+    delegate(league, area, who);
+    open = { saved: await save(league, open!.saved), league };
+    return gmCareerView(league);
+  },
+
   powerRankingsView() {
     return powerRankingsView(requireLeague());
   },
@@ -330,6 +440,7 @@ const handlers: Handlers = {
 
   async moveOnDepthChart({ teamId, slot, playerId, toIndex }) {
     const league = requireLeague();
+    assertYourTeam(league, teamId);
     moveOnDepthChart(league, teamId, slot, playerId, toIndex);
     open = { saved: await save(league, open!.saved), league };
     return depthChartView(league, teamId, viewer());
@@ -337,6 +448,7 @@ const handlers: Handlers = {
 
   async resetDepthChart({ teamId }) {
     const league = requireLeague();
+    assertYourTeam(league, teamId);
     resetDepthChart(league, teamId);
     open = { saved: await save(league, open!.saved), league };
     return depthChartView(league, teamId, viewer());
@@ -382,6 +494,7 @@ const handlers: Handlers = {
 
   async rosterMove({ teamId, playerId, kind }) {
     const league = requireLeague();
+    assertYourTeam(league, teamId);
     const message = makeRosterMove(league, teamId, playerId, kind);
     open = { saved: await save(league, open!.saved), league };
     return { message };
@@ -412,6 +525,7 @@ const handlers: Handlers = {
 
   async scoutingMove(move) {
     const league = requireLeague();
+    assertYourTeam(league, move.teamId);
     const message = makeScoutingMove(league, move);
     open = { saved: await save(league, open!.saved), league };
     return { message };
@@ -435,6 +549,7 @@ const handlers: Handlers = {
 
   async makeOffer({ playerId, teamId, offer }) {
     const league = requireLeague();
+    assertYourTeam(league, teamId);
     const result = makeOffer(league, playerId, teamId, offer);
     open = { saved: await save(league, open!.saved), league };
     return result;
@@ -457,6 +572,7 @@ const handlers: Handlers = {
 
   async setBoard({ teamId, ids }) {
     const league = requireLeague();
+    assertYourTeam(league, teamId);
     setBoard(league, teamId, ids);
     open = { saved: await save(league, open!.saved), league };
     return bigBoardView(league, teamId);
@@ -476,6 +592,12 @@ const handlers: Handlers = {
 
   async coachingMove(params) {
     const league = requireLeague();
+    assertYourTeam(
+      league,
+      params.kind === "fire"
+        ? league.coaches.find((c) => c.id === params.coachId)?.teamId
+        : params.teamId,
+    );
     // Both check everything before changing anything, so a refused move leaves the league as it was.
     const message =
       params.kind === "fire"
@@ -499,6 +621,7 @@ const handlers: Handlers = {
 
   async makeTrade({ a, b }) {
     const league = requireLeague();
+    assertYourTeam(league, a.teamId);
     // The other team's GM must agree (Phase 13).
     const message = proposeTrade(league, a, b);
     open = { saved: await save(league, open!.saved), league };
@@ -533,6 +656,7 @@ const handlers: Handlers = {
 
   async capMove({ playerId, kind }) {
     const league = requireLeague();
+    assertYourTeam(league, league.players.find((p) => p.id === playerId)?.teamId);
     const message = makeCapMove(league, playerId, kind);
     open = { saved: await save(league, open!.saved), league };
     return { message };

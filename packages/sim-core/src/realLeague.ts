@@ -370,6 +370,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
       },
     ],
     pendingDecisions: [],
+    career: null,
     rng: {},
     nextIds: {
       player: players.length,

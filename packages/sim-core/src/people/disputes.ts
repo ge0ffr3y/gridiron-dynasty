@@ -12,7 +12,9 @@
  * three to six stars hold out or hold in each summer, and a few players a year ask to be traded.
  * Every draw is a hash of the seed, the player and the date, so screens never change the future.
  */
-import { ageOn, daysBetween, type Dollars } from "@fgm/foundation";
+import { addDays, ageOn, daysBetween, type Dollars } from "@fgm/foundation";
+import { staffDecides } from "../career/delegation";
+import { ask } from "../career/inbox";
 import type { League, Player } from "../league/schema";
 import { DISPUTE_KINDS, DISPUTE_OUTCOMES } from "../league/schema";
 import { contractShare, marketValue } from "../contracts/market";
@@ -342,10 +344,36 @@ function closeGone(league: League, d: Dispute, p: Player | undefined): void {
  * The team's answer: extend him (core players, paying a little over its usual limit), trade him
  * if he asked out (or talks failed and it's willing), or wait.
  */
-function answer(league: League, d: Dispute, week: number): void {
+function answer(league: League, d: Dispute, week: number, staff = false): void {
   const D = DISPUTES;
   const p = league.players.find((x) => x.id === d.playerId)!;
   const teamId = d.teamId;
+  // A person who keeps disputes answers them himself (Phase 14): asked once; his staff answer if
+  // he lets the deadline pass.
+  if (!staff && !staffDecides(league, teamId, "disputes")) {
+    if (d.response.startsWith(YOUR_CALL)) return;
+    const what =
+      d.kind === "trade-request"
+        ? "asked to be traded"
+        : d.kind === "holdout"
+          ? "is holding out"
+          : "is holding in";
+    ask(
+      league,
+      teamId,
+      {
+        kind: "dispute",
+        prompt: `${p.firstName} ${p.lastName} (${p.position}) ${what}. ${d.reason} Extend him, trade him, or wait him out.`,
+        options: ["extend", "trade", "wait"],
+        playerId: p.id,
+        area: "disputes",
+        link: `/negotiate/${p.id}`,
+      },
+      addDays(league.date, DISPUTE_ANSWER_DAYS),
+    );
+    if (!d.response) d.response = "Waiting on the GM's answer.";
+    return;
+  }
   const core = roleOn(league, teamId, p) === "starter";
   let talks = "";
   if (core && p.contract && (p.contract.type !== "rookie" || p.experience >= 3)) {
@@ -379,6 +407,26 @@ function answer(league: League, d: Dispute, week: number): void {
   d.response = core
     ? `Waiting him out: ${talks || "no deal yet"}${willing ? " No team offered enough in a trade." : ""}`
     : `Waiting him out: not a starter they'd pay more to keep.${willing ? " No team offered enough in a trade." : ""}`;
+}
+
+/** Marks a dispute the person has answered himself (so he isn't asked again). */
+export const YOUR_CALL = "The GM's call: ";
+
+/** Days the person has to answer a dispute before his staff do. */
+const DISPUTE_ANSWER_DAYS = 7;
+
+/** The person's staff answer a dispute he let ride (the AI's own answer). */
+export function staffAnswerDispute(league: League, playerId: number): string | null {
+  const d = league.disputes.find((x) => x.playerId === playerId && x.end === null);
+  if (!d || !stillHis(league, d)) return null;
+  answer(league, d, league.calendar.stage === "preseason" ? league.calendar.week : 0, true);
+  return d.end !== null ? `${d.outcome}: ${d.response}` : d.response;
+}
+
+/** The person waits him out (or answers by acting on the negotiation or trade screens). */
+export function waitOutDispute(league: League, playerId: number): void {
+  const d = league.disputes.find((x) => x.playerId === playerId && x.end === null);
+  if (d) d.response = `${YOUR_CALL}waiting him out.`;
 }
 
 /** Trades him to the team that wants him most, through the trade AI. The reason, or null. */

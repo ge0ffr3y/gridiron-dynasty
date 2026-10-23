@@ -14,7 +14,7 @@ export interface DecisionAnswer {
 type AiPolicy = (league: League, teamId: string, request: DecisionRequest) => DecisionAnswer;
 
 /** How the AI answers each kind of decision. Real decisions arrive from Phase 2 on. */
-const AI_POLICIES: Record<DecisionRequest["kind"], AiPolicy> = {
+const AI_POLICIES: Partial<Record<DecisionRequest["kind"], AiPolicy>> = {
   placeholder: (_league, _teamId, request) => ({
     choice: request.options[0] as string,
     reason: "Placeholder AI: picks the first option.",
@@ -35,19 +35,38 @@ const AI_POLICIES: Record<DecisionRequest["kind"], AiPolicy> = {
 export type AskResult =
   { status: "answered"; answer: DecisionAnswer } | { status: "pending"; decision: PendingDecision };
 
-export function askTeam(league: League, teamId: string, request: DecisionRequest): AskResult {
+export function askTeam(
+  league: League,
+  teamId: string,
+  request: DecisionRequest,
+  /** When the person's staff decide if he hasn't (Phase 14); null for no deadline. */
+  deadline: string | null = null,
+): AskResult {
   const team = league.teams.find((t) => t.id === teamId);
   if (!team) throw new Error(`no team ${teamId}`);
-  if (team.controller === "ai")
-    return { status: "answered", answer: AI_POLICIES[request.kind](league, teamId, request) };
+  if (team.controller === "ai") {
+    const policy = AI_POLICIES[request.kind];
+    if (!policy) throw new Error(`no AI policy for "${request.kind}" decisions`);
+    return { status: "answered", answer: policy(league, teamId, request) };
+  }
   const decision: PendingDecision = {
     id: league.nextIds.decision++,
     teamId,
     createdOn: league.date,
     request,
+    deadline,
   };
   league.pendingDecisions.push(decision);
   return { status: "pending", decision };
+}
+
+/** The AI's answer to a decision (what a person's staff would do), if it has a simple one. */
+export function aiAnswer(
+  league: League,
+  teamId: string,
+  request: DecisionRequest,
+): DecisionAnswer | null {
+  return AI_POLICIES[request.kind]?.(league, teamId, request) ?? null;
 }
 
 /** The person answers a pending decision; it leaves the queue. */

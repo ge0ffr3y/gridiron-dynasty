@@ -4,6 +4,7 @@
  * (perception.ts); retro grades judge what players did on the field (seasons
  * started) against what real picks at the same slot did.
  */
+import { personTeam } from "../career/delegation";
 import { POSITIONS, type Position } from "@fgm/foundation";
 import draftData from "../../../../calibration/draft.json";
 import type { FormerPlayer, League, Player, Prospect } from "../league/schema";
@@ -110,6 +111,9 @@ export interface DraftRoomView {
   log: { kind: "pick" | "trade"; text: string; reason: string }[];
   picksMade: number;
   picksTotal: number;
+  /** GM Mode: your team (null in Simulation Mode), and whether you're on the clock. */
+  you: string | null;
+  yours: boolean;
 }
 
 export function draftRoomView(league: League): DraftRoomView {
@@ -159,6 +163,8 @@ export function draftRoomView(league: League): DraftRoomView {
     log,
     picksMade: made,
     picksTotal: order.length,
+    you: personTeam(league),
+    yours: pick !== null && pick.ownerTeamId === personTeam(league),
   };
 }
 

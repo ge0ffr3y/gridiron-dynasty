@@ -10,6 +10,7 @@
  * Prices follow real draft-day trades: the team moving up pays about 1.42
  * times the picks' career value (calibration/draft.json `trades`).
  */
+import { personTeam, staffDecides } from "../career/delegation";
 import { rookieContract } from "../contracts/generate";
 import { minimumSalary } from "../contracts/cap";
 import { recordTransaction } from "../contracts/operations";
@@ -243,7 +244,13 @@ export function acceptOffer(league: League, offer: TradeOffer, reason = offer.re
  */
 function tradeUp(league: League): string | null {
   if (tradesSoFar(league) >= DRAFT_DAY.maxTradesPerDraft) return null;
-  const offer = tradeOffers(league).find((o) => o.aiAccepts);
+  // A person who keeps trades makes his own draft-day deals (Phase 14): his staff never trade his
+  // pick, and his team never moves up on its own.
+  const pick = onTheClock(league);
+  if (pick && !staffDecides(league, pick.ownerTeamId, "trades")) return null;
+  const offer = tradeOffers(league).find(
+    (o) => o.aiAccepts && staffDecides(league, o.teamId, "trades"),
+  );
   if (!offer) return null;
   try {
     acceptOffer(league, offer);
@@ -366,6 +373,14 @@ export type DraftAction =
 export function draftAction(league: League, action: DraftAction): string {
   const pick = onTheClock(league);
   if (!pick) throw new Error("No pick is on the clock: the draft isn't under way.");
+  // GM Mode: you pick only for your team, and the sim buttons stop at your picks.
+  const you = personTeam(league);
+  const yours = (p: DraftPick) =>
+    you !== null && p.ownerTeamId === you && !staffDecides(league, you, "draft");
+  if (you && action.kind !== "sim" && pick.ownerTeamId !== you)
+    throw new Error(`It's ${pick.ownerTeamId}'s pick, not yours.`);
+  if (action.kind === "sim" && yours(pick))
+    throw new Error("You're on the clock: make your pick (or hand the draft to your scouts).");
   if (action.kind === "pick") {
     const p = makePick(league, action.prospectId);
     return `${p.drafted!.teamId} took ${name(p)} (${p.position}) at #${p.drafted!.pick}.`;
@@ -386,13 +401,16 @@ export function draftAction(league: League, action: DraftAction): string {
       break;
     case "team":
       // Up to (not including) the team's next pick, so the league office can make it.
-      n = simPicks(league, (p) => p.ownerTeamId === action.teamId && p.id !== pick.id);
+      n = simPicks(
+        league,
+        (p) => (p.ownerTeamId === action.teamId && p.id !== pick.id) || yours(p),
+      );
       break;
     case "round":
-      n = simPicks(league, (p) => p.round !== round);
+      n = simPicks(league, (p) => p.round !== round || yours(p));
       break;
     case "all":
-      n = simPicks(league);
+      n = simPicks(league, yours);
       break;
   }
   return `${n} pick${n === 1 ? "" : "s"} made.`;

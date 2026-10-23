@@ -47,7 +47,7 @@ import {
   preseasonCampInjuries,
 } from "./injuries";
 import { conditionsFor, drawWeather } from "./weather";
-import { closeLeagueYear, fillRoster, openLeagueYear } from "../contracts/upkeep";
+import { closeLeagueYear, fillRoster, getUnderCap, openLeagueYear } from "../contracts/upkeep";
 import {
   campDevelopment,
   offseasonDevelopment,
@@ -56,7 +56,18 @@ import {
   weeklyDevelopment,
 } from "../lifecycle/development";
 import { batch } from "../contracts/operations";
-import { finishDraft, startDraft } from "../draft/day";
+import { finishDraft, simPicks, startDraft } from "../draft/day";
+import { careerSeasonEnd, inSeasonReview, ownerWatch } from "../career/job";
+import { personTeam, staffDecides } from "../career/delegation";
+import {
+  askCutdown,
+  askDraftPick,
+  askExtensions,
+  askReSigns,
+  giveTimeToNew,
+  staffAtDeadlines,
+  tidyInbox,
+} from "../career/staff";
 import { awardCompensatoryPicks } from "../draft/compensatory";
 import {
   closeFreeAgency,
@@ -322,17 +333,23 @@ function advanceOnce(league: League, hooks: SimHooks): string {
   // A save from before Phase 11 gets its draft class on its first step.
   if (!hooks.historyOnly) ensureClassAndScouts(league);
   switch (cal.stage) {
-    case "offseason":
-      // Scouting through the combine and the first pro days.
-      if (!hooks.historyOnly) offseasonScouting(league, league.date, dates.leagueYear);
-      // Players develop first, so contracts and free agency see who they are now.
-      league.date = addDays(dates.negotiatingPeriod, -1);
-      league.development = [];
-      recordDevelopment(league, "league-year", offseasonDevelopment(league));
-      // Each GM reads where his team stands before deciding whom to keep (Phase 13).
-      if (!hooks.historyOnly) updatePlans(league);
-      // The re-signing window: teams keep, tag or tender their expiring players (Phase 12).
-      if (!hooks.historyOnly) batch(league, () => reSigningWindow(league));
+    case "offseason": {
+      const reSignDay = addDays(dates.negotiatingPeriod, -1);
+      if (league.date < reSignDay) {
+        // Scouting through the combine and the first pro days.
+        if (!hooks.historyOnly) offseasonScouting(league, league.date, dates.leagueYear);
+        // Players develop first, so contracts and free agency see who they are now.
+        league.date = reSignDay;
+        league.development = [];
+        recordDevelopment(league, "league-year", offseasonDevelopment(league));
+        // Each GM reads where his team stands before deciding whom to keep (Phase 13).
+        if (!hooks.historyOnly) updatePlans(league);
+        // The re-signing window: teams keep, tag or tender their expiring players (Phase 12).
+        if (!hooks.historyOnly) batch(league, () => reSigningWindow(league));
+        // A person who keeps re-signing decides now: the League Year waits a step (Phase 14).
+        if (!hooks.historyOnly && askReSigns(league) > 0)
+          return "The re-signing window: your expiring players need decisions";
+      }
       // The new League Year: last season's deals run out and free agency opens.
       league.date = dates.leagueYear;
       // Compensatory picks for this year's draft, from last year's free agency (Phase 11b).
@@ -346,6 +363,7 @@ function advanceOnce(league: League, hooks: SimHooks): string {
         batch(league, () => leagueYearDisputes(league));
       }
       return "The new League Year opens: free agency day 1";
+    }
     case "free-agency": {
       // Free agency: day by day for the first week, then a week at a time, until the draft.
       const lastDay = addDays(dates.draft, -1);
@@ -374,6 +392,17 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       return "Draft day: the first pick is on the clock";
     }
     case "draft": {
+      // A person who keeps the draft makes his own picks: the draft stops when he's on the clock
+      // (his scouts pick if he sims on; see career/staff.ts).
+      const you = personTeam(league);
+      if (you && !staffDecides(league, you, "draft")) {
+        batch(league, () => {
+          simPicks(league, (p) => p.ownerTeamId === you);
+          // Rookie deals can push a tight team over the cap: it fixes that before the pause.
+          for (const team of league.teams) getUnderCap(league, team.id);
+        });
+        if (askDraftPick(league)) return "You're on the clock";
+      }
       // The picks still to make, the undrafted rush, and the class closes.
       const { drafted, undrafted } = batch(league, () => finishDraft(league));
       cal.stage = "after-draft";
@@ -412,6 +441,7 @@ function advanceOnce(league: League, hooks: SimHooks): string {
           if (!hooks.historyOnly) batch(league, () => preseasonDisputes(league, w));
         }
         cal.stage = "cutdown";
+        if (!hooks.historyOnly) askCutdown(league);
         return "Training camp (no preseason games)";
       }
       const week = cal.week;
@@ -424,6 +454,7 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       if (week >= weeks) {
         batch(league, () => gradePreseason(league));
         cal.stage = "cutdown";
+        if (!hooks.historyOnly) askCutdown(league);
       } else cal.week = week + 1;
       return `Preseason week ${week} played`;
     }
@@ -462,6 +493,8 @@ function advanceOnce(league: League, hooks: SimHooks): string {
         if (week === league.rules.schedule.tradeDeadlineAfterWeek - 1) updatePlans(league);
         // Extensions for players in their deal's last year (Phase 12).
         batch(league, () => weeklyExtensions(league, week));
+        // A person who keeps extensions is asked about his starters in their last year.
+        askExtensions(league);
         // The in-season trade market, busiest the week of the deadline (Phase 13).
         const deadlineWeek = league.rules.schedule.tradeDeadlineAfterWeek;
         if (week <= deadlineWeek)
@@ -478,6 +511,8 @@ function advanceOnce(league: League, hooks: SimHooks): string {
         batch(league, () => weeklyDisputes(league, week));
         // Rarely, a head coach is fired during the season (Phase 10b).
         inSeasonFirings(league, week);
+        // Rarer still, a GM in GM Mode far below expectations (Phase 14b).
+        inSeasonReview(league, week);
       }
       if (week >= league.rules.schedule.regularSeasonWeeks) {
         cal.stage = "wildcard";
@@ -532,6 +567,8 @@ function advanceOnce(league: League, hooks: SimHooks): string {
         );
       }
       seasonEnds(league);
+      // The owner's reactions to the person's moves fade with the new year (Phase 14b).
+      careerSeasonEnd(league);
       startNextSeason(league, { agePlayers: true });
       retirePlayers(league, ended);
       // Players long gone become short history cards (Phase 13), so the list stays lean.
@@ -546,7 +583,22 @@ function advanceOnce(league: League, hooks: SimHooks): string {
  * numbers are kept unique on every team (new arrivals take a free number).
  */
 export function advance(league: League, hooks: SimHooks = {}): string {
+  // GM Mode (Phase 14): what the person settled closes; what he let reach its deadline, his staff
+  // decide, before the step moves on.
+  const career = !hooks.historyOnly && personTeam(league) !== null;
+  if (career) {
+    tidyInbox(league);
+    batch(league, () => staffAtDeadlines(league));
+  }
+  const openBefore = new Set(league.pendingDecisions.map((d) => d.id));
   const label = advanceOnce(league, hooks);
+  if (career) {
+    giveTimeToNew(league, openBefore);
+    batch(league, () => staffAtDeadlines(league, true));
+    tidyInbox(league);
+    // The owner looks at what you did (Phase 14b).
+    ownerWatch(league);
+  }
   if (!hooks.historyOnly) {
     assignJerseys(league);
     // Trade offers to person-run teams that weren't answered in time lapse (Phase 13).

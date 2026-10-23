@@ -72,6 +72,8 @@ import { SCOUTING } from "../scouting/config";
 import { assignJerseys } from "../roster/jerseys";
 import { gradePreseason, playPreseasonWeek, schedulePreseason } from "../roster/preseason";
 import { updateMoods } from "../people/morale";
+import { updatePlans } from "../front-office/evaluate";
+import { expireOffers, TRADE_MARKET, tradeMarket } from "../front-office/tradeMarket";
 import {
   campDisputes,
   endCampDisputes,
@@ -325,6 +327,8 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       league.date = addDays(dates.negotiatingPeriod, -1);
       league.development = [];
       recordDevelopment(league, "league-year", offseasonDevelopment(league));
+      // Each GM reads where his team stands before deciding whom to keep (Phase 13).
+      if (!hooks.historyOnly) updatePlans(league);
       // The re-signing window: teams keep, tag or tender their expiring players (Phase 12).
       if (!hooks.historyOnly) batch(league, () => reSigningWindow(league));
       // The new League Year: last season's deals run out and free agency opens.
@@ -349,6 +353,8 @@ function advanceOnce(league: League, hooks: SimHooks): string {
         const next = addDays(league.date, days) < lastDay ? addDays(league.date, days) : lastDay;
         league.date = next;
         const signed = batch(league, () => freeAgencyRound(league, days));
+        // The trade market from the League Year to the draft (Phase 13).
+        if (!hooks.historyOnly) batch(league, () => tradeMarket(league, "spring", days));
         return days === 1
           ? `Free agency day ${fa.day}: ${signed} signing${signed === 1 ? "" : "s"}`
           : `A week of free agency: ${signed} signing${signed === 1 ? "" : "s"}`;
@@ -376,9 +382,16 @@ function advanceOnce(league: League, hooks: SimHooks): string {
     case "after-draft":
       // Late free agency through the summer, then camp.
       batch(league, () => lateFreeAgency(league, dates.leagueYear, dates.trainingCamp));
+      // The quiet summer trade market (Phase 13).
+      if (!hooks.historyOnly)
+        batch(league, () =>
+          tradeMarket(league, "summer", daysBetween(dates.draft, dates.trainingCamp)),
+        );
       league.date = dates.trainingCamp;
       batch(league, () => trainingCampOpens(league));
       if (!hooks.historyOnly) {
+        // The roster after free agency and the draft: the GM reads it again (Phase 13).
+        updatePlans(league);
         // Camp: unhappy, underpaid stars may hold out, hold in or ask out (Phase 12b).
         updateMoods(league, MOOD_SETTLE);
         batch(league, () => campDisputes(league));
@@ -404,6 +417,8 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       batch(league, () => playPreseasonWeek(league, week, hooks));
       preseasonCampInjuries(league, week, weeks);
       if (!hooks.historyOnly) batch(league, () => preseasonDisputes(league, week));
+      // Camp trades: depth for late picks, needs filled (Phase 13).
+      if (!hooks.historyOnly) batch(league, () => tradeMarket(league, "camp", 7));
       if (week >= weeks) {
         batch(league, () => gradePreseason(league));
         cal.stage = "cutdown";
@@ -415,6 +430,9 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       recordDevelopment(league, "camp", campDevelopment(league));
       // Holdouts and hold-ins still going end: nobody gives up his game checks (Phase 12b).
       if (!hooks.historyOnly) batch(league, () => endCampDisputes(league));
+      // Cutdown week: teams move players they can't keep (Phase 13).
+      if (!hooks.historyOnly)
+        batch(league, () => tradeMarket(league, "camp", 7, TRADE_MARKET.cutdownBoost));
       cutdownDay(league);
       // Week 1's roster moves (injured reserve, elevations) are made now too.
       weeklyRosterUpkeep(league);
@@ -438,8 +456,21 @@ function advanceOnce(league: League, hooks: SimHooks): string {
         );
         freeAgentsHeal(league);
         scoutingWeeks(league, 1);
+        // The week before the trade deadline, every GM decides whether to buy or sell (Phase 13).
+        if (week === league.rules.schedule.tradeDeadlineAfterWeek - 1) updatePlans(league);
         // Extensions for players in their deal's last year (Phase 12).
         batch(league, () => weeklyExtensions(league, week));
+        // The in-season trade market, busiest the week of the deadline (Phase 13).
+        const deadlineWeek = league.rules.schedule.tradeDeadlineAfterWeek;
+        if (week <= deadlineWeek)
+          batch(league, () =>
+            tradeMarket(
+              league,
+              "season",
+              7,
+              week === deadlineWeek ? TRADE_MARKET.deadlineBoost : 1,
+            ),
+          );
         // Moods move with the week, and very unhappy players may ask out (Phase 12b).
         updateMoods(league);
         batch(league, () => weeklyDisputes(league, week));
@@ -503,7 +534,11 @@ function advanceOnce(league: League, hooks: SimHooks): string {
  */
 export function advance(league: League, hooks: SimHooks = {}): string {
   const label = advanceOnce(league, hooks);
-  if (!hooks.historyOnly) assignJerseys(league);
+  if (!hooks.historyOnly) {
+    assignJerseys(league);
+    // Trade offers to person-run teams that weren't answered in time lapse (Phase 13).
+    expireOffers(league);
+  }
   return label;
 }
 

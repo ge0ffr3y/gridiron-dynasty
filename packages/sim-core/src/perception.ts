@@ -325,23 +325,57 @@ export function perceiveChange(
   };
 }
 
-// A viewer's read of players' overalls, kept while nothing changes (same date, no new
-// transactions): free agency and contract talks ask for the same reads many times.
+// A viewer's read of players' overalls, kept while nothing that changes it moves: the date (games,
+// study, scouts) and the development rounds (ratings change only in them), with the player's team
+// in each entry (his own team reads him better). Free agency, contract talks and the trade market
+// ask for the same reads many times.
 const OVERALLS = new WeakMap<League, { key: string; reads: Map<string, number> }>();
+
+/** When cached reads go stale: a new date or a new development round. */
+export function readsKey(league: League): string {
+  return `${league.date}:${league.development.length}`;
+}
 
 /** The viewer's read of a player's overall at his position (cached; see perceivePlayer). */
 export function readOverall(league: League, player: Player, viewer: Viewer): number {
-  const key = `${league.date}:${league.transactions.length}`;
+  const key = readsKey(league);
   let cache = OVERALLS.get(league);
   if (!cache || cache.key !== key) {
     cache = { key, reads: new Map() };
     OVERALLS.set(league, cache);
   }
-  const id = `${viewer.kind === "team" ? viewer.teamId : "office"}:${player.id}`;
+  const id = `${viewer.kind === "team" ? viewer.teamId : "office"}:${player.id}:${player.teamId}`;
   let overall = cache.reads.get(id);
   if (overall === undefined) {
     overall = perceivePlayer(league, player, viewer).overall;
     cache.reads.set(id, overall);
   }
   return overall;
+}
+
+const FULL_READS = new WeakMap<
+  League,
+  { key: string; reads: Map<string, { overall: number; potential: number }> }
+>();
+
+/** The viewer's read of a player's overall and potential (cached like `readOverall`). */
+export function readPlayer(
+  league: League,
+  player: Player,
+  viewer: Viewer,
+): { overall: number; potential: number } {
+  const key = readsKey(league);
+  let cache = FULL_READS.get(league);
+  if (!cache || cache.key !== key) {
+    cache = { key, reads: new Map() };
+    FULL_READS.set(league, cache);
+  }
+  const id = `${viewer.kind === "team" ? viewer.teamId : "office"}:${player.id}:${player.teamId}`;
+  let read = cache.reads.get(id);
+  if (!read) {
+    const seen = perceivePlayer(league, player, viewer);
+    read = { overall: seen.overall, potential: seen.potential.estimate };
+    cache.reads.set(id, read);
+  }
+  return read;
 }

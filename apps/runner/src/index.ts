@@ -13,6 +13,7 @@
  *   npm run sim -- --lifecycle 30 [--seed 42] [--league file] [--out file]   long run: age mix, starter quality, stars, careers
  *   npm run sim -- --draft 20 [--seed 42] [--league file]   how drafts turn out by round vs. real hit rates
  *   npm run sim -- --market 10 [--seed 42] [--league file]   free agency and contracts vs. the real market
+ *   npm run sim -- --trades 10 [--seed 42] [--league file]   the trade market vs. real trades (counts, timing, prices)
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import REAL_DRAFT from "../../../calibration/draft.json";
@@ -37,6 +38,10 @@ import {
   REAL_MOVEMENT,
   disputeSeason,
   REAL_DISPUTES,
+  tradeSeason,
+  REAL_TRADES,
+  archetypeOf,
+  ARCHETYPE_LABELS,
   capSheet,
   salaryCap,
   seasonsStarted,
@@ -117,6 +122,12 @@ if (coachingArg !== undefined) {
 const injuriesArg = option(args, "--injuries");
 if (injuriesArg !== undefined) {
   runInjuries(readSeed(args), Number(injuriesArg), option(args, "--league"));
+  process.exit(0);
+}
+
+const tradesArg = option(args, "--trades");
+if (tradesArg !== undefined) {
+  runTradesReport(readSeed(args), Number(tradesArg), option(args, "--league"));
   process.exit(0);
 }
 
@@ -788,4 +799,94 @@ function runCarousel(seed: number, count: number, file?: string): void {
   console.log(
     `\nAverage head-coach changes between seasons ${(totalChanges / Math.max(1, count - 1)).toFixed(2)} (real ${real.betweenMean}); during seasons ${(totalIn / Math.max(1, count - 1)).toFixed(2)} (real ${real.duringMean}).`,
   );
+}
+
+/**
+ * The trade market (Phase 13): simulates seasons and prints each year's trades next to the real
+ * ones (calibration/frontoffice.json): how many and when, of what kind, who moves, which picks
+ * go in deals for players, and how lopsided they are by a neutral judge.
+ */
+function runTradesReport(seed: number, count: number, file?: string): void {
+  if (!Number.isInteger(count) || count < 1)
+    throw new Error("--trades must be a whole number of seasons");
+  const started = process.hrtime.bigint();
+  const league = file
+    ? fromFile(parseLeague(readFileSync(fromCaller(file), "utf8")), seed)
+    : createLeague({ seed, name: `League ${seed}` });
+  const R = REAL_TRADES;
+  console.log(
+    `\nThe trade market: ${count} years from seed ${seed}${file ? " (real league)" : ""}\n`,
+  );
+  console.log(
+    "year  trades  spring draft summer camp season   picks-only plr-picks plr-plr mixed   players (age)  plr-trades 1st/2nd/late   lopsided p25/50/75",
+  );
+  const sum = {
+    trades: 0,
+    spring: 0,
+    draft: 0,
+    summer: 0,
+    camp: 0,
+    season: 0,
+    playerTrades: 0,
+    first: 0,
+    second: 0,
+    late: 0,
+    players: 0,
+    n: 0,
+  };
+  const lop: number[] = [];
+  const archetypeTrades = new Map<string, number>();
+  for (let i = 0; i < count; i++) {
+    advanceUntil(league, (l) => l.calendar.stage === "complete");
+    const year = league.season;
+    const t = tradeSeason(league, year);
+    for (const h of league.tradeHistory.filter((x) => x.date.startsWith(`${year}-`)))
+      for (const teamId of h.teams) {
+        const gm = league.executives.find(
+          (e) => e.role === "GM" && e.teamId === teamId && e.retiredAfter === null,
+        );
+        const a = gm?.gm ? archetypeOf(gm.gm) : "none";
+        archetypeTrades.set(a, (archetypeTrades.get(a) ?? 0) + 1);
+      }
+    advance(league);
+    const w = t.byWindow;
+    console.log(
+      `${year}  ${String(t.trades).padStart(6)}  ${String(w["leagueYearToDraft"]).padStart(6)} ${String(w["draft"]).padStart(5)} ${String(w["summer"]).padStart(6)} ${String(w["camp"]).padStart(4)} ${String(w["season"]).padStart(6)}   ${String(t.byType.picksOnly).padStart(10)} ${String(t.byType.playersForPicks).padStart(9)} ${String(t.byType.playersForPlayers).padStart(7)} ${String(t.byType.mixed).padStart(5)}   ${String(t.players).padStart(7)} (${t.medianAge})  ${String(t.playerTrades).padStart(10)} ${t.withFirst}/${t.withSecond}/${t.onlyLate}   ${t.lopsided.join("/")}`,
+    );
+    sum.trades += t.trades;
+    sum.spring += w["leagueYearToDraft"]!;
+    sum.draft += w["draft"]!;
+    sum.summer += w["summer"]!;
+    sum.camp += w["camp"]!;
+    sum.season += w["season"]!;
+    sum.playerTrades += t.playerTrades;
+    sum.first += t.withFirst;
+    sum.second += t.withSecond;
+    sum.late += t.onlyLate;
+    sum.players += t.players;
+    sum.n += 1;
+    lop.push(t.lopsided[1]);
+  }
+  const per = (x: number) => (x / Math.max(1, sum.n)).toFixed(1);
+  const pct = (x: number) => `${Math.round((100 * x) / Math.max(1, sum.playerTrades))}%`;
+  console.log(
+    `\nA year on average: ${per(sum.trades)} trades (real ${R.perYear}); League Year to draft ${per(sum.spring)} (real ${R.byWindow.leagueYearToDraft}), draft ${per(sum.draft)} (${R.byWindow.draft}), summer ${per(sum.summer)} (${R.byWindow.summer}), camp ${per(sum.camp)} (${R.byWindow.camp}), season ${per(sum.season)} (${R.byWindow.season}); ${per(sum.players)} players moved (real ${R.playersPerYear}).`,
+  );
+  console.log(
+    `Deals for players outside the draft: ${per(sum.playerTrades)} a year (real about 47); with a 1st ${pct(sum.first)} (real 5%), a 2nd ${pct(sum.second)} (real 8%), only rounds 5-7 ${pct(sum.late)} (real 64%).`,
+  );
+  console.log(
+    `Lopsided (neutral judge, winner's ratio), median by year: ${lop.join(", ")}; real draft-day pick-for-pick prices: middle half ${R.pickOnlyPrice.p25}-${R.pickOnlyPrice.p75}, median ${R.pickOnlyPrice.median}.`,
+  );
+  console.log(
+    `Trades by GM type (team-sides, all years): ${[...archetypeTrades]
+      .sort()
+      .map(
+        ([a, n]) =>
+          `${a in ARCHETYPE_LABELS ? ARCHETYPE_LABELS[a as keyof typeof ARCHETYPE_LABELS] : a} ${n}`,
+      )
+      .join(", ")}.`,
+  );
+  const seconds = Number(process.hrtime.bigint() - started) / 1e9;
+  console.log(`${count} years in ${seconds.toFixed(0)} s.`);
 }

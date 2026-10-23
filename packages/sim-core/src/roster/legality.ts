@@ -19,11 +19,17 @@ import { teamsOverCap } from "../contracts/team";
 import type { League } from "../league/schema";
 import { inSeasonRosters, isPracticeSquadVeteran, onTeam, rosterCount, rosterLimit } from "./lists";
 
-export function rosterProblems(league: League): string[] {
+export function rosterProblems(
+  league: League,
+  /** Only these teams (a trade preview checks just its two). */
+  only?: string[],
+): string[] {
   const problems: string[] = [];
   const ps = league.rules.roster.practiceSquad;
   const limit = rosterLimit(league);
+  const checked = (teamId: string) => !only || only.includes(teamId);
   for (const team of league.teams) {
+    if (!checked(team.id)) continue;
     const count = rosterCount(league, team.id);
     if (count > limit) problems.push(`${team.id} has ${count} players (limit ${limit})`);
     const squad = onTeam(league, team.id, "practice-squad");
@@ -39,7 +45,7 @@ export function rosterProblems(league: League): string[] {
       );
   }
   for (const p of league.players) {
-    if (p.teamId === null) continue;
+    if (p.teamId === null || !checked(p.teamId)) continue;
     const who = `${p.firstName} ${p.lastName} (${p.id}, ${p.teamId})`;
     if (p.retiredAfter !== null) problems.push(`${who} is retired but on a team`);
     if (!p.contract) {
@@ -60,7 +66,7 @@ export function rosterProblems(league: League): string[] {
   // Teams must be under the new year's cap when its League Year opens in March (CBA Art. 13):
   // between the championship and then, they have time to get there.
   if (league.calendar.stage !== "offseason")
-    for (const { teamId, room } of teamsOverCap(league))
+    for (const { teamId, room } of teamsOverCap(league, league.season, only))
       problems.push(`${teamId} is over the cap by ${formatDollars(-room)}`);
   return problems;
 }

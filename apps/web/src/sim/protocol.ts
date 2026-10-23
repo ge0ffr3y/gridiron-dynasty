@@ -26,6 +26,9 @@ import type {
   RosterManagementView,
   RosterMoveKind,
   TradeAssets,
+  TradeAnswer,
+  FrontOfficeView,
+  TradeOffersView,
   TradePreview,
   TradeSide,
   TransactionsView,
@@ -143,8 +146,18 @@ export interface SimApi {
   tradeAssets(params: { teamId: string }): TradeAssets;
   /** What a trade would do to both teams (changes nothing). */
   previewTrade(params: { a: TradeSide; b: TradeSide }): TradePreview;
-  /** Makes a legal trade (saved). Returns what happened. */
+  /** The other team's answer to a proposal (`a` proposes, `b` answers): reasons and a counter. */
+  tradeAnswer(params: { a: TradeSide; b: TradeSide }): TradeAnswer;
+  /** Makes a trade the other team's AI accepts (saved). Returns what happened. */
   makeTrade(params: { a: TradeSide; b: TradeSide }): { message: string };
+  /** A team's front office: GM, owner, where it stands, needs, recent trades (Phase 13). */
+  frontOfficeView(params: { teamId: string }): FrontOfficeView;
+  /** Trade offers waiting for a person-run team. */
+  tradeOffersView(params: { teamId: string }): TradeOffersView;
+  /** Accept or decline an offer (saved). */
+  respondToOffer(params: { offerId: number; accept: boolean }): { message: string };
+  /** Run a team's trade decisions yourself (offers come to you) or hand them to its AI (saved). */
+  setController(params: { teamId: string; human: boolean }): { message: string };
   /** Whose eyes the screens see through, and the teams to choose from. */
   viewingOptions(params: Record<string, never>): ViewingOptions;
   /** Switches "Viewing as" (null: the league office's consensus). Saved. */

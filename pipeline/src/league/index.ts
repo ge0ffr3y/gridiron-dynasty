@@ -10,6 +10,7 @@
  * names; the report does, and never leaves this machine.
  */
 import { realCoachCareer, realCoachStyle } from "./coachStyles";
+import { realFrontOffices, realGmNames } from "./frontOffices";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import draftData from "../../../calibration/draft.json";
 import { join } from "node:path";
@@ -216,10 +217,11 @@ export async function buildLeague(): Promise<{
 
   // Fictional names. Real names never leave this function except in the private report.
   const realCoaches = await privateCsv(COACHES_FILE);
-  const renamer = new Renamer(
-    players,
-    realCoaches.map((c) => c.name ?? ""),
-  );
+  const renamer = new Renamer(players, [
+    ...realCoaches.map((c) => c.name ?? ""),
+    // The real GMs too (Phase 13): generated executives must not share their names.
+    ...realGmNames(),
+  ]);
   const playerInputs: RealPlayerInput[] = people.map((p) => ({
     key: p.gsis,
     ...renamer.name(p.gsis),
@@ -265,6 +267,14 @@ export async function buildLeague(): Promise<{
       : "Draft class: no class-2026.json (run npm run pipeline -- draft); the class is generated.",
   );
 
+  // Front offices (Phase 13): measured habits of the 2025 GMs and owners (private).
+  const fronts = realFrontOffices();
+  report.push(
+    fronts
+      ? `Front offices: ${Object.keys(fronts).length} GMs with knobs measured from their teams' trades, draft-day moves and dead money; owners' patience from head-coach turnover since 2000.`
+      : "Front offices: no front-office-habits.json (run npm run pipeline -- frontoffice); GMs and owners are generated.",
+  );
+
   const league = assembleRealLeague({
     name: "Real league",
     seed: REAL_LEAGUE_SEED,
@@ -278,6 +288,7 @@ export async function buildLeague(): Promise<{
     names: new NamePicker(new Rng(streamSeed(REAL_LEAGUE_SEED, "generated-names"))),
     prospects: prospectInputs,
     draftOrder: draftOrder2026,
+    ...(fronts ? { frontOffices: fronts } : {}),
     ...(snapshot
       ? {
           teamCaps: Object.fromEntries(
@@ -304,12 +315,13 @@ export async function buildLeague(): Promise<{
     ...league.coaches,
     ...league.prospects,
     ...league.agents,
+    ...league.executives,
   ]) {
     if (!renamer.isReal(person.firstName, person.lastName)) continue;
     Object.assign(
       person,
       renamer.name(
-        `fix:${"role" in person ? "coach" : "draftYear" in person ? "prospect" : "agency" in person ? "agent" : "player"}:${person.id}`,
+        `fix:${"gm" in person ? "executive" : "role" in person ? "coach" : "draftYear" in person ? "prospect" : "agency" in person ? "agent" : "player"}:${person.id}`,
       ),
     );
     fixed += 1;
@@ -319,6 +331,7 @@ export async function buildLeague(): Promise<{
     ...league.coaches,
     ...league.prospects,
     ...league.agents,
+    ...league.executives,
   ].filter((p) => renamer.isReal(p.firstName, p.lastName));
   if (stillReal.length > 0) throw new Error(`${stillReal.length} real names survived renaming`);
   report.push(

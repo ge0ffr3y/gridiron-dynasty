@@ -10,12 +10,13 @@
 import { ageOn, POSITIONS, type Position } from "@fgm/foundation";
 import { ROSTER_MIX, STARTERS } from "../generate/config";
 import type { League, Prospect } from "../league/schema";
-import { perceiveProspect, readOverall } from "../perception";
+import { perceiveProspect, readOverall, readsKey } from "../perception";
 import { onTeam } from "../roster/lists";
 import { draftClass } from "../scouting/classes";
 import { uniformFrom } from "../scouting/noise";
 import { draftValue } from "../scouting/value";
 import { DRAFT_DAY } from "./config";
+import { gmDraftLeaning } from "../front-office/strategy";
 
 export interface Philosophy {
   /** Board points a full need adds. */
@@ -26,11 +27,10 @@ export interface Philosophy {
   label: string;
 }
 
-/** A team's draft philosophy, fixed per team and league until Phase 13's general managers. */
+/** A team's draft philosophy, from its GM (Phase 13): need vs. talent, and taste for risk. */
 export function philosophy(league: League, teamId: string): Philosophy {
   const P = DRAFT_DAY.philosophy;
-  const u = uniformFrom(`${league.meta.seed}:philosophy:${teamId}:need`);
-  const r = uniformFrom(`${league.meta.seed}:philosophy:${teamId}:risk`) * 2 - 1;
+  const { need: u, risk: r } = gmDraftLeaning(league, teamId);
   const needPoints = P.needPoints[0] + u * (P.needPoints[1] - P.needPoints[0]);
   const risk = r * P.risk;
   const label = `${u > 0.66 ? "Drafts for need" : u < 0.33 ? "Best player available" : "Balances need and talent"}; ${r > 0.33 ? "swings for upside" : r < -0.33 ? "prefers sure things" : "neutral on risk"}`;
@@ -38,7 +38,35 @@ export function philosophy(league: League, teamId: string): Philosophy {
 }
 
 /** How much a team needs each position, 0-1, from its own staff's read of its roster. */
+const TEAM_NEEDS = new WeakMap<
+  League,
+  { key: string; needs: Map<string, Map<Position, number>> }
+>();
+
 export function teamNeeds(league: League, teamId: string): Map<Position, number> {
+  // Kept while the team's roster and the reads stay the same: the trade market asks often.
+  const key = readsKey(league);
+  let cache = TEAM_NEEDS.get(league);
+  if (!cache || cache.key !== key) {
+    cache = { key, needs: new Map() };
+    TEAM_NEEDS.set(league, cache);
+  }
+  let count = 0;
+  let ids = 0;
+  for (const p of league.players)
+    if (p.teamId === teamId && p.retiredAfter === null) {
+      count += 1;
+      ids += p.id;
+    }
+  const roster = `${teamId}:${count}:${ids}`;
+  const hit = cache.needs.get(roster);
+  if (hit) return hit;
+  const computed = computeNeeds(league, teamId);
+  cache.needs.set(roster, computed);
+  return computed;
+}
+
+function computeNeeds(league: League, teamId: string): Map<Position, number> {
   const N = DRAFT_DAY.need;
   const viewer = { kind: "team" as const, teamId };
   const players = onTeam(league, teamId).filter((p) => p.retiredAfter === null);

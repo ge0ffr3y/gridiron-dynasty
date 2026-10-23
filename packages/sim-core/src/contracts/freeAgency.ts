@@ -23,6 +23,7 @@ import { STARTERS } from "../generate/config";
 import type { League, Offer, Player } from "../league/schema";
 import { readOverall } from "../perception";
 import { MORALE } from "../people/morale";
+import { gmBudgetShift, gmLimitFactor, wantsEarlyExtension } from "../front-office/strategy";
 import { teamNeeds } from "../draft/boards";
 import { uniformFrom } from "../scouting/noise";
 import { seasonDates } from "../season/calendar";
@@ -115,7 +116,14 @@ function rookiePool(league: League, teamId: string): Dollars {
 export function teamBudget(league: League, teamId: string): Dollars {
   const cap = salaryCap(league.rules.cap, league.season);
   const room = capSheet(league, teamId, league.season).room;
-  return room - rookiePool(league, teamId) - Math.round(cap * FREE_AGENCY.reserveShareOfCap);
+  // The GM and owner move it (Phase 13): cap-aggressive GMs and big spenders spend more,
+  // rebuilders keep money back.
+  return (
+    room -
+    rookiePool(league, teamId) -
+    Math.round(cap * FREE_AGENCY.reserveShareOfCap) +
+    gmBudgetShift(league, teamId)
+  );
 }
 
 /** Where he'd fit on a team: starter, rotation or depth (by the team's read). */
@@ -147,7 +155,9 @@ export function teamLimit(
   const read = 1 + F.readPremiumPerPoint * (own - consensus);
   const need = 1 + F.needPremium * (needs.get(p.position) ?? 0);
   const minimum = minimumSalary(league.rules.cap, league.season, p.experience);
-  return Math.max(minimum, Math.round(market.apy * read * need));
+  // The GM's style and the team's stance (Phase 13).
+  const style = gmLimitFactor(league, teamId, p);
+  return Math.max(minimum, Math.round(market.apy * read * need * style));
 }
 
 /** An offer at a yearly value, shaped like his ask (years, guarantees by pay). */
@@ -723,7 +733,10 @@ export function weeklyExtensions(league: League, week: number): number {
           (p.contract.type === "veteran" ||
             p.contract.type === "extension" ||
             p.contract.type === "rookie") &&
-          span(p.contract).lastReal === league.season,
+          // The deal's last year, or (for a patient or loyal GM's young starters) a year early.
+          (span(p.contract).lastReal === league.season ||
+            (span(p.contract).lastReal === league.season + 1 &&
+              wantsEarlyExtension(league, team.id, p))),
       )
       .filter(
         (p) =>

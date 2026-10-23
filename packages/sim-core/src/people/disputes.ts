@@ -18,9 +18,9 @@ import { DISPUTE_KINDS, DISPUTE_OUTCOMES } from "../league/schema";
 import { contractShare, marketValue } from "../contracts/market";
 import { yearsLeft } from "../contracts/contract";
 import { recordTransaction } from "../contracts/operations";
-import { makeRoomFor, roleOn, teamLimit, tryExtension } from "../contracts/freeAgency";
-import { careerValue, pickWorth } from "../draft/values";
-import { makeTrade, previewTradeDeal, tradablePicks, tradingOpen } from "../roster/trades";
+import { roleOn, teamLimit, tryExtension } from "../contracts/freeAgency";
+import { shopPlayer } from "../front-office/tradeMarket";
+import { tradingOpen } from "../roster/trades";
 import { uniformFrom } from "../scouting/noise";
 import { MORALE, refreshMood } from "./morale";
 
@@ -59,10 +59,6 @@ export const DISPUTES = {
   reportWeekly: 0.3,
   /** Chance a team is willing to trade a player who asked out (each time it looks). */
   tradeWilling: 0.5,
-  /** Unhappy players fetch less: share of their value in picks. */
-  tradeDiscount: 0.75,
-  /** Trades look at the partner's picks in these rounds. */
-  tradeRounds: 3,
   /** An open trade request lapses at the new League Year if his mood has recovered to this. */
   withdrawMood: 50,
   /** Disputes are kept this many seasons. */
@@ -385,75 +381,20 @@ function answer(league: League, d: Dispute, week: number): void {
     : `Waiting him out: not a starter they'd pay more to keep.${willing ? " No team offered enough in a trade." : ""}`;
 }
 
-/** What a player is worth in a trade, in draft-pick career value (unhappy players fetch less). */
-export function tradeWorth(league: League, p: Player): number {
-  const share = Math.max(0.005, marketValue(league, p).share);
-  const age = ageOn(p.birthDate, league.date);
-  // A star paid a tenth of the cap is worth about the 12th pick; older players less.
-  const overall = Math.round((12 * 0.1) / share) * (1 + 0.25 * Math.max(0, age - 29));
-  return careerValue(Math.max(1, Math.min(256, Math.round(overall)))) * DISPUTES.tradeDiscount;
-}
-
-/** Trades him for picks to the team that wants him most and can fit him. The reason, or null. */
+/** Trades him to the team that wants him most, through the trade AI. The reason, or null. */
 function tradeAway(league: League, p: Player, d: Dispute): string | null {
-  const target = tradeWorth(league, p);
-  const partners = league.teams
-    .filter((t) => t.id !== d.teamId && roleOn(league, t.id, p) === "starter")
-    .map((t) => ({ id: t.id, limit: teamLimit(league, t.id, p) }))
-    .sort((a, b) => b.limit - a.limit || a.id.localeCompare(b.id));
-  for (const partner of partners.slice(0, 8)) {
-    const picks = cheapestPicks(league, partner.id, target);
-    if (!picks) continue;
-    const a = { teamId: d.teamId, players: [p.id], picks: [] };
-    const b = { teamId: partner.id, players: [], picks: picks.map((x) => x.id) };
-    let preview = previewTradeDeal(league, a, b);
-    // A full roster makes room (waiving only someone worse) if the cap works.
-    if (
-      !preview.legal &&
-      preview.teams[1].roomNow.after >= 0 &&
-      preview.teams[1].roster.after > preview.teams[1].roster.limit &&
-      makeRoomFor(league, partner.id, p)
-    )
-      preview = previewTradeDeal(league, a, b);
-    if (!preview.legal) continue;
-    const labels = preview.teams[0].receives.picks.join(" and ");
-    const why = `${d.kind === "trade-request" ? "He asked out" : `His ${d.kind} dragged on`}; ${partner.id} wanted him as a starter and gave ${labels}.`;
-    makeTrade(league, a, b, why);
-    // The new team usually signs him to the deal he wanted.
-    tryExtension(
-      league,
-      partner.id,
-      p,
-      Math.round(partner.limit * DISPUTES.requestStretch),
-      "Extended after the trade that brought him in.",
-    );
-    return `Traded to ${partner.id} for ${labels}.`;
-  }
-  return null;
-}
-
-/** The cheapest one or two of a team's early-round picks worth at least `target`, or null. */
-function cheapestPicks(
-  league: League,
-  teamId: string,
-  target: number,
-): League["draftPicks"] | null {
-  const picks = tradablePicks(league, teamId)
-    .filter((x) => x.round <= DISPUTES.tradeRounds && x.season <= league.season + 1)
-    .map((x) => ({ pick: x, worth: pickWorth(league, x) }));
-  let best: { picks: League["draftPicks"]; worth: number } | null = null;
-  for (let i = 0; i < picks.length; i++) {
-    const one = picks[i]!;
-    if (one.worth >= target && (!best || one.worth < best.worth))
-      best = { picks: [one.pick], worth: one.worth };
-    for (let j = i + 1; j < picks.length; j++) {
-      const two = picks[j]!;
-      const w = one.worth + two.worth;
-      if (w >= target && (!best || w < best.worth))
-        best = { picks: [one.pick, two.pick], worth: w };
-    }
-  }
-  return best?.picks ?? null;
+  const why = d.kind === "trade-request" ? "He asked out" : `His ${d.kind} dragged on`;
+  const text = shopPlayer(league, d.teamId, p, `${d.teamId} moved him: ${why.toLowerCase()}`);
+  if (!text || p.teamId === d.teamId) return null;
+  // The new team usually signs him to the deal he wanted.
+  tryExtension(
+    league,
+    p.teamId!,
+    p,
+    Math.round(teamLimit(league, p.teamId!, p) * DISPUTES.requestStretch),
+    "Extended after the trade that brought him in.",
+  );
+  return `${why}. ${text}`;
 }
 
 /**

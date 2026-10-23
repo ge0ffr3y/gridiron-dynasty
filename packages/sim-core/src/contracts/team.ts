@@ -95,8 +95,10 @@ export function capSheet(league: League, teamId: string, season: number): CapShe
 export function teamsOverCap(
   league: League,
   season = league.season,
+  only?: string[],
 ): { teamId: string; room: Dollars }[] {
   return league.teams
+    .filter((t) => !only || only.includes(t.id))
     .map((t) => ({ teamId: t.id, room: capSheet(league, t.id, season).room }))
     .filter((t) => t.room < 0);
 }

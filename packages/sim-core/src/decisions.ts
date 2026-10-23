@@ -4,6 +4,7 @@
  * league's pending decisions until the person answers it.
  */
 import type { DecisionRequest, League, PendingDecision } from "./league/schema";
+import { answerTrade } from "./front-office/tradeAI";
 
 export interface DecisionAnswer {
   choice: string;
@@ -18,6 +19,17 @@ const AI_POLICIES: Record<DecisionRequest["kind"], AiPolicy> = {
     choice: request.options[0] as string,
     reason: "Placeholder AI: picks the first option.",
   }),
+  // An AI team answers a trade offer the way it answers any proposal (Phase 13).
+  "trade-offer": (league, teamId, request) => {
+    const offer = league.tradeOffers.find((o) => o.id === request.offerId);
+    if (!offer) return { choice: "decline", reason: "The offer is gone." };
+    const answer = answerTrade(
+      league,
+      { teamId: offer.fromTeamId, ...offer.give },
+      { teamId, ...offer.get },
+    );
+    return { choice: answer.accept ? "accept" : "decline", reason: answer.reason };
+  },
 };
 
 export type AskResult =

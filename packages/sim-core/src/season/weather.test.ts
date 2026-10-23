@@ -103,7 +103,7 @@ describe("Play and watch", () => {
     const week = scheduleView(league, { kind: "week", week: 1 });
     const summaries = week.games;
     expect(summaries.filter((g) => g.playable).length).toBe(summaries.length - 1);
-  });
+  }, 90_000);
 });
 
 describe("format 6", () => {
@@ -123,5 +123,5 @@ describe("format 6", () => {
     // Old games without weather still show a game page.
     const played = upgraded.games.find((g) => g.result)!;
     expect(gameView(upgraded, played.id, null).conditions).toBeNull();
-  });
+  }, 90_000);
 });

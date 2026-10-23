@@ -19,6 +19,7 @@ import {
 } from "./league/schema";
 import { rulesFor } from "./rules";
 import { emptyScouting } from "./scouting/config";
+import { generateExecutives } from "./front-office/executives";
 import { generateAgents } from "./people/agents";
 import { stadiumFor } from "./season/weather";
 
@@ -241,6 +242,27 @@ function upgrade(data: Record<string, unknown>): void {
     for (const p of (data["players"] as Record<string, unknown>[]) ?? []) p["mood"] = null;
     data["disputes"] = [];
     data["formatVersion"] = 16;
+  }
+  // Version 16 -> 17: front offices (Phase 13). Generated GMs and owners from the seed, no team
+  // plans yet (the GM reads the team at the next turning point), no trade memory or offers.
+  if (data["formatVersion"] === 16) {
+    const seed = Number((data["meta"] as Record<string, unknown>)?.["seed"] ?? 0);
+    const teams = (data["teams"] as Record<string, unknown>[]) ?? [];
+    for (const t of teams) t["plan"] = null;
+    const executives = generateExecutives(
+      seed,
+      teams.map((t) => String(t["id"])),
+      Number(data["season"]),
+      String(data["date"]),
+    );
+    data["executives"] = executives;
+    data["executiveMoves"] = [];
+    data["tradeHistory"] = [];
+    data["tradeOffers"] = [];
+    const ids = data["nextIds"] as Record<string, unknown>;
+    ids["executive"] = executives.length;
+    ids["tradeOffer"] = 0;
+    data["formatVersion"] = 17;
   }
 }
 

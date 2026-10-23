@@ -21,7 +21,7 @@ import marketData from "../../../../calibration/market.json";
 import type { Contract, League, Player } from "../league/schema";
 import { ageCurve } from "../lifecycle/curves";
 import { DEVELOPMENT } from "../lifecycle/config";
-import { perceivePlayer } from "../perception";
+import { readOverall } from "../perception";
 import { minimumSalary, salaryCap } from "./cap";
 import { totalValue } from "./contract";
 
@@ -71,13 +71,13 @@ export function contractShare(league: League, c: Contract): number {
 
 /** The market's view of a player: his consensus overall, adjusted for where his age is heading. */
 export function marketQuality(league: League, p: Player): number {
-  const seen = perceivePlayer(league, p, { kind: "league" });
+  const overall = readOverall(league, p, { kind: "league" });
   const age = ageOn(p.birthDate, league.date);
   let change = 0;
   for (let k = 1; k <= MARKET_MODEL.horizonYears; k++) change += ageCurve(p.position, age + k);
   // Average change a year over the horizon, in rating points (growth counts, but less: it's a hope).
   const perYear = (change / MARKET_MODEL.horizonYears) * DEVELOPMENT.declinePointsPerSd;
-  return seen.overall + (perYear > 0 ? perYear / 2 : perYear);
+  return overall + (perYear > 0 ? perYear / 2 : perYear);
 }
 
 interface Snapshot {

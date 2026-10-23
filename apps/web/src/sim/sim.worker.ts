@@ -61,7 +61,12 @@ import {
   developmentReportView,
   injuryReportView,
   makeRosterMove,
-  makeTrade,
+  proposeTrade,
+  tradeAnswer,
+  frontOfficeView,
+  tradeOffersView,
+  respondToOffer,
+  setController,
   previewTradeDeal,
   rosterManagementView,
   tradeAssetsView,
@@ -457,12 +462,42 @@ const handlers: Handlers = {
     return previewTradeDeal(requireLeague(), a, b);
   },
 
+  tradeAnswer({ a, b }) {
+    return tradeAnswer(requireLeague(), a, b);
+  },
+
   async makeTrade({ a, b }) {
     const league = requireLeague();
-    makeTrade(league, a, b, "League office trade (any two teams, until GM Mode in Phase 14).");
-    const message = league.transactions.at(-1)!.text;
+    // The other team's GM must agree (Phase 13).
+    const message = proposeTrade(league, a, b);
     open = { saved: await save(league, open!.saved), league };
     return { message };
+  },
+
+  frontOfficeView({ teamId }) {
+    return frontOfficeView(requireLeague(), teamId);
+  },
+
+  tradeOffersView({ teamId }) {
+    return tradeOffersView(requireLeague(), teamId);
+  },
+
+  async respondToOffer({ offerId, accept }) {
+    const league = requireLeague();
+    const message = respondToOffer(league, offerId, accept);
+    open = { saved: await save(league, open!.saved), league };
+    return { message };
+  },
+
+  async setController({ teamId, human }) {
+    const league = requireLeague();
+    setController(league, teamId, human);
+    open = { saved: await save(league, open!.saved), league };
+    return {
+      message: human
+        ? `You now answer ${teamId}'s trade offers.`
+        : `${teamId}'s GM answers its trade offers again.`,
+    };
   },
 
   async capMove({ playerId, kind }) {

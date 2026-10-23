@@ -8,6 +8,11 @@
  * attributes, ratings for players with no rating source) is generated here
  * from a seed per person, so rebuilding gives the same league.
  */
+import {
+  applyRealFrontOffices,
+  generateExecutives,
+  type RealFrontOffice,
+} from "./front-office/executives";
 import { generateAgents } from "./people/agents";
 import { emptyScouting } from "./scouting/config";
 import { NEW_PLAYER_ROSTER } from "./roster/defaults";
@@ -151,6 +156,8 @@ export interface RealLeagueInput {
    * it, compensatory picks included. Regular picks keep their original club from the standings.
    */
   draftOrder?: { overall: number; round: number; teamId: string }[];
+  /** Each team's front office as measured (Phase 13, private): GM habits and owner patience. */
+  frontOffices?: Record<string, RealFrontOffice>;
 }
 
 /** A seeded random stream for one person, independent of everyone else. */
@@ -282,6 +289,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
           depthChart: { auto: true, slots: {} },
           stadium: stadiumFor(id),
           cap: emptyTeamCap(),
+          plan: null,
         });
       }
 
@@ -341,6 +349,10 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     prospects: [],
     freeAgentMoves: [],
     disputes: [],
+    executives: [],
+    executiveMoves: [],
+    tradeHistory: [],
+    tradeOffers: [],
     agents: generateAgents(input.seed),
     negotiations: [],
     freeAgency: null,
@@ -364,8 +376,20 @@ export function assembleRealLeague(input: RealLeagueInput): League {
       draftPick: draftPicks.length,
       transaction: 1,
       decision: 0,
+      executive: 0,
+      tradeOffer: 0,
     },
   };
+  // A GM and an owner for every team (Phase 13): generated people, the GMs' knobs moved to their
+  // teams' measured habits where the pipeline has them (private).
+  league.executives = generateExecutives(
+    input.seed,
+    teams.map((t) => t.id),
+    input.season + 1,
+    date,
+  );
+  league.nextIds.executive = league.executives.length;
+  if (input.frontOffices) applyRealFrontOffices(league, input.frontOffices);
   // Jobs the real data doesn't cover (position coaches, trainers, scouts) get generated people.
   fillStaff(league, date, "real");
   completeSeasonFromResults(league);

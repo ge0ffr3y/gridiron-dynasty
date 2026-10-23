@@ -15,6 +15,8 @@ import type { League, Player, Team } from "../league/schema";
 import { injuryRiskMultiplier } from "../coaches/effects";
 import { FIT_OVERALL_POINTS, fitFor, ratingsInScheme } from "../coaches/fit";
 import { POSITION_BATTLE } from "../lifecycle/config";
+import { moraleGamePoints, teamChemistry } from "../people/morale";
+import { missingPractice } from "../people/disputes";
 import { DEPTH_CHART, INJURY_MODEL, INJURY_RISK } from "./config";
 
 export type DepthSlots = Record<DepthSlot, number[]>;
@@ -233,12 +235,19 @@ function playingHurt(ratings: Player["ratings"]): Player["ratings"] {
   };
 }
 
-function asLineupPlayer(p: Player, slot: DepthSlot, fit: number, riskScale: number): LineupPlayer {
+function asLineupPlayer(
+  p: Player,
+  slot: DepthSlot,
+  fit: number,
+  riskScale: number,
+  chemistry: number,
+): LineupPlayer {
   const position = slot === "KR" || slot === "PR" ? p.position : SLOT_POSITION[slot];
   const familiarity = p.position === position ? 1 : (p.familiarity[position] ?? 0);
-  // He plays his team's scheme (Phase 10: a good fit plays a little better), and a knock
-  // (listed Questionable) makes him a step slower for the game.
-  const inScheme = ratingsInScheme(p.ratings, p.position, fit);
+  // He plays his team's scheme (Phase 10: a good fit plays a little better), his mood and the
+  // locker room move him a touch (Phase 12b), and a knock (listed Questionable) makes him a
+  // step slower for the game.
+  const inScheme = ratingsInScheme(p.ratings, p.position, fit, moraleGamePoints(p, chemistry));
   const ratings = p.knock ? playingHurt(inScheme) : inScheme;
   return {
     id: p.id,
@@ -265,12 +274,14 @@ export function gameDepthChart(
   const byId = new Map(roster.map((p) => [p.id, p]));
   const fit = fitFor(league, teamId);
   const riskScale = injuryRiskMultiplier(league, teamId);
+  const chemistry = teamChemistry(league, teamId).score;
   const chart = resolveDepthChart(team, roster, league.season, fit);
   const dressed = new Set(
     gameDayActives(
       league,
       chart,
-      roster.filter((p) => p.injury === null),
+      // Players holding out or in (Phase 12b) don't play.
+      roster.filter((p) => p.injury === null && !missingPractice(league, p.id)),
     ).map((p) => p.id),
   );
   const depth = {} as DepthChart;
@@ -279,7 +290,7 @@ export function gameDepthChart(
       .filter((id) => dressed.has(id))
       .map((id) => {
         const p = byId.get(id)!;
-        return asLineupPlayer(p, slot, fit(p, p.position), riskScale);
+        return asLineupPlayer(p, slot, fit(p, p.position), riskScale, chemistry);
       });
   }
   return depth;

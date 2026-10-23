@@ -173,6 +173,43 @@ export function Facts({ items }: { items: [string, ReactNode][] }) {
  * A player's scheme fit (Phase 10) as a small tag: words, not color alone. Neutral fits show
  * nothing unless `always`.
  */
+/** How a player feels (Phase 12b): a small tag, quiet when he's content. */
+export function MoodTag({
+  mood,
+  always = false,
+}: {
+  mood: { score: number; label: string; reason: string } | null;
+  always?: boolean;
+}) {
+  if (!mood || (mood.label === "Content" && !always)) return null;
+  const good = mood.label === "Thrilled" || mood.label === "Happy";
+  const bad = mood.label === "Unhappy" || mood.label === "Angry";
+  return (
+    <span
+      title={`Mood ${mood.score}: ${mood.reason}`}
+      className={`ml-1 inline-flex items-center rounded border px-1 text-[11px] ${good ? "border-primary/40 text-foreground" : bad ? "border-destructive/50 text-destructive" : "text-muted-foreground"}`}
+    >
+      {good ? "☺" : bad ? "☹" : ""} {mood.label}
+    </span>
+  );
+}
+
+const DISPUTE_WORDS = {
+  holdout: "Holding out",
+  "hold-in": "Holding in",
+  "trade-request": "Wants a trade",
+} as const;
+
+/** A holdout, hold-in or trade request under way. */
+export function DisputeTag({ kind }: { kind: keyof typeof DISPUTE_WORDS | null }) {
+  if (!kind) return null;
+  return (
+    <span className="ml-1 inline-flex items-center rounded border border-destructive/50 px-1 text-[11px] text-destructive">
+      {DISPUTE_WORDS[kind]}
+    </span>
+  );
+}
+
 export function FitTag({ label, always = false }: { label: string | null; always?: boolean }) {
   if (!label || (label === "Neutral" && !always)) return null;
   const good = label === "Great fit" || label === "Good fit";

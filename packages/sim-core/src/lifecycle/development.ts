@@ -20,6 +20,8 @@ import {
 } from "@fgm/foundation";
 import type { League, Player } from "../league/schema";
 import { developmentMultiplier } from "../coaches/effects";
+import { moraleDevelopment } from "../people/morale";
+import { campAttendance } from "../people/disputes";
 import { PRESEASON } from "../roster/config";
 import { DEVELOPMENT } from "./config";
 import { ageCurve, growthShare, peakAge } from "./curves";
@@ -204,7 +206,7 @@ export function offseasonDevelopment(league: League): DevelopmentChange[] {
         playingTime: playingTime(p, league.season - 1, games),
         portion: DEVELOPMENT.offseasonShare,
         // His coaches and his fit in their scheme (Phase 10).
-        coaching: developmentMultiplier(league, p),
+        coaching: developmentMultiplier(league, p) * moraleDevelopment(p),
       },
       rng,
     );
@@ -256,7 +258,9 @@ export function campDevelopment(league: League): DevelopmentChange[] {
             : playingTime(p, league.season - 1, games),
           portion,
           campBonus: campBonus(p, league.season),
-          coaching: developmentMultiplier(league, p),
+          // A holdout or hold-in missed camp's work (Phase 12b).
+          coaching:
+            developmentMultiplier(league, p) * moraleDevelopment(p) * campAttendance(league, p),
         },
         rng,
       ),

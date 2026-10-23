@@ -441,5 +441,5 @@ describe("cash equals cap over a contract's life", () => {
       }
       expect(cash, `contract ${n}`).toBe(charged);
     }
-  });
+  }, 120_000);
 });

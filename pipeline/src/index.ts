@@ -12,6 +12,7 @@
  *   npm run pipeline -- injuries       body parts, severity, reinjury, report statuses, injured reserve (Phase 9b)
  *   npm run pipeline -- coaching       team and coach tendencies, head-coach changes (Phase 10)
  *   npm run pipeline -- draft          hit rates by round, pick values, combine measurables, the 2026 class (Phase 11)
+ *   npm run pipeline -- market         the contract market: pay by position and rank, free agents, contract shapes (Phase 12)
  *
  * Restricted inputs (Madden ratings) and anything with real names go in
  * pipeline/private/ (git-ignored).
@@ -26,6 +27,7 @@ import { lifecycle } from "./lifecycle";
 import { injuries } from "./injuries";
 import { coaching } from "./coaching";
 import { draft } from "./draft";
+import { market } from "./market";
 import { rookieScale } from "./league/rookieScale";
 
 const step = process.argv[2];
@@ -40,7 +42,8 @@ else if (step === "lifecycle") await lifecycle();
 else if (step === "injuries") await injuries();
 else if (step === "coaching") await coaching();
 else if (step === "draft") await draft();
+else if (step === "market") await market();
 else
   console.log(
-    "Usage: npm run pipeline -- calibration | matchups | people | situations | elements | league | rookies | lifecycle | injuries | coaching | draft",
+    "Usage: npm run pipeline -- calibration | matchups | people | situations | elements | league | rookies | lifecycle | injuries | coaching | draft | market",
   );

@@ -3,9 +3,11 @@
  */
 import type { League } from "../league/schema";
 import { advance, advanceUntil, type SimHooks } from "./flow";
+import { FREE_AGENCY } from "../contracts/freeAgency";
 
 export type SimActionId =
   | "league-year"
+  | "fa-step"
   | "draft-day"
   | "draft"
   | "camp"
@@ -59,7 +61,19 @@ export function availableActions(league: League): SimAction[] {
     case "draft":
     case "after-draft": {
       const here = STAGE_ORDER.indexOf(stage);
+      const fa = league.freeAgency;
       return [
+        ...(stage === "free-agency" && fa
+          ? [
+              {
+                id: "fa-step" as const,
+                label:
+                  fa.day < FREE_AGENCY.dailyDays
+                    ? `Sim free agency day ${fa.day + 1}`
+                    : "Sim a week of free agency",
+              },
+            ]
+          : []),
         ...OFFSEASON_STOPS.filter((s) => STAGE_ORDER.indexOf(s.reaches) > here),
         { id: "cutdown", label: "Sim through final cuts" },
         start,
@@ -120,6 +134,7 @@ export function runAction(league: League, id: SimActionId, hooks: SimHooks = {})
     case "start-season":
       // Final cuts leave the league at Week 1, ready to play.
       return until("regular");
+    case "fa-step":
     case "preseason-week":
     case "week":
     case "round":

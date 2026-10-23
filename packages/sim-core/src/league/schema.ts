@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 14;
+export const LEAGUE_FORMAT_VERSION = 16;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -77,6 +77,58 @@ export const BonusSchema = z.object({
   /** The League Year it's paid in cash. */
   paidIn: z.number().int(),
 });
+
+/** Tenders and tags a club can hold a player's rights with (Phase 12, CBA Articles 8-10). */
+export const RIGHTS_KINDS = [
+  "franchise-exclusive",
+  "franchise",
+  "transition",
+  "rfa-first",
+  "rfa-second",
+  "rfa-original",
+  "rfa-rofr",
+  "erfa",
+] as const;
+
+/** An offer: years, average yearly value, total guaranteed, signing bonus (whole dollars). */
+export const OfferSchema = z.object({
+  years: z.number().int().positive(),
+  apy: z.number().int().nonnegative(),
+  guaranteed: z.number().int().nonnegative(),
+  signingBonus: z.number().int().nonnegative(),
+});
+
+/** An agent (Phase 12): fictional, with a negotiating style. */
+export const AGENT_STYLES = ["hardball", "fair", "relationship", "money"] as const;
+export const AgentSchema = z.object({
+  id: z.number().int().nonnegative(),
+  firstName: z.string(),
+  lastName: z.string(),
+  agency: z.string(),
+  style: z.enum(AGENT_STYLES),
+});
+
+/** What moves a player's mood (Phase 12b). */
+export const MOOD_FACTORS = [
+  "winning",
+  "role",
+  "pay",
+  "fit",
+  "leaders",
+  "loyalty",
+  "dispute",
+] as const;
+
+/** A contract dispute (Phase 12b): out of camp, at camp but not practicing, or asking to be traded. */
+export const DISPUTE_KINDS = ["holdout", "hold-in", "trade-request"] as const;
+/** How a dispute ended. */
+export const DISPUTE_OUTCOMES = [
+  "extended",
+  "traded",
+  "reported",
+  "withdrawn",
+  "released",
+] as const;
 
 export const CONTRACT_TYPES = [
   "rookie",
@@ -287,6 +339,27 @@ export const PlayerSchema = z.object({
     .nullable(),
   /** His combine or pro-day results (Phase 11), if he was a prospect in this league. */
   measurables: MeasurablesSchema.nullable(),
+  /**
+   * A team's rights to him while his tender or tag is unsigned (Phase 12): which tender, for
+   * which League Year. Offer sheets from other clubs are possible except for exclusive ones.
+   */
+  rights: z
+    .object({
+      kind: z.enum(RIGHTS_KINDS),
+      teamId: z.string(),
+      season: z.number().int(),
+    })
+    .nullable(),
+  /**
+   * How he feels about where he is (Phase 12b): 0-100 (50 = content), updated weekly, with
+   * what moved it (points each). Null while he has no team.
+   */
+  mood: z
+    .object({
+      score: z.number().min(0).max(100),
+      factors: z.array(z.object({ key: z.enum(MOOD_FACTORS), points: z.number() })),
+    })
+    .nullable(),
 });
 
 /**
@@ -678,6 +751,8 @@ export const TransactionSchema = z.object({
     "development",
     // Phase 11b: compensatory picks awarded.
     "compensatory",
+    // Phase 12b: holdouts, hold-ins and trade requests, and how they ended.
+    "dispute",
   ]),
   teamIds: z.array(z.string()),
   playerIds: z.array(z.number().int()),
@@ -748,6 +823,52 @@ export const LeagueSchema = z.object({
   }),
   /** Upcoming draft classes' prospects (Phase 11). */
   prospects: z.array(ProspectSchema),
+  /** Agents (Phase 12); each player's agent follows from a hash of his id. */
+  agents: z.array(AgentSchema),
+  /** Contract talks this League Year (Phase 12): rounds so far, the last offer and counter, why. */
+  negotiations: z.array(
+    z.object({
+      playerId: z.number().int(),
+      teamId: z.string(),
+      season: z.number().int(),
+      kind: z.enum(["re-sign", "free-agent", "extension"]),
+      rounds: z.number().int().nonnegative(),
+      status: z.enum(["open", "agreed", "ended"]),
+      offer: OfferSchema.nullable(),
+      counter: OfferSchema.nullable(),
+      reason: z.string(),
+      date: IsoDate,
+    }),
+  ),
+  /**
+   * Free agency under way (Phase 12): the day, open offers, and offer sheets waiting for the
+   * prior club to match. Null outside free agency.
+   */
+  freeAgency: z
+    .object({
+      season: z.number().int(),
+      day: z.number().int().nonnegative(),
+      offers: z.array(
+        z.object({
+          playerId: z.number().int(),
+          teamId: z.string(),
+          offer: OfferSchema,
+          date: IsoDate,
+          reason: z.string(),
+        }),
+      ),
+      offerSheets: z.array(
+        z.object({
+          playerId: z.number().int(),
+          teamId: z.string(),
+          priorTeamId: z.string(),
+          offer: OfferSchema,
+          date: IsoDate,
+          matchBy: IsoDate,
+        }),
+      ),
+    })
+    .nullable(),
   /**
    * Unrestricted free agents who signed with a new club (Phase 11b): the compensatory-pick
    * formula (CBA Appendix V) weighs them a year later. Kept for two League Years.
@@ -765,6 +886,26 @@ export const LeagueSchema = z.object({
       years: z.number().int().positive(),
       /** Accrued seasons when he signed (10+ non-quarterbacks can't bring a pick before round 5). */
       accruedSeasons: z.number().int().nonnegative(),
+    }),
+  ),
+  /**
+   * Contract disputes (Phase 12b), oldest first: holdouts, hold-ins and trade requests, open
+   * while `end` is null. Kept for three seasons.
+   */
+  disputes: z.array(
+    z.object({
+      playerId: z.number().int(),
+      teamId: z.string(),
+      season: z.number().int(),
+      kind: z.enum(DISPUTE_KINDS),
+      start: IsoDate,
+      reason: z.string(),
+      /** Camp fines he's run up (CBA Article 42), whole dollars; teams often waive them. */
+      fines: z.number().int().nonnegative(),
+      end: IsoDate.nullable(),
+      outcome: z.enum(DISPUTE_OUTCOMES).nullable(),
+      /** How the team answered, or how it ended, and why. */
+      response: z.string(),
     }),
   ),
   /** One summary per completed season, oldest first. */
@@ -803,6 +944,8 @@ export type Coach = z.infer<typeof CoachSchema>;
 export type CoachRole = z.infer<typeof CoachRoleSchema>;
 export type CoachingMove = z.infer<typeof CoachingMoveSchema>;
 export type Prospect = z.infer<typeof ProspectSchema>;
+export type Offer = z.infer<typeof OfferSchema>;
+export type Agent = z.infer<typeof AgentSchema>;
 export type Measurables = z.infer<typeof MeasurablesSchema>;
 export type Team = z.infer<typeof TeamSchema>;
 export type Stadium = z.infer<typeof StadiumSchema>;

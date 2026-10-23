@@ -445,23 +445,23 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** Players are people: they want different things, their agents negotiate, and the market sets prices the way the real one does.
 
 ### Steps
-- [ ] **Market value model** anchored to comparable contracts (position, tier, age), starting from the real contract market and updating as signings happen
-- [ ] **Player priorities and personality** shape demands: money, guarantees, length, winning, role, coach, location
-- [ ] **Agents** with styles: hardball, fair, relationship-driven, money-only
-- [ ] **Negotiation:** offers (years, average salary, guarantees, structure), counteroffers, patience, walk-aways, with reasons shown
-- [ ] **Re-signing window and in-season extensions**
-- [ ] **Holdouts, hold-ins, and trade requests**
-- [ ] **Legal tampering and free agency:** multi-team bidding over several days; player decision logic weighing all priorities
-- [ ] **Restricted free agency** offer sheets and matching (rules from Phase 7)
-- [ ] **Morale and locker-room chemistry:** winning, playing time, leaders, coach fit, contract disputes; effects kept small and calibrated
-- [ ] Late free agency and the veteran-minimum market
-- [ ] **UI:** negotiation screen, free-agent market board with interest levels, player mood indicators, locker-room page
+- [x] **Market value model** anchored to comparable contracts (position, tier, age), starting from the real contract market and updating as signings happen *(12a: real pay by position and rank from nflverse/OTC contracts, derived curves only; the league's own deals move it within 15% of the real curve)*
+- [x] **Player priorities and personality** shape demands: money, guarantees, length, winning, role, coach, location *(12a: ego, money priority and loyalty move the ask; winning, role, location and scheme fit move what he needs from each team)*
+- [x] **Agents** with styles: hardball, fair, relationship-driven, money-only *(12a: 64 fictional agents; style sets the ask, the walk-away point, the pace of counters and patience)*
+- [x] **Negotiation:** offers (years, average salary, guarantees, structure), counteroffers, patience, walk-aways, with reasons shown *(12a: checked in the browser)*
+- [x] **Re-signing window and in-season extensions** *(12a: about 85 well-paid re-signings a year vs. real 105; 28-32 extensions a year vs. real 26 big ones)*
+- [x] **Holdouts, hold-ins, and trade requests** *(12b: unhappy, underpaid stars at camp (CBA fines for holdouts), in-season trade requests; teams extend, trade for picks or wait, with reasons; 3.8-5.0 holdouts and hold-ins and 1.3-3.5 trade requests a year vs. a judged real 3-8 and 1-5)*
+- [x] **Legal tampering and free agency:** multi-team bidding over several days; player decision logic weighing all priorities *(12a: day by day for a week, weekly to the draft, late rounds to camp; about 123 well-paid free agents change teams a year vs. real 140)*
+- [x] **Restricted free agency** offer sheets and matching (rules from Phase 7) *(12a: tenders, tags (exclusive, non-exclusive, transition), offer sheets with five days to match and the CBA's compensation picks; rules checked against Articles 8-10)*
+- [x] **Morale and locker-room chemistry:** winning, playing time, leaders, coach fit, contract disputes; effects kept small and calibrated *(12b: mood 0-100 with reasons, weekly; also pay and loyalty; chemistry weights leaders and counts unhappy big egos; effects at most ~1 rating point on game day, ±6% development, ±6% on the ask to his own team; scorecard 61-62 of 63 with and without, 30-season run stable)*
+- [x] Late free agency and the veteran-minimum market *(12a: a late round every three weeks after the draft, then minimum deals)*
+- [x] **UI:** negotiation screen, free-agent market board with interest levels, player mood indicators, locker-room page *(12a: `/negotiate`, `/free-agency`; 12b: mood card on the player page, Mood column on rosters, the team's Locker room tab, holdouts and trade requests on the league page; checked in the browser)*
 
 ### Done when
-- [ ] Top free agents sign for amounts near real market ranges for their position and tier
-- [ ] Lowball offers get rejected with an understandable reason
-- [ ] Overpaying always works, and the cap sheet shows the cost
-- [ ] A star in a contract dispute can hold out or request a trade
+- [x] Top free agents sign for amounts near real market ranges for their position and tier *(12a: 62-67% of each position's top free agents (tiers 1 and 2-3) inside the real 10th-90th percentile range over six League Years, two seeds; a CI check keeps it above 45%)*
+- [x] Lowball offers get rejected with an understandable reason *(12a: test in CI, and in the browser: "Offered 51% of his asking price...; his agent (relationship-driven) ended talks")*
+- [x] Overpaying always works, and the cap sheet shows the cost *(12a: test in CI across players and teams; the negotiation screen previews the room before and after)*
+- [x] A star in a contract dispute can hold out or request a trade *(12b: test with a constructed underpaid star (candidate, holdout and trade request each answered with a reason, fines per CBA); counts in `--market`; seen on the league page in the browser)*
 
 > [!example]- Kickoff prompt
 > "Phase 12: build the market value model from comparable contracts, player priorities, agents, a negotiation system with reasons, re-signing and extensions, holdouts and trade requests, multi-day free agency bidding, RFA offer sheets, and morale/chemistry. Add the negotiation, market, and locker-room screens. Plan first."

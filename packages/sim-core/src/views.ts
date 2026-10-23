@@ -28,6 +28,8 @@ import {
   type Side,
 } from "@fgm/foundation";
 import { estimatedForty } from "./scouting/measurables";
+import { MOOD_LABELS, moodLabel, moodReason } from "./people/morale";
+import { openDisputes } from "./people/disputes";
 import { LONGEST_STATS, type StatKey, type StatLine } from "@fgm/game-engine";
 
 export interface TeamCard {
@@ -60,6 +62,9 @@ export interface RosterRow {
   list: RosterList | null;
   /** His fit in his team's scheme, as the viewer's staff sees it (Phase 10). */
   fit: { scheme: string; score: number; label: string } | null;
+  /** How he feels (Phase 12b), and a holdout, hold-in or trade request under way. */
+  mood: { score: number; label: string; reason: string } | null;
+  dispute: "holdout" | "hold-in" | "trade-request" | null;
 }
 
 export interface StaffRow {
@@ -187,6 +192,25 @@ export interface PlayerView {
   schemeFit: { scheme: string; score: number; label: string } | null;
   /** This season's notable development: the League Year, camp and in-season changes. */
   development: { stage: string; date: string; change: number; reason: string }[];
+  /** How he feels about where he is (Phase 12b): 0-100 and what moved it. */
+  mood: {
+    score: number;
+    label: string;
+    reason: string;
+    factors: { key: string; label: string; points: number }[];
+  } | null;
+  /** His holdouts, hold-ins and trade requests, newest first (open ones have no end). */
+  disputes: {
+    season: number;
+    kind: "holdout" | "hold-in" | "trade-request";
+    team: string;
+    start: string;
+    end: string | null;
+    outcome: string | null;
+    reason: string;
+    response: string;
+    fines: number;
+  }[];
   /** Where he's listed with his team (null for free agents), and since when on a reserve list. */
   list: RosterList | null;
   reserve: { since: string; gamesMissed: number; designatedToReturn: boolean } | null;
@@ -271,6 +295,14 @@ function rosterRow(league: League, player: Player, viewer: Viewer): RosterRow {
       : null,
     list: player.teamId ? player.roster : null,
     fit: perceivedFit(league, player, viewer),
+    mood: player.mood
+      ? {
+          score: Math.round(player.mood.score),
+          label: moodLabel(player.mood.score),
+          reason: moodReason(player),
+        }
+      : null,
+    dispute: openDisputes(league).get(player.id)?.kind ?? null,
   };
 }
 
@@ -603,6 +635,30 @@ export function playerView(league: League, playerId: number, viewer: Viewer): Pl
           }),
       )
       .filter((d) => d.change !== 0),
+    mood: player.mood
+      ? {
+          score: Math.round(player.mood.score),
+          label: moodLabel(player.mood.score),
+          reason: moodReason(player),
+          factors: [...player.mood.factors]
+            .sort((a, b) => Math.abs(b.points) - Math.abs(a.points))
+            .map((f) => ({ key: f.key, label: MOOD_LABELS[f.key], points: f.points })),
+        }
+      : null,
+    disputes: league.disputes
+      .filter((d) => d.playerId === player.id)
+      .reverse()
+      .map((d) => ({
+        season: d.season,
+        kind: d.kind,
+        team: d.teamId,
+        start: d.start,
+        end: d.end,
+        outcome: d.outcome,
+        reason: d.reason,
+        response: d.response,
+        fines: d.fines,
+      })),
     list: player.teamId ? player.roster : null,
     reserve: player.reserve,
     elevations: player.elevations,

@@ -39,6 +39,11 @@ import {
   calendarPageView,
   campReportView,
   carouselView,
+  freeAgencyView,
+  lockerRoomView,
+  disputesView,
+  makeOffer,
+  negotiationView,
   bigBoardView,
   draftAction,
   draftHistoryView,
@@ -374,6 +379,29 @@ const handlers: Handlers = {
     const message = makeScoutingMove(league, move);
     open = { saved: await save(league, open!.saved), league };
     return { message };
+  },
+
+  freeAgencyView() {
+    return freeAgencyView(requireLeague(), viewer());
+  },
+
+  lockerRoomView({ teamId }) {
+    return lockerRoomView(requireLeague(), teamId, viewer());
+  },
+
+  disputesView() {
+    return disputesView(requireLeague());
+  },
+
+  negotiationView({ playerId, teamId }) {
+    return negotiationView(requireLeague(), playerId, teamId, viewer());
+  },
+
+  async makeOffer({ playerId, teamId, offer }) {
+    const league = requireLeague();
+    const result = makeOffer(league, playerId, teamId, offer);
+    open = { saved: await save(league, open!.saved), league };
+    return result;
   },
 
   draftRoomView() {

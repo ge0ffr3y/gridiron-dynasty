@@ -193,6 +193,34 @@ export const RulesSchema = z
         draftOrderThroughWeek: z.number().int().nonnegative(),
       }),
     }),
+    /** Free agency, tags, tenders, offer sheets and camp fines (Phase 12). */
+    freeAgency: z.object({
+      source: z.string(),
+      /** Expiring players with fewer accrued seasons are exclusive-rights free agents. */
+      exclusiveRightsBelowAccruedSeasons: z.number().int().positive(),
+      /** Restricted free agents have exactly this many accrued seasons. */
+      restrictedAccruedSeasons: z.number().int().positive(),
+      offerSheet: z.object({
+        matchDays: z.number().int().positive(),
+        signingPeriodEndsDaysBeforeDraft: z.number().int().nonnegative(),
+        /** Draft compensation by tender level if the prior club doesn't match. */
+        compensation: z.object({
+          firstRound: z.enum(["round-1", "round-2", "original-round", "none"]),
+          secondRound: z.enum(["round-1", "round-2", "original-round", "none"]),
+          originalRound: z.enum(["round-1", "round-2", "original-round", "none"]),
+          rightOfFirstRefusal: z.enum(["round-1", "round-2", "original-round", "none"]),
+        }),
+      }),
+      tags: z.object({
+        designationsPerYear: z.number().int().positive(),
+        /** Rounds of the first-round picks a non-exclusive franchise player's new club gives up. */
+        nonExclusiveFranchiseCompensation: z.array(z.number().int().positive()),
+        matchDays: z.number().int().positive(),
+        multiYearDeadline: z.string().regex(/^\d{2}-\d{2}$/),
+      }),
+      rookieExtensionAfterSeasons: z.number().int().positive(),
+      campFinePerDay: z.object({ veteran: z.number().int(), rookie: z.number().int() }),
+    }),
     /** Hiring coaches under contract with other clubs (Phase 10b). */
     staff: z.object({
       source: z.string(),

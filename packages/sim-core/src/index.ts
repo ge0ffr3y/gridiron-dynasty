@@ -79,6 +79,13 @@ export { draftClass, upcomingDraftYear } from "./scouting/classes";
 export { DRILLS } from "./scouting/measurables";
 export { REGIONS, SCOUT_GROUPS, SCOUTING } from "./scouting/config";
 export * from "./scouting/views";
+// Free agency and negotiation (Phase 12).
+export * from "./contracts/marketViews";
+export { FREE_AGENCY } from "./contracts/freeAgency";
+export { marketSeason, REAL_MOVEMENT, type MarketSeason } from "./contracts/marketReport";
+export * from "./people/morale";
+export * from "./people/disputes";
+export * from "./people/views";
 // Draft day (Phase 11b).
 export * from "./draft/views";
 export { draftAction, tradeOffers, type DraftAction, type TradeOffer } from "./draft/day";

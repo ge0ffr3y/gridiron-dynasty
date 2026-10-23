@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { ErrorNote, Facts, Loading, OverallBadge, PageHeader, TeamChip } from "@/components/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DisputesCard } from "@/components/Morale";
 import { formatLeagueDate } from "@/lib/format";
 import { useLeagueKey } from "@/lib/session";
 import { useSim } from "@/sim/client";
@@ -115,6 +116,8 @@ export function LeaguePage() {
       <p className="text-xs text-muted-foreground">
         The number beside each team is its starters' average overall.
       </p>
+
+      <DisputesCard />
 
       <Card>
         <CardHeader>

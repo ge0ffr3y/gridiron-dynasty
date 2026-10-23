@@ -47,7 +47,7 @@ import {
   preseasonCampInjuries,
 } from "./injuries";
 import { conditionsFor, drawWeather } from "./weather";
-import { closeLeagueYear, openLeagueYear } from "../contracts/upkeep";
+import { closeLeagueYear, fillRoster, openLeagueYear } from "../contracts/upkeep";
 import {
   campDevelopment,
   offseasonDevelopment,
@@ -58,11 +58,30 @@ import {
 import { batch } from "../contracts/operations";
 import { finishDraft, startDraft } from "../draft/day";
 import { awardCompensatoryPicks } from "../draft/compensatory";
+import {
+  closeFreeAgency,
+  FREE_AGENCY,
+  freeAgencyRound,
+  lateFreeAgency,
+  reSigningWindow,
+  weeklyExtensions,
+} from "../contracts/freeAgency";
 import { ensureDraftClass, upcomingDraftYear } from "../scouting/classes";
 import { assignScouts, offseasonScouting, pruneStudy, scoutingWeeks } from "../scouting/study";
 import { SCOUTING } from "../scouting/config";
 import { assignJerseys } from "../roster/jerseys";
 import { gradePreseason, playPreseasonWeek, schedulePreseason } from "../roster/preseason";
+import { updateMoods } from "../people/morale";
+import {
+  campDisputes,
+  endCampDisputes,
+  leagueYearDisputes,
+  preseasonDisputes,
+  weeklyDisputes,
+} from "../people/disputes";
+
+/** At the offseason's turning points moods move most of the way to where they're headed. */
+const MOOD_SETTLE = 0.6;
 import {
   countReserveGames,
   cutdownDay,
@@ -302,19 +321,45 @@ function advanceOnce(league: League, hooks: SimHooks): string {
     case "offseason":
       // Scouting through the combine and the first pro days.
       if (!hooks.historyOnly) offseasonScouting(league, league.date, dates.leagueYear);
-      // The new League Year: last season's deals run out, re-signings, free agency, the cap.
-      league.date = dates.leagueYear;
       // Players develop first, so contracts and free agency see who they are now.
+      league.date = addDays(dates.negotiatingPeriod, -1);
       league.development = [];
       recordDevelopment(league, "league-year", offseasonDevelopment(league));
+      // The re-signing window: teams keep, tag or tender their expiring players (Phase 12).
+      if (!hooks.historyOnly) batch(league, () => reSigningWindow(league));
+      // The new League Year: last season's deals run out and free agency opens.
+      league.date = dates.leagueYear;
       // Compensatory picks for this year's draft, from last year's free agency (Phase 11b).
       if (!hooks.historyOnly) awardCompensatoryPicks(league);
       batch(league, () => openLeagueYear(league));
       cal.stage = "free-agency";
-      return "The new League Year opens: free agency";
+      if (!hooks.historyOnly) {
+        // Moods settle over the winter. Trading is open again: requests from players now happy
+        // lapse, and teams answer the rest (Phase 12b).
+        updateMoods(league, MOOD_SETTLE);
+        batch(league, () => leagueYearDisputes(league));
+      }
+      return "The new League Year opens: free agency day 1";
     case "free-agency": {
+      // Free agency: day by day for the first week, then a week at a time, until the draft.
+      const lastDay = addDays(dates.draft, -1);
+      const fa = league.freeAgency;
+      if (fa && league.date < lastDay) {
+        const days = fa.day < FREE_AGENCY.dailyDays ? 1 : 7;
+        const next = addDays(league.date, days) < lastDay ? addDays(league.date, days) : lastDay;
+        league.date = next;
+        const signed = batch(league, () => freeAgencyRound(league, days));
+        return days === 1
+          ? `Free agency day ${fa.day}: ${signed} signing${signed === 1 ? "" : "s"}`
+          : `A week of free agency: ${signed} signing${signed === 1 ? "" : "s"}`;
+      }
       // Spring scouting: visits and the rest of the pro days.
-      if (!hooks.historyOnly) offseasonScouting(league, league.date, dates.draft);
+      if (!hooks.historyOnly) offseasonScouting(league, dates.leagueYear, dates.draft);
+      closeFreeAgency(league);
+      // Rosters short of bodies fill with minimum deals before the draft.
+      batch(league, () => {
+        for (const team of league.teams) fillRoster(league, team.id);
+      });
       league.date = dates.draft;
       startDraft(league);
       cal.stage = "draft";
@@ -329,8 +374,15 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       return `Draft: ${drafted} picks, ${undrafted} undrafted signings`;
     }
     case "after-draft":
+      // Late free agency through the summer, then camp.
+      batch(league, () => lateFreeAgency(league, dates.leagueYear, dates.trainingCamp));
       league.date = dates.trainingCamp;
       batch(league, () => trainingCampOpens(league));
+      if (!hooks.historyOnly) {
+        // Camp: unhappy, underpaid stars may hold out, hold in or ask out (Phase 12b).
+        updateMoods(league, MOOD_SETTLE);
+        batch(league, () => campDisputes(league));
+      }
       if (league.settings.preseasonGames) schedulePreseason(league);
       else league.preseasonGames = [];
       cal.stage = "preseason";
@@ -340,7 +392,10 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       const weeks = dates.preseasonSaturdays.length;
       if (!league.settings.preseasonGames) {
         league.date = dates.preseasonSaturdays[weeks - 1]!;
-        for (let w = 1; w <= weeks; w++) preseasonCampInjuries(league, w, weeks);
+        for (let w = 1; w <= weeks; w++) {
+          preseasonCampInjuries(league, w, weeks);
+          if (!hooks.historyOnly) batch(league, () => preseasonDisputes(league, w));
+        }
         cal.stage = "cutdown";
         return "Training camp (no preseason games)";
       }
@@ -348,6 +403,7 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       league.date = dates.preseasonSaturdays[week - 1]!;
       batch(league, () => playPreseasonWeek(league, week, hooks));
       preseasonCampInjuries(league, week, weeks);
+      if (!hooks.historyOnly) batch(league, () => preseasonDisputes(league, week));
       if (week >= weeks) {
         batch(league, () => gradePreseason(league));
         cal.stage = "cutdown";
@@ -357,6 +413,8 @@ function advanceOnce(league: League, hooks: SimHooks): string {
     case "cutdown":
       // Camp's share of the year's development (a strong preseason helps), then final cuts.
       recordDevelopment(league, "camp", campDevelopment(league));
+      // Holdouts and hold-ins still going end: nobody gives up his game checks (Phase 12b).
+      if (!hooks.historyOnly) batch(league, () => endCampDisputes(league));
       cutdownDay(league);
       // Week 1's roster moves (injured reserve, elevations) are made now too.
       weeklyRosterUpkeep(league);
@@ -380,6 +438,11 @@ function advanceOnce(league: League, hooks: SimHooks): string {
         );
         freeAgentsHeal(league);
         scoutingWeeks(league, 1);
+        // Extensions for players in their deal's last year (Phase 12).
+        batch(league, () => weeklyExtensions(league, week));
+        // Moods move with the week, and very unhappy players may ask out (Phase 12b).
+        updateMoods(league);
+        batch(league, () => weeklyDisputes(league, week));
         // Rarely, a head coach is fired during the season (Phase 10b).
         inSeasonFirings(league, week);
       }

@@ -634,5 +634,31 @@
         [257, 0.0004, 0.023635]
       ]
     }
+  },
+  "freeAgency": {
+    "source": "2020 CBA (overthecap.com's text): Article 8 Section 2 (exclusive rights: fewer than three accrued seasons; tender of a one-year deal at the minimum; may negotiate only with the prior club); Article 9 (restricted: three accrued seasons; tenders with right of first refusal and draft compensation by level; five days to match an offer sheet, no later than one day before the draft; the signing period ends at least five days before the draft; unrestricted: four or more); Article 10 (one franchise or transition designation a year, made from the 22nd to the 8th day before the League Year; a non-exclusive franchise player may negotiate elsewhere for two first-round picks, an exclusive one may not; a transition player only carries a right of first refusal, five days to match; multiyear deals for a franchise player by July 15); Article 7 Section 3(k)(i) (a drafted rookie's contract may not be renegotiated until after his third season's last regular-season game); Article 42 and Exhibit A (training-camp absence fines, mandatory, 2026-30: $60,000 a day, $45,000 for players on rookie contracts).",
+    "exclusiveRightsBelowAccruedSeasons": 3,
+    "restrictedAccruedSeasons": 3,
+    "offerSheet": {
+      "matchDays": 5,
+      "signingPeriodEndsDaysBeforeDraft": 5,
+      "compensation": {
+        "firstRound": "round-1",
+        "secondRound": "round-2",
+        "originalRound": "original-round",
+        "rightOfFirstRefusal": "none"
+      }
+    },
+    "tags": {
+      "designationsPerYear": 1,
+      "nonExclusiveFranchiseCompensation": [1, 1],
+      "matchDays": 5,
+      "multiYearDeadline": "07-15"
+    },
+    "rookieExtensionAfterSeasons": 3,
+    "campFinePerDay": {
+      "veteran": 60000,
+      "rookie": 45000
+    }
   }
 }

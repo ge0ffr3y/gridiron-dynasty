@@ -2,6 +2,7 @@
  * Creates a complete fictional league from a seed: 32 teams, 90-man rosters,
  * coaching staffs, and draft picks. Same seed -> byte-identical league.
  */
+import { generateAgents } from "../people/agents";
 import { emptyScouting } from "../scouting/config";
 import {
   LEAGUE_FORMAT,
@@ -141,6 +142,10 @@ export function createLeague(options: NewLeagueOptions): League {
     coachingMoves: [],
     prospects: [],
     freeAgentMoves: [],
+    disputes: [],
+    agents: generateAgents(options.seed),
+    negotiations: [],
+    freeAgency: null,
     development: [],
     transactions: [
       {

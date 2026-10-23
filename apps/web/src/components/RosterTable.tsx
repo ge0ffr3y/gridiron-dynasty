@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatHeight } from "@/lib/format";
-import { InjuryTag, FitTag, ListTag, OverallBadge } from "./shared";
+import { DisputeTag, InjuryTag, FitTag, ListTag, MoodTag, OverallBadge } from "./shared";
 
 const POSITION_ORDER = new Map<Position, number>(POSITIONS.map((p, i) => [p, i]));
 
@@ -82,6 +82,7 @@ export function RosterTable({
             </Link>
             <ListTag list={c.row.original.list} />
             <InjuryTag injury={c.row.original.injury} />
+            <DisputeTag kind={c.row.original.dispute} />
           </>
         ),
       },
@@ -135,6 +136,13 @@ export function RosterTable({
         header: "Fit",
         sortDescFirst: true,
         cell: (c) => <FitTag label={c.row.original.fit?.label ?? null} always />,
+      },
+      {
+        id: "mood",
+        accessorFn: (r) => r.mood?.score ?? -1,
+        header: "Mood",
+        sortDescFirst: true,
+        cell: (c) => <MoodTag mood={c.row.original.mood} always />,
       },
     ],
     [showTeam],

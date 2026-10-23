@@ -27,7 +27,8 @@ import {
   yearOf,
   yearsLeft,
 } from "./contract";
-import { MARKET, marketRanks, marketValue, veteranContract, yearsForAge } from "./generate";
+import { MARKET, marketRanks } from "./generate";
+import { freeAgencyRound, startFreeAgency } from "./freeAgency";
 import {
   decideFifthYearOption,
   previewRelease,
@@ -47,8 +48,6 @@ const FULL_SEASON_SNAPS = 17 * 64;
 const OPTION_STARTER_SHARE = 0.75;
 /** Most of a cap AI teams carry into the next League Year (placeholder until Phase 13's AI GMs). */
 const CARRYOVER_MAX_SHARE = 0.05;
-/** Bounds on how far the re-signing market can move from market value in one year. */
-const RESIGN_SCALE: [number, number] = [0.7, 1.6];
 /** Roster size AI teams refill to in the offseason with minimum signings (placeholder until Phase 8). */
 const ROSTER_FLOOR = 80;
 /** Restructures and releases tried per team before giving up (it never should need this many). */
@@ -135,7 +134,8 @@ export function settleIncentives(league: League, teamId: string, room: Dollars):
 /** After the season counter has moved on: expirations, options, re-signings, compliance. */
 export function openLeagueYear(league: League): void {
   const season = league.season;
-  const rng = new Rng(streamSeed(league.meta.seed, `contracts:${season}`));
+  // Last League Year's talks are over.
+  league.negotiations = league.negotiations.filter((n) => n.season >= season);
   const ranks = marketRanks(league);
 
   for (const team of league.teams) {
@@ -171,233 +171,33 @@ export function openLeagueYear(league: League): void {
     expiring.push(p);
   }
 
-  settleUnsigned(league, expiring, ranks, rng);
+  releaseToMarket(league, expiring);
+  // Free agency opens: day one includes the deals agreed in the negotiating period (Phase 12).
+  startFreeAgency(league);
+  freeAgencyRound(league, 1);
 }
 
 /**
- * Players still on a team without a contract for this League Year (deals that
- * ran out, or pending free agents when a real league starts): the team gets
- * under the cap, re-signs those it can afford (best first), the rest go to a
- * simple free-agent market, and thin rosters fill with minimum deals.
+ * Players whose deals ran out and weren't kept (re-signed, tagged or tendered in the re-signing
+ * window): teams first get under the new cap, then these players become free agents.
  */
-export function settleUnsigned(
-  league: League,
-  expiring: Player[],
-  ranks: ReturnType<typeof marketRanks> = marketRanks(league),
-  rng: Rng = new Rng(streamSeed(league.meta.seed, `contracts:${league.season}`)),
-): void {
-  const season = league.season;
-  // Get legal with the players still under contract, then re-sign the best expiring players the
-  // team can afford while keeping enough room to fill out its roster.
+function releaseToMarket(league: League, expiring: Player[]): void {
   for (const team of league.teams) getUnderCap(league, team.id);
-  // Would he start for this team (ahead of all but a starter's count of its players at his position)?
-  const wouldStart = (p: Player, teamId: string) =>
-    league.players.filter(
-      (x) =>
-        x.id !== p.id &&
-        x.teamId === teamId &&
-        x.position === p.position &&
-        overallAt(x.ratings, x.position) >= overallAt(p.ratings, p.position),
-    ).length < (STARTERS[p.position] ?? 1);
-  const scale = reSigningScale(league, expiring, ranks);
-  // Who left which team when his deal ran out (unrestricted free agents, for compensatory picks).
-  const formerTeam = new Map<number, string>();
-  const priceOf = (p: Player) => {
-    const r = ranks.get(p.id)!;
-    return marketValue(league, season, r.category, r.rank, p.experience, scale);
-  };
-  for (const team of league.teams) {
-    const mine = expiring
-      .filter((p) => p.teamId === team.id)
-      .sort((a, b) => keepValue(b, league.date) - keepValue(a, league.date) || a.id - b.id);
-    for (const p of mine) {
-      const apy = priceOf(p);
-      const years = yearsForAge(rng, ageOn(p.birthDate, league.date));
-      const contract = veteranContract(league, rng, p, team.id, season, apy, years);
-      const charge = capHit(contract, season, league.rules.cap);
-      // To keep a starter, a tight team restructures big contracts for room first, as real teams do.
-      if (!canAfford(league, team.id, charge, 1) && wouldStart(p, team.id))
-        restructureForRoom(
-          league,
-          team.id,
-          () => canAfford(league, team.id, charge, 1),
-          `${team.id} turned salary into bonus to make room to re-sign ${p.firstName} ${p.lastName}, a starter.`,
-        );
-      if (canAfford(league, team.id, charge, 1)) {
-        p.contract = contract;
-        recordTransaction(league, {
-          type: "signed",
-          teamIds: [team.id],
-          playerIds: [p.id],
-          text: `${team.id} re-signed ${p.firstName} ${p.lastName}: ${years} year${years === 1 ? "" : "s"}, $${(apy / 1_000_000).toFixed(2)}M a year.`,
-          reason:
-            "Placeholder until free agency (Phase 12): a team keeps the expiring players it can afford, best first, at their market value.",
-        });
-      } else {
-        p.teamId = null;
-        formerTeam.set(p.id, team.id);
-        recordTransaction(league, {
-          type: "expired",
-          teamIds: [team.id],
-          playerIds: [p.id],
-          text: `${p.firstName} ${p.lastName}'s contract with ${team.id} ran out; he's a free agent.`,
-          reason: `${team.id} couldn't fit his market value ($${(apy / 1_000_000).toFixed(2)}M a year) under the ${season} cap and still fill its roster.`,
-        });
-      }
-    }
+  for (const p of expiring) {
+    const teamId = p.teamId!;
+    p.teamId = null;
+    p.contract = null;
+    p.roster = "active";
+    recordTransaction(league, {
+      type: "expired",
+      teamIds: [teamId],
+      playerIds: [p.id],
+      text: `${p.firstName} ${p.lastName}'s contract with ${teamId} ran out; he's a free agent.`,
+      reason: `${teamId} didn't keep him in the re-signing window (no deal, tag or tender).`,
+    });
   }
-
-  // A simple free-agent market: the best free agents sign, at their market value, with the team
-  // that has the most room among those where he'd start (else any team with room) and a roster spot.
-  // Without the "would start" preference, a few teams with room hoard starters while others field backups.
-
-  const offseasonMax = league.rules.roster.offseasonMax;
-  const freeAgents = league.players
-    .filter((p) => p.teamId === null && p.retiredAfter === null && ranks.has(p.id))
-    .sort((a, b) => priceOf(b) - priceOf(a) || a.id - b.id);
-  for (const p of freeAgents) {
-    const apy = priceOf(p);
-    const minimum = minimumSalary(league.rules.cap, season, p.experience);
-    if (apy <= minimum) break; // the rest are minimum-salary players: roster filling takes them
-    const rooms = league.teams
-      .map((t) => ({
-        id: t.id,
-        room: capSheet(league, t.id, season).room,
-        starts: wouldStart(p, t.id),
-      }))
-      .sort(
-        (a, b) =>
-          Number(b.starts) - Number(a.starts) || b.room - a.room || a.id.localeCompare(b.id),
-      );
-    const years = yearsForAge(rng, ageOn(p.birthDate, league.date));
-    for (const t of rooms) {
-      // Past the roster floor, a team only adds free agents who'd start (so others can fill out).
-      if (!t.starts && league.players.filter((x) => x.teamId === t.id).length >= ROSTER_FLOOR)
-        continue;
-      const contract = veteranContract(league, rng, p, t.id, season, apy, years);
-      if (!canAfford(league, t.id, capHit(contract, season, league.rules.cap), 1)) continue;
-      // A full roster makes space by cutting its weakest cheap player at his position, if he's worse.
-      if (league.players.filter((x) => x.teamId === t.id).length >= offseasonMax) {
-        const cut = playersOn(league, t.id)
-          .filter(
-            (x) =>
-              x.position === p.position &&
-              capHit(x.contract!, season, league.rules.cap) <= 2 * minimum,
-          )
-          .filter((x) => overallAt(x.ratings, x.position) < overallAt(p.ratings, p.position))
-          .sort(
-            (a, b) =>
-              overallAt(a.ratings, a.position) - overallAt(b.ratings, b.position) || a.id - b.id,
-          )[0];
-        if (!cut) continue;
-        releasePlayer(
-          league,
-          cut.id,
-          `Roster full; cut to make room for free agent ${p.firstName} ${p.lastName}, a better ${p.position}.`,
-        );
-      }
-      p.teamId = t.id;
-      p.contract = contract;
-      recordFreeAgentMove(league, p, formerTeam.get(p.id) ?? null, contract);
-      recordTransaction(league, {
-        type: "signed",
-        teamIds: [t.id],
-        playerIds: [p.id],
-        text: `${t.id} signed free agent ${p.firstName} ${p.lastName}: ${years} year${years === 1 ? "" : "s"}, $${(apy / 1_000_000).toFixed(2)}M a year.`,
-        reason:
-          "Placeholder until free agency (Phase 12): free agents sign at their market value with the team that has the most cap room among those where they'd start, and a roster spot.",
-      });
-      break;
-    }
-  }
-  for (const team of league.teams) fillRoster(league, team.id);
 }
 
-/**
- * An unrestricted free agent signing with a new club (CBA Appendix V): kept for the
- * compensatory-pick formula a year later (draft/compensatory.ts).
- */
-function recordFreeAgentMove(
-  league: League,
-  p: Player,
-  fromTeamId: string | null,
-  contract: Contract,
-): void {
-  const C = league.rules.draft.compensatory;
-  if (!fromTeamId || fromTeamId === contract.teamId || p.experience < C.unrestrictedAccruedSeasons)
-    return;
-  league.freeAgentMoves.push({
-    season: league.season,
-    date: league.date,
-    playerId: p.id,
-    fromTeamId,
-    toTeamId: contract.teamId,
-    position: p.position,
-    // Average yearly compensation: everything over the maximum possible term (void years too).
-    averagePerYear: Math.round(totalValue(contract) / contract.years.length),
-    years: contract.years.length,
-    accruedSeasons: p.experience,
-  });
-}
-
-/**
- * Whether a team can take on `capCharge` (for `adding` players) and still
- * afford minimum deals for the rest of a full offseason roster.
- */
-function canAfford(league: League, teamId: string, capCharge: Dollars, adding: number): boolean {
-  const season = league.season;
-  const roster = league.players.filter(
-    (p) => p.teamId === teamId && p.contract?.teamId === teamId,
-  ).length;
-  // In the offseason only the top 51 contracts count, so only filling up to 51 costs cap room.
-  const fillTo = offseasonRuleApplies(league, season)
-    ? Math.min(ROSTER_FLOOR, league.rules.cap.offseasonTopContracts)
-    : ROSTER_FLOOR;
-  const stillNeeded = Math.max(0, fillTo - roster - adding);
-  // Each open spot priced at the most a minimum deal can count: the minimum for a player just
-  // short of the veteran salary benefit (a benefit player counts less).
-  const perSpot = minimumSalary(
-    league.rules.cap,
-    season,
-    league.rules.cap.veteranSalaryBenefit.minCreditedSeasons - 1,
-  );
-  // In the offseason, room for the season too: every contract counts from final cuts, with two
-  // more roster spots than the top 51 and a full practice squad.
-  const inSeason = offseasonRuleApplies(league, season)
-    ? (league.rules.roster.regularSeasonMax - league.rules.cap.offseasonTopContracts) * perSpot +
-      league.rules.roster.practiceSquad.max *
-        practiceSquadWeeklyRate(league.rules, season, false) *
-        league.rules.schedule.regularSeasonWeeks
-    : 0;
-  const reserve = stillNeeded * perSpot + inSeason;
-  return capSheet(league, teamId, season).room - capCharge >= reserve;
-}
-
-/**
- * How expiring players are priced this year. Free agency in the real league
- * spends teams' room; until it exists here (Phase 12), the market for expiring
- * players is set so that, league-wide, re-signing them would use the room
- * teams have left (keeping the usual few percent free), within sensible bounds.
- */
-function reSigningScale(
-  league: League,
-  expiring: Player[],
-  ranks: ReturnType<typeof marketRanks>,
-): number {
-  const season = league.season;
-  let room = 0;
-  for (const team of league.teams) {
-    const sheet = capSheet(league, team.id, season);
-    room += sheet.room - sheet.adjustedCap * MARKET.targetRoomShare;
-  }
-  const atMarket = expiring.reduce((a, p) => {
-    const r = ranks.get(p.id)!;
-    return a + marketValue(league, season, r.category, r.rank, p.experience);
-  }, 0);
-  return Math.min(RESIGN_SCALE[1], Math.max(RESIGN_SCALE[0], room / Math.max(1, atMarket)));
-}
-
-/** A first-round pick's fifth-year option: exercised for starter-level players. */
 function decideOption(league: League, p: Player, ranks: ReturnType<typeof marketRanks>): void {
   const season = league.season;
   const option = p.contract!.fifthYearOption!;
@@ -531,7 +331,7 @@ function bestRestructure(league: League, teamId: string): Player | null {
  * season's commitments stay under next season's cap (a team doesn't borrow from a year it can't
  * pay for). Leaves things as they are if no restructure fits.
  */
-function restructureForRoom(
+export function restructureForRoom(
   league: League,
   teamId: string,
   enough: () => boolean,

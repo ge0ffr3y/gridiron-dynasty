@@ -119,6 +119,19 @@ function prospectSubject(league: League, p: Prospect): Subject {
 }
 
 /** A team's scouting department: how much clearer (below 1) or blurrier its reads are. */
+const GM_SKILL = new WeakMap<League, { key: string; mean: number }>();
+/** The average judging skill of the league's GMs (cached per date). */
+function typicalGmSkill(league: League): number {
+  const hit = GM_SKILL.get(league);
+  if (hit && hit.key === league.date) return hit.mean;
+  const skills = league.executives.flatMap((e) =>
+    e.role === "GM" && e.teamId !== null && e.retiredAfter === null && e.gm ? [e.gm.skill] : [],
+  );
+  const mean = skills.length ? skills.reduce((a, b) => a + b, 0) / skills.length : 55;
+  GM_SKILL.set(league, { key: league.date, mean });
+  return mean;
+}
+
 function departmentFactor(league: League, teamId: string): number {
   const team = league.teams.find((t) => t.id === teamId);
   const scouts = league.coaches.filter((c) => c.teamId === teamId && c.role === "SCOUT");
@@ -126,7 +139,16 @@ function departmentFactor(league: League, teamId: string): number {
     ? scouts.reduce((a, c) => a + c.ratings.scouting, 0) / scouts.length
     : leagueTypical(league, "SCOUT", "scouting");
   const step = skillStep(skill, leagueTypical(league, "SCOUT", "scouting"));
-  return (1 - step * SCOUTING.skillEffect) * SCOUTING.budget[team?.scouting.budget ?? "normal"];
+  // The GM's own eye (Phase 13): a skilled GM sharpens his department's reads a little.
+  const gm = league.executives.find(
+    (e) => e.role === "GM" && e.teamId === teamId && e.retiredAfter === null,
+  )?.gm;
+  // Measured against the league's GMs today, so owners hiring skilled GMs over the decades
+  // doesn't sharpen the whole league's reads.
+  const eye = gm ? 1 - SCOUTING.gmEye * ((gm.skill - typicalGmSkill(league)) / 50) : 1;
+  return (
+    (1 - step * SCOUTING.skillEffect) * SCOUTING.budget[team?.scouting.budget ?? "normal"] * eye
+  );
 }
 
 /** Study points on a player: the viewer team's, or the league's average for the office. */

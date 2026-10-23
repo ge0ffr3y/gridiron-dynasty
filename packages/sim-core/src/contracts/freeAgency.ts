@@ -41,7 +41,7 @@ import {
   teamAppeal,
   type Demand,
 } from "./negotiation";
-import { extendContract, recordTransaction } from "./operations";
+import { extendContract, previewRelease, recordTransaction } from "./operations";
 import { getUnderCap } from "./upkeep";
 import { scratch } from "./views";
 import { onTeam, openSpots } from "../roster/lists";
@@ -80,9 +80,13 @@ export const FREE_AGENCY = {
    * money, ego, loyalty and his mood (Phase 12b) move it). Tuned so about as many good players change teams as re-sign
    * (real: ~140 a year paid 1%+ of the cap change teams, ~105 re-sign; calibration/market.json).
    */
-  testMarket: { base: 0.55, money: 0.15, ego: 0.1, loyalty: 0.15, mood: 0.2 },
+  testMarket: { base: 0.5, money: 0.15, ego: 0.1, loyalty: 0.15, mood: 0.2, winning: 0.25 },
   /** Tags: used on a player in the market's top this-many at his position whose talks failed. */
   tagTopRank: 8,
+  /** ...or, for a quarterback, in the top this-many (teams keep starting quarterbacks). */
+  tagTopRankQb: 16,
+  /** A starting quarterback tests the market this share as often as others. */
+  starterQbTest: 0.5,
   /** Restricted tenders: the level the player's market value covers, by this margin. */
   tenderMargin: 1.1,
   /** Offer sheets: a team offers one only if the player is worth this many times his tender. */
@@ -92,7 +96,10 @@ export const FREE_AGENCY = {
   /** After the draft, a late round this often until camp. */
   lateEveryDays: 21,
   /** Extensions: each regular-season week, a team extends players in their last year if they'd start. */
-  extensionChance: 0.12,
+  extensionChance: 0.2,
+  /** ...up to this many of its starters in their deal's last year (Phase 13: real teams extend
+   * about 67 players a year at 1%+ of the cap, calibration/market.json). */
+  extensionsPerRoll: 1,
 };
 
 const money = (d: number) => `$${(d / 1_000_000).toFixed(2)}M`;
@@ -178,13 +185,22 @@ function offerAt(league: League, demand: Demand, apy: Dollars): Offer {
  * A roster spot for a new signing: a team at the limit waives its least valuable player (never
  * this year's draft picks), but only for someone better. False if there's no one to let go.
  */
-export function makeRoomFor(league: League, teamId: string, p: Player): boolean {
+export function makeRoomFor(league: League, teamId: string, p: Player, why?: string): boolean {
   if (openSpots(league, teamId) > 0) return true;
+  // The least valuable player whose release the cap can bear: a release can cost more than it
+  // saves (guaranteed money accelerates), and that mustn't push the team over the cap.
+  const room = capSheet(league, teamId, league.season).room;
   const weakest = onTeam(league, teamId)
     .filter((x) => x.roster === "active" && x.id !== p.id && x.drafted?.season !== league.season)
-    .sort((a, b) => playerValue(league, a) - playerValue(league, b) || b.id - a.id)[0];
+    .sort((a, b) => playerValue(league, a) - playerValue(league, b) || b.id - a.id)
+    .slice(0, 6)
+    .find((x) => room + previewRelease(league, x.id).savingsThisYear >= 0);
   if (!weakest || playerValue(league, weakest) >= playerValue(league, p)) return false;
-  waivePlayer(league, weakest.id, `Waived to make room for ${name(p)}, signed as a free agent.`);
+  waivePlayer(
+    league,
+    weakest.id,
+    why ?? `Waived to make room for ${name(p)}, signed as a free agent.`,
+  );
   return openSpots(league, teamId) > 0;
 }
 
@@ -414,9 +430,13 @@ export function reSigningWindow(league: League): void {
         FREE_AGENCY.testMarket.money * ((pr.priorities.money - 25) / 75) +
         FREE_AGENCY.testMarket.ego * ((pr.ego - 50) / 50) -
         FREE_AGENCY.testMarket.loyalty * ((pr.loyalty - 50) / 50) -
-        FREE_AGENCY.testMarket.mood * (((p.mood?.score ?? MORALE.neutral) - MORALE.neutral) / 50);
+        FREE_AGENCY.testMarket.mood * (((p.mood?.score ?? MORALE.neutral) - MORALE.neutral) / 50) -
+        // A winning team keeps its players: few leave a contender to test the market (Phase 13).
+        FREE_AGENCY.testMarket.winning * teamAppeal(league, p, team.id).parts.winning;
+      // A team's starting quarterback rarely reaches the market (Phase 13).
+      const qbFactor = p.position === "QB" && role === "starter" ? FREE_AGENCY.starterQbTest : 1;
       const testsMarket =
-        uniformFrom(`${league.meta.seed}:tests-market:${p.id}:${season}`) < testChance;
+        uniformFrom(`${league.meta.seed}:tests-market:${p.id}:${season}`) < testChance * qbFactor;
       if (testsMarket) continue;
       const talks = negotiateOwn(league, team.id, p, limit);
       if (talks.offer) {
@@ -433,7 +453,8 @@ export function reSigningWindow(league: League): void {
       }
       // Talks failed. A star in the market's top at his position may get the team's tag.
       const value = marketValue(league, p);
-      if (tagsUsed.has(team.id) || value.rank > FREE_AGENCY.tagTopRank) continue;
+      const tagRank = p.position === "QB" ? FREE_AGENCY.tagTopRankQb : FREE_AGENCY.tagTopRank;
+      if (tagsUsed.has(team.id) || value.rank > tagRank) continue;
       const category = tagCategory(league.rules.cap, p.position);
       const prior = p.contract?.years.find((y) => y.season === season - 1)?.base ?? 0;
       const timesTagged = league.transactions.filter(
@@ -745,7 +766,7 @@ export function weeklyExtensions(league: League, week: number): number {
       )
       .filter((p) => roleOn(league, team.id, p) === "starter")
       .sort((a, b) => marketValue(league, b).apy - marketValue(league, a).apy || a.id - b.id);
-    for (const p of candidates.slice(0, 1)) {
+    for (const p of candidates.slice(0, FREE_AGENCY.extensionsPerRoll)) {
       const done = tryExtension(
         league,
         team.id,

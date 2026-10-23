@@ -191,7 +191,15 @@ function tryDeal(
   if (!preview.legal) {
     const rosterOnly = preview.problems.every((x) => x.includes("limit"));
     if (!rosterOnly || preview.teams[1].roomNow.after < 0) return false;
-    if (!makeRoomFor(league, buyer, player)) return false;
+    if (
+      !makeRoomFor(
+        league,
+        buyer,
+        player,
+        `Waived to make room for ${name(player)}, acquired in a trade.`,
+      )
+    )
+      return false;
     if (!previewTradeDeal(league, sellerSide, buyerSide).legal) return false;
   }
   if (!answerTrade(league, buyerSide, sellerSide, true, true).accept) return false;

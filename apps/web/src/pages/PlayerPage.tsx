@@ -7,6 +7,7 @@ import {
   Facts,
   listName,
   Loading,
+  PageHeader,
   OverallBadge,
   RatingBar,
   TeamChip,
@@ -64,6 +65,8 @@ const PRESEASON_STATS: Record<string, string> = {
 
 export function PlayerPage({ playerId }: { playerId: number }) {
   const view = useSim("playerView", { id: playerId }, useLeagueKey(String(playerId)));
+  // Long-gone players are history cards now (Phase 13).
+  if (view.error && /no player/.test(view.error)) return <FormerPlayerPage id={playerId} />;
   if (view.error) return <ErrorNote message={view.error} />;
   if (!view.data) return <Loading />;
   const p = view.data;
@@ -311,6 +314,58 @@ export function PlayerPage({ playerId }: { playerId: number }) {
           </Card>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** A long-gone player's history card: who he was, where he played, his peak and career totals. */
+function FormerPlayerPage({ id }: { id: number }) {
+  const view = useSim("formerPlayerView", { id }, useLeagueKey(`former:${id}`));
+  if (view.error) return <ErrorNote message={view.error} />;
+  if (!view.data) return <Loading />;
+  const c = view.data;
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={c.name}
+        subtitle={`${c.position} · ${c.years}${c.retiredAfter !== null ? ` · retired after ${c.retiredAfter}` : ""}`}
+      />
+      <Card>
+        <CardContent>
+          <Facts
+            items={[
+              ["Born", formatLeagueDate(c.birthDate)],
+              ["College", c.college],
+              [
+                "Drafted",
+                c.drafted
+                  ? `${c.drafted.season}, ${ordinal(c.drafted.round)} round (${ordinal(c.drafted.pick)} overall), ${c.drafted.teamId}`
+                  : "Undrafted",
+              ],
+              ["Teams", c.teams.join(", ") || "None"],
+              ["Seasons as a starter", c.seasonsStarted],
+              ["Peak", c.peak > 0 ? `${c.peak} (the league office's read)` : "—"],
+            ]}
+          />
+          <p className="mt-4 text-xs text-muted-foreground">
+            A history card: players long gone from the league keep their essentials only.
+          </p>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Career totals</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+          {Object.entries(c.career)
+            .filter(([, v]) => v)
+            .map(([k, v]) => (
+              <span key={k}>
+                <span className="text-muted-foreground">{k}</span> {Math.round(v as number)}
+              </span>
+            ))}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -73,6 +73,8 @@ import { assignJerseys } from "../roster/jerseys";
 import { gradePreseason, playPreseasonWeek, schedulePreseason } from "../roster/preseason";
 import { updateMoods } from "../people/morale";
 import { updatePlans } from "../front-office/evaluate";
+import { archivePlayers } from "../lifecycle/archive";
+import { executivesSeasonEnd } from "../front-office/owners";
 import { expireOffers, TRADE_MARKET, tradeMarket } from "../front-office/tradeMarket";
 import {
   campDisputes,
@@ -519,10 +521,21 @@ function advanceOnce(league: League, hooks: SimHooks): string {
     case "complete": {
       const ended = league.season;
       // The last coaching hires, coaches a year older, and coaching retirements (Phase 10b).
-      if (!hooks.historyOnly) offseasonStaffing(league);
+      if (!hooks.historyOnly) {
+        offseasonStaffing(league);
+        // GMs' career lines, reputations, contracts and retirements (Phase 13b).
+        const last = league.history.at(-1);
+        executivesSeasonEnd(
+          league,
+          new Set((last?.standings ?? []).filter((s) => s.seed !== null).map((s) => s.teamId)),
+          last?.championId ?? null,
+        );
+      }
       seasonEnds(league);
       startNextSeason(league, { agePlayers: true });
       retirePlayers(league, ended);
+      // Players long gone become short history cards (Phase 13), so the list stays lean.
+      if (!hooks.historyOnly) archivePlayers(league, ended);
       return `The ${league.season} offseason begins`;
     }
   }

@@ -57,6 +57,7 @@
   },
   "parity": {
     "seasons": [2002, 2025],
+    "winShareSd": 0.192,
     "winShareCorrelation": 0.332,
     "playoffRepeatRate": 0.524,
     "worstToPlayoffsRate": 0.254,

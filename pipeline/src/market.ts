@@ -229,6 +229,8 @@ export async function market(): Promise<void> {
     reSigned: perYear("re-signed"),
     reSignedPaid1Pct: perYear("re-signed", 0.01),
     extensions: perYear("extension"),
+    extensionsPaid1Pct: perYear("extension", 0.01),
+    extensionsPaid3Pct: perYear("extension", 0.03),
     extensionsPaid5Pct: perYear("extension", 0.05),
   };
 

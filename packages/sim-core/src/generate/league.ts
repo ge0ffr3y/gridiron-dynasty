@@ -146,6 +146,7 @@ export function createLeague(options: NewLeagueOptions): League {
     freeAgentMoves: [],
     disputes: [],
     executives: [],
+    formerPlayers: [],
     executiveMoves: [],
     tradeHistory: [],
     tradeOffers: [],

@@ -350,6 +350,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     freeAgentMoves: [],
     disputes: [],
     executives: [],
+    formerPlayers: [],
     executiveMoves: [],
     tradeHistory: [],
     tradeOffers: [],

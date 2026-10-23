@@ -318,9 +318,21 @@ async function measureParity() {
     }
   }
   const teamDecades = (teams.length * (to - from + 1)) / 10;
+  // The spread of win share within a season (how far apart teams finish).
+  const shares: number[] = [];
+  for (const t of teams)
+    for (let s = from; s <= to; s++) {
+      const x = share(t, s);
+      if (x !== null) shares.push(x);
+    }
+  const meanShare = shares.reduce((a, b) => a + b, 0) / shares.length;
+  const sdShare = Math.sqrt(
+    shares.reduce((a, b) => a + (b - meanShare) * (b - meanShare), 0) / shares.length,
+  );
   return {
     measure: {
       seasons: PARITY_SEASONS,
+      winShareSd: round(sdShare, 3),
       winShareCorrelation: round(sxy / Math.sqrt(sxx * syy), 3),
       playoffRepeatRate: round(playoffRepeat / playoffTeams, 3),
       worstToPlayoffsRate: round(worstUp / Math.max(1, worst), 3),

@@ -34,6 +34,8 @@ export interface TradeSeason {
 }
 
 export const REAL_TRADES = frontOffice.trades;
+export const REAL_EXECUTIVES = frontOffice.executives;
+export const REAL_PARITY = frontOffice.parity;
 
 /** One calendar year's trades (the transactions dated in `season`). */
 export function tradeSeason(league: League, season: number): TradeSeason {

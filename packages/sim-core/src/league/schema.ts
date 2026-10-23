@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 17;
+export const LEAGUE_FORMAT_VERSION = 18;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -250,6 +250,35 @@ export const MeasurablesSchema = z.object({
   cone: z.number().nullable(),
   /** 20-yard shuttle, seconds. */
   shuttle: z.number().nullable(),
+});
+
+/**
+ * A player long gone from the league (Phase 13): retired, or a free agent unsigned, for four
+ * seasons or more. He leaves the player list (which the sim scans all the time) and keeps this
+ * short card for history: draft history, old transactions and his page.
+ */
+export const FormerPlayerSchema = z.object({
+  id: z.number().int().nonnegative(),
+  firstName: z.string(),
+  lastName: z.string(),
+  position: PositionSchema,
+  college: z.string(),
+  birthDate: IsoDate,
+  drafted: DraftInfoSchema.nullable(),
+  experience: z.number().int().nonnegative(),
+  retiredAfter: z.number().int().nullable(),
+  /** First and last seasons in the league, and his age in the last. */
+  firstSeason: z.number().int(),
+  lastSeason: z.number().int(),
+  lastAge: z.number().int(),
+  /** Teams he played for, in order. */
+  teams: z.array(z.string()),
+  /** Seasons he was a regular starter (for draft grades). */
+  seasonsStarted: z.number().int().nonnegative(),
+  /** His best season's overall as the league office read it. */
+  peak: z.number().int(),
+  /** Career totals (regular season). */
+  career: StatLineSchema,
 });
 
 export const PlayerSchema = z.object({
@@ -1014,6 +1043,8 @@ export const LeagueSchema = z.object({
       response: z.string(),
     }),
   ),
+  /** Players long gone (Phase 13): short history cards, out of the player list. */
+  formerPlayers: z.array(FormerPlayerSchema),
   /** General managers and owners (Phase 13), past and present. */
   executives: z.array(ExecutiveSchema),
   /** Front-office moves (Phase 13), oldest first. */
@@ -1111,3 +1142,4 @@ export type GmStyle = z.infer<typeof GmStyleSchema>;
 export type OwnerStyle = z.infer<typeof OwnerStyleSchema>;
 export type TradePackage = z.infer<typeof TradePackageSchema>;
 export type TeamPlan = NonNullable<Team["plan"]>;
+export type FormerPlayer = z.infer<typeof FormerPlayerSchema>;

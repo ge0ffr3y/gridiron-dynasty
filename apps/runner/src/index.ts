@@ -14,6 +14,7 @@
  *   npm run sim -- --draft 20 [--seed 42] [--league file]   how drafts turn out by round vs. real hit rates
  *   npm run sim -- --market 10 [--seed 42] [--league file]   free agency and contracts vs. the real market
  *   npm run sim -- --trades 10 [--seed 42] [--league file]   the trade market vs. real trades (counts, timing, prices)
+ *   npm run sim -- --frontoffices 50 [--seed 42] [--league file]   GM types' results and the league's parity vs. real
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import REAL_DRAFT from "../../../calibration/draft.json";
@@ -40,6 +41,12 @@ import {
   REAL_DISPUTES,
   tradeSeason,
   REAL_TRADES,
+  REAL_EXECUTIVES,
+  REAL_PARITY,
+  teamSeasonFacts,
+  parity,
+  byArchetype,
+  type TeamSeasonFacts,
   archetypeOf,
   ARCHETYPE_LABELS,
   capSheet,
@@ -122,6 +129,12 @@ if (coachingArg !== undefined) {
 const injuriesArg = option(args, "--injuries");
 if (injuriesArg !== undefined) {
   runInjuries(readSeed(args), Number(injuriesArg), option(args, "--league"));
+  process.exit(0);
+}
+
+const foArg = option(args, "--frontoffices");
+if (foArg !== undefined) {
+  runFrontOffices(readSeed(args), Number(foArg), option(args, "--league"));
   process.exit(0);
 }
 
@@ -452,12 +465,12 @@ function runDraftReport(seed: number, count: number, file?: string): void {
     }
     advanceUntil(league, (l) => l.calendar.stage === "complete");
     advance(league);
-    const busts = league.players.filter(
+    const busts = drafted(league).filter(
       (p) =>
         p.drafted?.round === 1 &&
         p.drafted.season >= first &&
         p.drafted.season <= league.season - 4 &&
-        seasonsStarted(p) === 0,
+        p.started === 0,
     ).length;
     console.log(
       `${league.season - 1}    ${String(draftLine.picks).padStart(5)}  ${String(draftLine.comp).padStart(12)}  ${String(draftLine.trades).padStart(16)}  ${draftLine.price.padStart(14)}   ${String(busts).padStart(8)}`,
@@ -489,20 +502,20 @@ function runDraftReport(seed: number, count: number, file?: string): void {
       `${r.picks.padEnd(8)}  ${String(r.players).padStart(6)}   ${pct(r.starter3Plus)} / ${pct(r.real?.starter3Plus)}             ${pct(r.neverStarted)} / ${pct(r.real?.neverStarted)}                ${r.meanSeasonsStarted.toFixed(2)} / ${r.real?.meanSeasonsStarted.toFixed(2) ?? "-"}`,
     );
   if (last - 10 >= first) report(first, last - 10, "Full careers (10+ seasons since the draft)");
-  const gems = league.players.filter(
+  const gems = drafted(league).filter(
     (p) =>
       p.drafted &&
       p.drafted.season >= first &&
       p.drafted.round >= 5 &&
       p.drafted.season <= last - 6 &&
-      seasonsStarted(p) >= 3,
+      p.started >= 3,
   ).length;
-  const busts = league.players.filter(
+  const busts = drafted(league).filter(
     (p) =>
       p.drafted?.round === 1 &&
       p.drafted.season >= first &&
       p.drafted.season <= last - 6 &&
-      seasonsStarted(p) === 0,
+      p.started === 0,
   ).length;
   console.log(
     `\nFirst-round busts (never started): ${busts}. Late-round gems (rounds 5-7, started 3+ seasons): ${gems}.`,
@@ -594,7 +607,7 @@ function runMarketReport(seed: number, count: number, file?: string): void {
   }
   const per = (x: number) => (x / Math.max(1, totals.seasons)).toFixed(1);
   console.log(
-    `\nA year on average: ${per(totals.newTeam)} free agents to new teams (real ${real.freeAgentsNewTeam}), ${per(totals.paid)} paid 1%+ of the cap (real ${real.freeAgentsNewTeamPaid1Pct}); ${per(totals.resigned)} re-signed (real ${real.reSigned}), ${per(totals.resignedPaid)} paid 1%+ (real ${real.reSignedPaid1Pct}); ${per(totals.ext)} extensions (real: ${real.extensionsPaid5Pct} worth 5%+ of the cap, ${real.extensions} in all). Top-tier free agents inside the real range: ${totals.inRange} of ${totals.deals} (${Math.round((100 * totals.inRange) / Math.max(1, totals.deals))}%).`,
+    `\nA year on average: ${per(totals.newTeam)} free agents to new teams (real ${real.freeAgentsNewTeam}), ${per(totals.paid)} paid 1%+ of the cap (real ${real.freeAgentsNewTeamPaid1Pct}); ${per(totals.resigned)} re-signed (real ${real.reSigned}), ${per(totals.resignedPaid)} paid 1%+ (real ${real.reSignedPaid1Pct}); ${per(totals.ext)} extensions (real: ${real.extensionsPaid1Pct} worth 1%+ of the cap, ${real.extensionsPaid5Pct} worth 5%+). Top-tier free agents inside the real range: ${totals.inRange} of ${totals.deals} (${Math.round((100 * totals.inRange) / Math.max(1, totals.deals))}%).`,
   );
   const perD = (x: number) => (x / Math.max(1, totals.disputeSeasons)).toFixed(1);
   console.log(
@@ -753,11 +766,13 @@ function runCarousel(seed: number, count: number, file?: string): void {
     new Map(l.coaches.filter((c) => c.role === "HC" && c.teamId).map((c) => [c.teamId!, c.id]));
   console.log(`\nCoaching carousel: ${count} seasons from seed ${seed}\n`);
   console.log(
-    "season  HC changes  in-season  coordinators out  retirements  out of work  avg HC tenure",
+    "season  HC changes  in-season  coordinators out  retirements  out of work  avg HC tenure  GM changes (in-season)",
   );
   let previous: Map<string, number> | null = null;
   let totalChanges = 0;
   let totalIn = 0;
+  let totalGm = 0;
+  let totalGmIn = 0;
   for (let i = 0; i < count; i++) {
     advanceUntil(league, (l) => l.calendar.stage === "regular");
     const opening = hcOf(league);
@@ -787,17 +802,24 @@ function runCarousel(seed: number, count: number, file?: string): void {
         return n;
       });
     const avgTenure = tenures.reduce((a, b) => a + b, 0) / tenures.length;
+    // GM changes (Phase 13b): hires this season, those during the season apart.
+    const gmHires = league.executiveMoves.filter(
+      (m) => m.season === season && m.kind === "hired" && m.role === "GM",
+    );
+    const gmInSeason = gmHires.filter((m) => /during the season/.test(m.reason)).length;
     if (previous) {
       totalChanges += changes;
       totalIn += inSeason;
+      totalGm += gmHires.length;
+      totalGmIn += gmInSeason;
     }
     console.log(
-      `${season}    ${previous ? String(changes).padStart(9) : "        -"}  ${String(inSeason).padStart(9)}  ${String(coordinators).padStart(16)}  ${String(retired).padStart(11)}  ${String(idle).padStart(11)}  ${avgTenure.toFixed(1).padStart(13)}`,
+      `${season}    ${previous ? String(changes).padStart(9) : "        -"}  ${String(inSeason).padStart(9)}  ${String(coordinators).padStart(16)}  ${String(retired).padStart(11)}  ${String(idle).padStart(11)}  ${avgTenure.toFixed(1).padStart(13)}  ${String(gmHires.length).padStart(10)} (${gmInSeason})`,
     );
     previous = opening;
   }
   console.log(
-    `\nAverage head-coach changes between seasons ${(totalChanges / Math.max(1, count - 1)).toFixed(2)} (real ${real.betweenMean}); during seasons ${(totalIn / Math.max(1, count - 1)).toFixed(2)} (real ${real.duringMean}).`,
+    `\nAverage head-coach changes between seasons ${(totalChanges / Math.max(1, count - 1)).toFixed(2)} (real ${real.betweenMean}); during seasons ${(totalIn / Math.max(1, count - 1)).toFixed(2)} (real ${real.duringMean}). GM changes ${(totalGm / Math.max(1, count - 1)).toFixed(2)} a year, ${(totalGmIn / Math.max(1, count - 1)).toFixed(2)} during the season (real about ${REAL_EXECUTIVES.gmChangesPerYear.mean}, range ${REAL_EXECUTIVES.gmChangesPerYear.range.join("-")}; ${REAL_EXECUTIVES.inSeasonGmFiringsPerYear} during).`,
   );
 }
 
@@ -889,4 +911,78 @@ function runTradesReport(seed: number, count: number, file?: string): void {
   );
   const seconds = Number(process.hrtime.bigint() - started) / 1e9;
   console.log(`${count} years in ${seconds.toFixed(0)} s.`);
+}
+
+/**
+ * The balance check (Phase 13b): plays seasons, records each team's season with its GM's type,
+ * and prints how each type builds and fares, and the league's parity next to the real one.
+ */
+function runFrontOffices(seed: number, count: number, file?: string): void {
+  if (!Number.isInteger(count) || count < 1)
+    throw new Error("--frontoffices must be a whole number of seasons");
+  const started = process.hrtime.bigint();
+  const league = file
+    ? fromFile(parseLeague(readFileSync(fromCaller(file), "utf8")), seed)
+    : createLeague({ seed, name: `League ${seed}` });
+  const facts: TeamSeasonFacts[] = [];
+  console.log(
+    `\nFront offices: ${count} seasons from seed ${seed}${file ? " (real league)" : ""}\n`,
+  );
+  for (let i = 0; i < count; i++) {
+    advanceUntil(league, (l) => l.calendar.stage === "complete");
+    facts.push(...teamSeasonFacts(league));
+    advance(league);
+    if ((i + 1) % 10 === 0) console.log(`  ${i + 1} seasons...`);
+  }
+  const pct = (x: number) => `${Math.round(x * 100)}%`;
+  console.log(
+    "\nGM type             team-seasons  win share  playoffs  titles  cap hell  dead money  roster age  FA spend  trades  restructures",
+  );
+  for (const a of byArchetype(facts))
+    console.log(
+      `${a.archetype.padEnd(20)}${String(a.teamSeasons).padStart(12)}  ${a.winShare.toFixed(3).padStart(9)}  ${pct(a.playoffs).padStart(8)}  ${String(a.titles).padStart(6)}  ${pct(a.capHell).padStart(8)}  ${pct(a.deadShare).padStart(10)}  ${a.age.toFixed(1).padStart(10)}  ${pct(a.faSpend).padStart(8)}  ${a.trades.toFixed(1).padStart(6)}  ${a.restructures.toFixed(1).padStart(12)}`,
+    );
+  const p = parity(facts);
+  const R = REAL_PARITY;
+  console.log("\nParity                         sim     real");
+  console.log(`win share spread (sd)       ${String(p.winShareSd).padStart(6)}   ${R.winShareSd}`);
+  console.log(
+    `win share carries over (r)  ${String(p.winShareCorrelation).padStart(6)}   ${R.winShareCorrelation}`,
+  );
+  console.log(
+    `playoff teams return        ${pct(p.playoffRepeatRate).padStart(6)}   ${pct(R.playoffRepeatRate)}`,
+  );
+  console.log(
+    `worst to playoffs           ${pct(p.worstToPlayoffsRate).padStart(6)}   ${pct(R.worstToPlayoffsRate)}`,
+  );
+  console.log(
+    `champions per decade        ${String(p.championsPerDecade ?? "-").padStart(6)}   ${R.championsPerDecade.mean} (${R.championsPerDecade.min}-${R.championsPerDecade.max})`,
+  );
+  console.log(
+    `5-year playoff runs / team-decade ${String(p.playoffRunsOf5PerTeamDecade).padStart(6)}   ${R.playoffRunsOf5PerTeamDecade}`,
+  );
+  console.log(
+    `4-year losing runs / team-decade  ${String(p.losingRunsOf4PerTeamDecade).padStart(6)}   ${R.losingRunsOf4PerTeamDecade}`,
+  );
+  console.log(
+    `longest playoff run / losing run   ${p.longestPlayoffRun} / ${p.longestLosingRun}   ${R.longestPlayoffRun} / ${R.longestLosingRun}`,
+  );
+  const gmChanges = league.executiveMoves.filter(
+    (m) => m.kind === "hired" && m.role === "GM",
+  ).length;
+  console.log(
+    `\nGM changes ${(gmChanges / count).toFixed(2)} a year (real about ${REAL_EXECUTIVES.gmChangesPerYear.mean}).`,
+  );
+  const seconds = Number(process.hrtime.bigint() - started) / 1e9;
+  console.log(`${count} seasons in ${seconds.toFixed(0)} s.`);
+}
+
+/** Everyone drafted: players still in the league and history cards for those long gone. */
+function drafted(
+  league: League,
+): { drafted: League["players"][number]["drafted"]; started: number }[] {
+  return [
+    ...league.players.map((p) => ({ drafted: p.drafted, started: seasonsStarted(p) })),
+    ...league.formerPlayers.map((c) => ({ drafted: c.drafted, started: c.seasonsStarted })),
+  ];
 }

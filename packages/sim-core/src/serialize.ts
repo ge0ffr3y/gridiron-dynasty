@@ -264,6 +264,12 @@ function upgrade(data: Record<string, unknown>): void {
     ids["tradeOffer"] = 0;
     data["formatVersion"] = 17;
   }
+  // Version 17 -> 18: long-gone players move to short history cards (Phase 13). None yet: the
+  // next season's end moves them.
+  if (data["formatVersion"] === 17) {
+    data["formerPlayers"] = [];
+    data["formatVersion"] = 18;
+  }
 }
 
 /** Set on an upgraded save whose teams still need their Phase 10 staff (removed before validation). */

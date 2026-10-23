@@ -65,7 +65,35 @@ Every team has a front office now: a general manager with a philosophy, and an o
 
 ## How it compares
 
-RESULTS
+`npm run sim -- --trades 5`, a year on average. Seed 42 is with the final code; seed 7 is from just before 13b's last tuning of re-signings and extensions.
+
+| Measure                             | Seed 42 | Seed 7 | Real NFL |
+| ----------------------------------- | ------- | ------ | -------- |
+| Trades                              | 78.6    | 81.4   | 82.3     |
+| League Year to the draft            | 13.6    | 13.0   | 12.4     |
+| Around the draft                    | 28.8    | 30.6   | 35       |
+| Camp and cuts                       | 19.6    | 21.4   | 18.5     |
+| In season                           | 12.2    | 12.4   | 13.4     |
+| Players moved                       | 54      | 56     | 58       |
+| Deals for players outside the draft | 49.8    | 50.8   | about 47 |
+| ...with a 1st-round pick            | 5%      | 3%     | 5%       |
+| ...with a 2nd                       | 9%      | 9%     | 8%       |
+| ...only 5th-7th rounders            | 60%     | 58%    | 64%      |
+
+- **How lopsided trades are:** by a neutral judge (true ratings, true pick values), the winner of a typical trade gets about 1.2 times what he gives, and a quarter of trades are worse than 1.3. Real teams moving up on draft day pay about 1.42 times the chart, so our AI overpays a little less than real GMs on that measure.
+- **The anti-exploit suite** (`exploits.test.ts`): the bot tries every trick against every team (hundreds of attempts) and no clearly lopsided trade gets through.
+  - **Junk two-for-ones and contract dumps:** never accepted.
+  - **Pick swaps and old stars to rebuilders:** a handful accepted, all fair by the neutral judge.
+  - **Injured stars for healthy players:** often accepted, but the AI was the one getting the better of it.
+  - **Runs of small trades:** stopped by memory.
+  - **Asking again:** never changes the answer.
+- **Different GM types trade differently:** trade-happy GMs trade about twice as often as conservative ones (3.8-4.2 trades a season against 2.1-2.5).
+- **Free agency** (`--market 5`, seeds 42 and 7):
+  - 116 well-paid free agents change teams a year (real 140), 78-81 re-sign (real 105) and 39-46 sign extensions (real 67 at 1%+ of the cap);
+  - 64-65% of top free agents land inside the real price range;
+  - disputes stay in range (4.0-4.4 holdouts and hold-ins, 2.0-3.8 trade requests).
+- **Scorecard** (four leagues, two seasons): 61 of 63 league stats in range on seed 7 and 59 on seed 42. The misses are the long-standing success-rate gap and hairlines on 4th-down decisions, two-point tries and interceptions.
+- **Speed:** a regular season takes 6.7 s headless, the same as before Phase 13.
 
 ## What surprised us / what broke
 

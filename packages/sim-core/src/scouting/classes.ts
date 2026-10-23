@@ -33,6 +33,9 @@ import { seasonDates } from "../season/calendar";
 import { drillResults, physicalsFromDrills } from "./measurables";
 import { meanOverall } from "./strength";
 
+/** A retired player's name may go to a new prospect this many seasons after he retired. */
+const NAME_REUSE_AFTER_SEASONS = 5;
+
 export { meanOverall };
 import { regionOf } from "./regions";
 import { uniformFrom } from "./noise";
@@ -187,18 +190,21 @@ export function generateClass(league: League, draftYear: number, size?: number):
   const invites = inviteShares(picks, total - picks);
   const teams = league.teams.length;
   const out: Prospect[] = [];
-  // Names nobody in the league already has (players, coaches, other prospects).
+  // Names nobody in the league has now (players, coaches, other prospects). Players retired
+  // more than a few seasons ago free their names: over a century the name pool would run dry.
+  const recent = league.players.filter(
+    (x) => x.retiredAfter === null || x.retiredAfter >= league.season - NAME_REUSE_AFTER_SEASONS,
+  );
   const taken = new Set(
-    [...league.players, ...league.coaches, ...league.prospects].map(
-      (x) => `${x.firstName} ${x.lastName}`,
-    ),
+    [...recent, ...league.coaches, ...league.prospects].map((x) => `${x.firstName} ${x.lastName}`),
   );
   for (let rank = 1; rank <= total; rank++) {
     const round =
       rank <= picks ? Math.min(league.rules.draft.rounds, Math.ceil(rank / teams)) : null;
     const position = drawPosition(rng, round);
     const p = generatePlayer(ctx, league.nextIds.player++, "", position, "camp", 0, new Set());
-    while (taken.has(`${p.firstName} ${p.lastName}`)) Object.assign(p, names.next());
+    for (let tries = 0; tries < 200 && taken.has(`${p.firstName} ${p.lastName}`); tries++)
+      Object.assign(p, names.next());
     taken.add(`${p.firstName} ${p.lastName}`);
     p.ratings = generateRatings(rng, position, talentTarget(rng, rank, position));
     const age = drawAge(rng, round);

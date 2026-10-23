@@ -64,6 +64,10 @@ import {
   proposeTrade,
   tradeAnswer,
   frontOfficeView,
+  powerRankingsView,
+  leagueOverview,
+  executiveView,
+  formerPlayerView,
   tradeOffersView,
   respondToOffer,
   setController,
@@ -261,6 +265,33 @@ const handlers: Handlers = {
     runAction(league, action, { onStep: progress, onGame: keepPlays(logs) });
     await saveWithPlays(league, logs);
     return calendarView(league);
+  },
+
+  async simSeason() {
+    const league = requireLeague();
+    const logs: PlayLog[] = [];
+    // To the end of this season (from wherever it is), then into the next offseason.
+    if (league.calendar.stage !== "complete")
+      runAction(league, "season-end", { onStep: progress, onGame: keepPlays(logs) });
+    runAction(league, "next-season", { onStep: progress });
+    await saveWithPlays(league, logs);
+    return calendarView(league);
+  },
+
+  powerRankingsView() {
+    return powerRankingsView(requireLeague());
+  },
+
+  leagueOverview() {
+    return leagueOverview(requireLeague());
+  },
+
+  formerPlayerView({ id }) {
+    return formerPlayerView(requireLeague(), id);
+  },
+
+  executiveView({ id }) {
+    return executiveView(requireLeague(), id);
   },
 
   async playGameNow({ gameId }) {

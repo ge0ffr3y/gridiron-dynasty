@@ -540,6 +540,8 @@
     "reSigned": 372.9,
     "reSignedPaid1Pct": 105.4,
     "extensions": 1284.4,
+    "extensionsPaid1Pct": 67,
+    "extensionsPaid3Pct": 39.3,
     "extensionsPaid5Pct": 26.4
   },
   "yearsByAge": [

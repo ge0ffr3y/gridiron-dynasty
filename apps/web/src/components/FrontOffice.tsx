@@ -3,6 +3,7 @@
  * team stands and why, the cap outlook, its biggest needs, and its recent trades with how it
  * valued each one.
  */
+import { Link } from "wouter";
 import { formatLeagueDate } from "@/lib/format";
 import { ErrorNote, Loading } from "@/components/shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,6 +58,9 @@ export function FrontOffice({ teamId }: { teamId: string }) {
               {v.gm.knobs.map((k) => (
                 <Knob key={k.key} low={k.low} high={k.high} value={k.value} />
               ))}
+              <Link href={`/executive/${v.gm.id}`} className="text-sm underline">
+                His page: career, moves and trades
+              </Link>
               {v.gm.leanings.length > 0 && (
                 <p className="text-sm text-muted-foreground">{v.gm.leanings.join(". ")}.</p>
               )}
@@ -73,7 +77,12 @@ export function FrontOffice({ teamId }: { teamId: string }) {
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Owners judge the GM and the head coach, and hire and fire them (coming in Phase 13b).
+            Judges the GM and the head coach every season, and hires and fires them.{" "}
+            {v.owner && (
+              <Link href={`/executive/${v.owner.id}`} className="underline">
+                Owner's page
+              </Link>
+            )}
           </CardContent>
         </Card>
       </div>

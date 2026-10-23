@@ -27,7 +27,7 @@ export const EVALUATION = {
   /** Weights of the read: roster now, last season's record, roster in two years. */
   weights: { now: 0.55, record: 0.25, future: 0.2 },
   /** Calls: contend at or above, rebuild at or below (league-relative z), moved by the GM. */
-  contendLine: 0.25,
+  contendLine: 0.45,
   rebuildLine: -0.5,
   /** How far a win-now (+1) or patient (-1) GM moves both lines. */
   gmShift: 0.25,

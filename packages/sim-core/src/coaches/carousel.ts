@@ -23,6 +23,7 @@ import { NamePicker } from "../generate/people";
 import type { Coach, CoachRole, CoachingMove, League } from "../league/schema";
 import { seasonDates } from "../season/calendar";
 import { currentStandings, starterStrengths } from "../season/flow";
+import { ownerAfterCoachFiring, ownerCoachTerm, ownerReviews } from "../front-office/owners";
 import { loserOf } from "../season/playoffs";
 import {
   CAREERS,
@@ -75,7 +76,7 @@ export function recordOf(
   return r;
 }
 
-const winShare = (r: { wins: number; losses: number; ties: number }) => {
+export const winShare = (r: { wins: number; losses: number; ties: number }) => {
   const n = r.wins + r.losses + r.ties;
   return n === 0 ? 0.5 : (r.wins + r.ties / 2) / n;
 };
@@ -106,7 +107,7 @@ export function expectedWinShare(league: League, teamId: string): number {
 const EXPECTATION_PER_SD = 0.12;
 
 /** Losing seasons in a row for a team, ending with the last finished one. */
-function losingSeasonsInRow(league: League, teamId: string): number {
+export function losingSeasonsInRow(league: League, teamId: string): number {
   let n = 0;
   for (let i = league.history.length - 1; i >= 0; i--) {
     const s = league.history[i]!.standings.find((x) => x.teamId === teamId);
@@ -117,7 +118,7 @@ function losingSeasonsInRow(league: League, teamId: string): number {
 }
 
 /** Seasons a coach has been in his current job with his current team (counting this one). */
-function tenure(league: League, c: Coach): number {
+export function tenure(league: League, c: Coach): number {
   let n = 1;
   for (let i = c.career.length - 1; i >= 0; i--) {
     const e = c.career[i]!;
@@ -209,7 +210,7 @@ export function recordStaffSeason(league: League): void {
 }
 
 /** A coach leaves his job (fired, or out at a new head coach's choice). */
-function release(league: League, c: Coach, kind: "fired" | "left", reason: string): void {
+export function release(league: League, c: Coach, kind: "fired" | "left", reason: string): void {
   const teamId = c.teamId!;
   careerLine(league, c, teamId, c.role);
   log(league, {
@@ -301,7 +302,11 @@ export function inSeasonFirings(league: League, week: number): void {
     if (games < 3) continue;
     const below = expectedWinShare(league, team.id) - winShare(r);
     const weight = Math.min(1, games / 8);
-    const chance = dmath.logistic(C.inSeason.base + C.inSeason.perWinShareBelow * below * weight);
+    const chance = dmath.logistic(
+      C.inSeason.base +
+        C.inSeason.perWinShareBelow * below * weight +
+        ownerCoachTerm(league, team.id),
+    );
     if (!rng(league, `in-season:${week}:${team.id}`).chance(chance)) continue;
     release(
       league,
@@ -310,6 +315,8 @@ export function inSeasonFirings(league: League, week: number): void {
       `In-season firing after week ${week}: ${firingReason(league, team.id, r, expectedWinShare(league, team.id), losingSeasonsInRow(league, team.id))}`,
     );
     namedInterim(league, team.id);
+    // The owner may clean house (Phase 13b).
+    ownerAfterCoachFiring(league, team.id, week);
   }
 }
 
@@ -360,6 +367,8 @@ export function blackMonday(league: League): void {
   const sunday = league.date;
   league.date = sunday < day ? day : sunday;
   try {
+    // Owners judge their GMs first; a new GM may bring his own head coach (Phase 13b).
+    ownerReviews(league, new Set(currentStandings(league).seed.keys()));
     blackMondayMoves(league);
   } finally {
     league.date = sunday;
@@ -405,6 +414,8 @@ function blackMondayMoves(league: League): void {
     if (t <= 2) logOdds += F.newCoachGrace[t - 1]!;
     if (playoffs) logOdds += F.playoffs;
     if (hc.contractThrough !== null && hc.contractThrough <= league.season) logOdds += F.contractUp;
+    // The owner's patience, ambition and impulses (Phase 13b).
+    logOdds += ownerCoachTerm(league, team.id);
     if (rng(league, `fire:${team.id}`).chance(dmath.logistic(logOdds))) {
       release(league, hc, "fired", firingReason(league, team.id, r, expected, streak));
       continue;

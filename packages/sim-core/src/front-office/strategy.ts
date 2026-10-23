@@ -20,10 +20,10 @@ import { gmStyle, ownerStyle } from "./executives";
 
 export const STRATEGY = {
   /** Free agency: a contender pays up to this much more for a veteran (27+) in his prime... */
-  contendVeteran: 0.08,
+  contendVeteran: 0.12,
   veteranAge: 27,
   /** ...a rebuilder this much less for a player 29+, and this much more for one 25 or younger. */
-  rebuildOld: 0.15,
+  rebuildOld: 0.25,
   oldAge: 29,
   rebuildYoung: 0.05,
   youngAge: 25,
@@ -54,7 +54,7 @@ export const STRATEGY = {
   budgetCapAggression: 0.04,
   budgetOwner: 0.02,
   /** Rebuilders keep this share of the cap back. */
-  budgetRebuild: 0.03,
+  budgetRebuild: 0.08,
   /** Restructures: GMs at least this cap-aggressive restructure to buy room even without needing it. */
   aggressiveFrom: 0.3,
   /** ...up to this many contracts a year (more for the most aggressive), with void years from this. */

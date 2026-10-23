@@ -69,7 +69,16 @@ export function teamNeeds(league: League, teamId: string): Map<Position, number>
 function computeNeeds(league: League, teamId: string): Map<Position, number> {
   const N = DRAFT_DAY.need;
   const viewer = { kind: "team" as const, teamId };
-  const players = onTeam(league, teamId).filter((p) => p.retiredAfter === null);
+  // A player out for a while (four games or more, or on a reserve list) doesn't fill a need now:
+  // his team shops for a replacement (Phase 13b).
+  const players = onTeam(league, teamId).filter(
+    (p) =>
+      p.retiredAfter === null &&
+      p.roster !== "injured-reserve" &&
+      p.roster !== "pup" &&
+      p.roster !== "nfi" &&
+      (p.injury?.gamesRemaining ?? 0) < 4,
+  );
   const needs = new Map<Position, number>();
   for (const pos of POSITIONS) {
     const at = players

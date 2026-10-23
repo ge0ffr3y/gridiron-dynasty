@@ -24,6 +24,7 @@ export function rulesTeams(rules: Rules = RULES): Team[] {
         depthChart: { auto: true, slots: {} },
         stadium: { roof: "outdoor" as const, surface: "grass" as const, elevationMeters: 0 },
         cap: { deadMoney: [], carryover: [], cashPaid: [], juneFirstDesignations: [] },
+        plan: null,
       })),
     ),
   );

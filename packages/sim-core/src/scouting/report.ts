@@ -50,11 +50,15 @@ export function seasonsStarted(p: Player): number {
 /** Outcomes by round for the classes drafted from `first` to `last` (inclusive). */
 export function draftOutcomes(league: League, first: number, last: number): RoundOutcome[] {
   const byRound = new Map<number, number[]>();
-  for (const p of league.players) {
-    const d = p.drafted;
+  // Players still in the league, and history cards for those long gone (Phase 13).
+  const people = [
+    ...league.players.map((p) => ({ d: p.drafted, started: () => seasonsStarted(p) })),
+    ...league.formerPlayers.map((c) => ({ d: c.drafted, started: () => c.seasonsStarted })),
+  ];
+  for (const { d, started } of people) {
     if (!d || d.season < first || d.season > last) continue;
     const list = byRound.get(d.round) ?? [];
-    list.push(seasonsStarted(p));
+    list.push(started());
     byRound.set(d.round, list);
   }
   return [...byRound.entries()]
@@ -98,12 +102,12 @@ export function draftOutcomesByPick(
 ): PickRangeOutcome[] {
   return draftData.byPickRange.map((range) => {
     const [lo, hi] = range.picks.split("-").map(Number) as [number, number];
-    const started = league.players
-      .filter((p) => {
-        const d = p.drafted;
-        return d && d.season >= first && d.season <= last && d.pick >= lo && d.pick <= hi;
-      })
-      .map(seasonsStarted);
+    const inRange = (d: { season: number; pick: number } | null) =>
+      d !== null && d.season >= first && d.season <= last && d.pick >= lo && d.pick <= hi;
+    const started = [
+      ...league.players.filter((p) => inRange(p.drafted)).map(seasonsStarted),
+      ...league.formerPlayers.filter((c) => inRange(c.drafted)).map((c) => c.seasonsStarted),
+    ];
     const n = Math.max(1, started.length);
     return {
       picks: range.picks,

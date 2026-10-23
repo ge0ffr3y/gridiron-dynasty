@@ -6,7 +6,7 @@
  */
 import { POSITIONS, type Position } from "@fgm/foundation";
 import draftData from "../../../../calibration/draft.json";
-import type { League, Prospect } from "../league/schema";
+import type { FormerPlayer, League, Player, Prospect } from "../league/schema";
 import { perceiveHistory, perceiveProspect, type Viewer } from "../perception";
 import { pickLabel } from "../roster/trades";
 import { draftClass, upcomingDraftYear } from "../scouting/classes";
@@ -34,7 +34,12 @@ export interface DraftPickRow {
 }
 
 function pickRow(league: League, p: League["draftPicks"][number]): DraftPickRow {
-  const player = p.selection === null ? null : league.players.find((x) => x.id === p.selection);
+  const player =
+    p.selection === null
+      ? null
+      : (league.players.find((x) => x.id === p.selection) ??
+        league.formerPlayers.find((x) => x.id === p.selection) ??
+        null);
   return {
     overall: p.overall!,
     round: p.round,
@@ -321,7 +326,8 @@ export function draftHistoryView(
   const held = new Set(
     league.transactions.filter((t) => t.type === "drafted").map((t) => Number(t.date.slice(0, 4))),
   );
-  const seasons = [...new Set(league.players.flatMap((p) => (p.drafted ? [p.drafted.season] : [])))]
+  const drafted = [...league.players, ...league.formerPlayers];
+  const seasons = [...new Set(drafted.flatMap((p) => (p.drafted ? [p.drafted.season] : [])))]
     .filter((s) => league.meta.kind === "real" || held.has(s))
     .sort((a, b) => b - a);
   const chosen = season ?? seasons.find((s) => s < league.season) ?? seasons[0] ?? null;
@@ -338,16 +344,25 @@ export function draftHistoryView(
         ? 1
         : 0),
   );
-  const picks = league.players
-    .filter((p) => p.drafted?.season === chosen)
-    .sort((a, b) => a.drafted!.pick - b.drafted!.pick)
-    .map((p) => {
-      const d = p.drafted!;
-      const started = seasonsStarted(p);
+  // Players still in the league, and history cards for those long gone (Phase 13).
+  const people = [
+    ...league.players.map((p) => ({ p, card: null as FormerPlayer | null })),
+    ...league.formerPlayers.map((c) => ({ p: null as Player | null, card: c })),
+  ].filter((x) => (x.p ?? x.card)!.drafted?.season === chosen);
+  const picks = people
+    .sort((a, b) => (a.p ?? a.card)!.drafted!.pick - (b.p ?? b.card)!.drafted!.pick)
+    .map(({ p, card }) => {
+      const who = (p ?? card)!;
+      const d = who.drafted!;
+      const started = p ? seasonsStarted(p) : card!.seasonsStarted;
       const expected =
         Math.round(realCareerStarts(d.pick) * Math.min(1, played / R.careerSeasons) * 10) / 10;
-      const history = perceiveHistory(league, p, viewer);
-      const peak = history.length ? Math.max(...history.map((h) => h.overall)) : null;
+      const history = p ? perceiveHistory(league, p, viewer) : [];
+      const peak = p
+        ? history.length
+          ? Math.max(...history.map((h) => h.overall))
+          : null
+        : card!.peak;
       let grade: DraftHistoryView["picks"][number]["grade"];
       if (played < R.minSeasons) grade = "Too early";
       else if (d.round <= 2 && started === 0 && played >= R.bustSeasons) grade = "Bust";
@@ -355,17 +370,17 @@ export function draftHistoryView(
       else if (started >= expected) grade = "Hit";
       else if (started >= expected - R.fairMargin) grade = "Fair";
       else grade = "Miss";
-      const team = p.teamId ? teamName(league, p.teamId) : null;
+      const team = p?.teamId ? teamName(league, p.teamId) : null;
       return {
         overall: d.pick,
         round: d.round,
         teamId: d.teamId,
-        player: { id: p.id, name: name(p), position: p.position },
+        player: { id: who.id, name: name(who), position: who.position },
         now:
-          p.retiredAfter !== null
-            ? `Retired after ${p.retiredAfter}`
+          who.retiredAfter !== null
+            ? `Retired after ${who.retiredAfter}`
             : team
-              ? p.teamId === d.teamId
+              ? p!.teamId === d.teamId
                 ? `With ${team}`
                 : `Now with ${team}`
               : "Free agent",

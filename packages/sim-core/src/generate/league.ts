@@ -2,6 +2,7 @@
  * Creates a complete fictional league from a seed: 32 teams, 90-man rosters,
  * coaching staffs, and draft picks. Same seed -> byte-identical league.
  */
+import { generateExecutives } from "../front-office/executives";
 import { generateAgents } from "../people/agents";
 import { emptyScouting } from "../scouting/config";
 import {
@@ -73,6 +74,7 @@ export function createLeague(options: NewLeagueOptions): League {
           depthChart: { auto: true, slots: {} },
           stadium: stadiumFor(id),
           cap: emptyTeamCap(),
+          plan: null,
         });
       }
     }
@@ -143,6 +145,11 @@ export function createLeague(options: NewLeagueOptions): League {
     prospects: [],
     freeAgentMoves: [],
     disputes: [],
+    executives: [],
+    formerPlayers: [],
+    executiveMoves: [],
+    tradeHistory: [],
+    tradeOffers: [],
     agents: generateAgents(options.seed),
     negotiations: [],
     freeAgency: null,
@@ -166,8 +173,14 @@ export function createLeague(options: NewLeagueOptions): League {
       draftPick: draftPicks.length,
       transaction: 1,
       decision: 0,
+      executive: 0,
+      tradeOffer: 0,
     },
   };
+
+  // A GM and an owner for every team (Phase 13).
+  league.executives = generateExecutives(options.seed, teamIds, season, date);
+  league.nextIds.executive = league.executives.length;
 
   // A fictional league has a past: play a placeholder version of the season
   // before the first one, so schedules, same-place games, the draft order and

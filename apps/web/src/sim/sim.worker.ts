@@ -61,7 +61,16 @@ import {
   developmentReportView,
   injuryReportView,
   makeRosterMove,
-  makeTrade,
+  proposeTrade,
+  tradeAnswer,
+  frontOfficeView,
+  powerRankingsView,
+  leagueOverview,
+  executiveView,
+  formerPlayerView,
+  tradeOffersView,
+  respondToOffer,
+  setController,
   previewTradeDeal,
   rosterManagementView,
   tradeAssetsView,
@@ -256,6 +265,33 @@ const handlers: Handlers = {
     runAction(league, action, { onStep: progress, onGame: keepPlays(logs) });
     await saveWithPlays(league, logs);
     return calendarView(league);
+  },
+
+  async simSeason() {
+    const league = requireLeague();
+    const logs: PlayLog[] = [];
+    // To the end of this season (from wherever it is), then into the next offseason.
+    if (league.calendar.stage !== "complete")
+      runAction(league, "season-end", { onStep: progress, onGame: keepPlays(logs) });
+    runAction(league, "next-season", { onStep: progress });
+    await saveWithPlays(league, logs);
+    return calendarView(league);
+  },
+
+  powerRankingsView() {
+    return powerRankingsView(requireLeague());
+  },
+
+  leagueOverview() {
+    return leagueOverview(requireLeague());
+  },
+
+  formerPlayerView({ id }) {
+    return formerPlayerView(requireLeague(), id);
+  },
+
+  executiveView({ id }) {
+    return executiveView(requireLeague(), id);
   },
 
   async playGameNow({ gameId }) {
@@ -457,12 +493,42 @@ const handlers: Handlers = {
     return previewTradeDeal(requireLeague(), a, b);
   },
 
+  tradeAnswer({ a, b }) {
+    return tradeAnswer(requireLeague(), a, b);
+  },
+
   async makeTrade({ a, b }) {
     const league = requireLeague();
-    makeTrade(league, a, b, "League office trade (any two teams, until GM Mode in Phase 14).");
-    const message = league.transactions.at(-1)!.text;
+    // The other team's GM must agree (Phase 13).
+    const message = proposeTrade(league, a, b);
     open = { saved: await save(league, open!.saved), league };
     return { message };
+  },
+
+  frontOfficeView({ teamId }) {
+    return frontOfficeView(requireLeague(), teamId);
+  },
+
+  tradeOffersView({ teamId }) {
+    return tradeOffersView(requireLeague(), teamId);
+  },
+
+  async respondToOffer({ offerId, accept }) {
+    const league = requireLeague();
+    const message = respondToOffer(league, offerId, accept);
+    open = { saved: await save(league, open!.saved), league };
+    return { message };
+  },
+
+  async setController({ teamId, human }) {
+    const league = requireLeague();
+    setController(league, teamId, human);
+    open = { saved: await save(league, open!.saved), league };
+    return {
+      message: human
+        ? `You now answer ${teamId}'s trade offers.`
+        : `${teamId}'s GM answers its trade offers again.`,
+    };
   },
 
   async capMove({ playerId, kind }) {

@@ -17,6 +17,9 @@ export const SCOUTING = {
   snapsPerSeason: 150,
   /** A team sees its own players more clearly (it coaches them every day). */
   ownTeam: 0.5,
+  /** The GM's eye (Phase 13): his department's error shrinks by this share per 50 skill points
+   * above the league's average GM, and grows below it. Judgment. */
+  gmEye: 0.25,
   /** Prospects: study points that halve the uncertainty's square. */
   pointsToHalve: 40,
   /** A scouting department one skill step (see SKILL_POINTS_PER_STEP) better is this much clearer. */

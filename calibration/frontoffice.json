@@ -1,0 +1,96 @@
+{
+  "trades": {
+    "seasons": [2015, 2025],
+    "perYear": 82.3,
+    "byType": {
+      "picksOnly": 31.8,
+      "playersForPicks": 26.3,
+      "playersForPlayers": 3,
+      "mixed": 21.2
+    },
+    "byWindow": {
+      "beforeLeagueYear": 1.7,
+      "leagueYearToDraft": 12.4,
+      "draft": 35,
+      "summer": 1.4,
+      "camp": 18.5,
+      "season": 13.4
+    },
+    "playersPerYear": 58.3,
+    "playerAge": {
+      "p10": 24,
+      "p25": 25,
+      "p50": 26,
+      "p75": 29,
+      "p90": 31
+    },
+    "playersByGroup": {
+      "DB": 10.6,
+      "DL": 7.5,
+      "LB": 7.2,
+      "OL": 9,
+      "QB": 6,
+      "RB": 3.3,
+      "ST": 1.5,
+      "TE": 3,
+      "WR": 9.4,
+      "other": 0.8
+    },
+    "picksPerYear": 193.8,
+    "pickRounds": {
+      "1": 15.5,
+      "2": 20.6,
+      "3": 23.5,
+      "4": 28.2,
+      "5": 32.8,
+      "6": 37.1,
+      "7": 34.9
+    },
+    "futurePickShare": 0.344,
+    "pickOnlyPrice": {
+      "trades": 338,
+      "p25": 1.296,
+      "median": 1.418,
+      "p75": 1.557
+    },
+    "note": "Trades 2015-2025 from nflverse/nfldata trades.csv, by the year of the trade date. Windows by date: before March 10 (agreed before the League Year), to April 20, the draft (to May 12), summer (to July 20), camp and cuts (to September 8), the season. Ages are the year of the trade minus the birth year. pickOnlyPrice repeats draft.json's draft-day price spread (value given by the team moving up over value received): the real spread of overpays."
+  },
+  "parity": {
+    "seasons": [2002, 2025],
+    "winShareSd": 0.192,
+    "winShareCorrelation": 0.332,
+    "playoffRepeatRate": 0.524,
+    "worstToPlayoffsRate": 0.254,
+    "championsPerDecade": {
+      "mean": 7.53,
+      "min": 6,
+      "max": 9
+    },
+    "playoffRunsOf5PerTeamDecade": 0.169,
+    "losingRunsOf4PerTeamDecade": 0.391,
+    "longestPlayoffRun": 11,
+    "longestLosingRun": 12,
+    "note": "Regular-season win share and postseason games 2002-2025 from nflverse schedules, franchises that moved counted as one (OAK/LV, SD/LAC, STL/LA). Worst = 5 or fewer wins in 16 games (or the same share). A run is five or more straight playoff seasons, or four or more straight seasons under .500; per team per ten seasons."
+  },
+  "executives": {
+    "gmChangesPerYear": {
+      "mean": 4.5,
+      "range": [3, 7]
+    },
+    "inSeasonGmFiringsPerYear": 0.4,
+    "note": "Judgment from news coverage of the 2021-25 hiring cycles: four new GMs in 2021, 2022, 2024 and 2025 among those still in place in 2025, one in 2023, plus hires since replaced; in-season GM firings about one every two or three years (2023, 2024). Sources: Pro Football Rumors, 'The NFL's longest-tenured GMs' (July 2025); NFL.com coaching and GM tracker (2025 cycle)."
+  },
+  "cap": {
+    "season": 2026,
+    "deadMoneyShare": {
+      "p10": 0.001,
+      "p25": 0.002,
+      "p50": 0.03,
+      "p75": 0.099,
+      "p90": 0.145
+    },
+    "teamsAbove15Pct": 2,
+    "teamsAbove10Pct": 8,
+    "note": "Dead money as a share of the 2026 cap across the 32 teams, from each team's public cap page as archived near Feb 9, 2026 (private input; only the spread is kept). 'Cap hell' here: more than 15% of the cap dead."
+  }
+}

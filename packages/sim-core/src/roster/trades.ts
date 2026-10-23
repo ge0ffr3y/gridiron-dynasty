@@ -152,7 +152,7 @@ export function previewTradeDeal(league: League, a: TradeSide, b: TradeSide): Tr
   if (problems.length === 0) {
     apply(copy, a, b, "preview");
     // The rules both teams must meet afterwards (cap and roster limits).
-    for (const issue of rosterProblems(copy))
+    for (const issue of rosterProblems(copy, [a.teamId, b.teamId]))
       if (issue.startsWith(a.teamId) || issue.startsWith(b.teamId)) problems.push(issue);
   }
   const now = [before(copy, a.teamId), before(copy, b.teamId)] as const;

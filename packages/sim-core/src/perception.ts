@@ -119,6 +119,19 @@ function prospectSubject(league: League, p: Prospect): Subject {
 }
 
 /** A team's scouting department: how much clearer (below 1) or blurrier its reads are. */
+const GM_SKILL = new WeakMap<League, { key: string; mean: number }>();
+/** The average judging skill of the league's GMs (cached per date). */
+function typicalGmSkill(league: League): number {
+  const hit = GM_SKILL.get(league);
+  if (hit && hit.key === league.date) return hit.mean;
+  const skills = league.executives.flatMap((e) =>
+    e.role === "GM" && e.teamId !== null && e.retiredAfter === null && e.gm ? [e.gm.skill] : [],
+  );
+  const mean = skills.length ? skills.reduce((a, b) => a + b, 0) / skills.length : 55;
+  GM_SKILL.set(league, { key: league.date, mean });
+  return mean;
+}
+
 function departmentFactor(league: League, teamId: string): number {
   const team = league.teams.find((t) => t.id === teamId);
   const scouts = league.coaches.filter((c) => c.teamId === teamId && c.role === "SCOUT");
@@ -126,7 +139,16 @@ function departmentFactor(league: League, teamId: string): number {
     ? scouts.reduce((a, c) => a + c.ratings.scouting, 0) / scouts.length
     : leagueTypical(league, "SCOUT", "scouting");
   const step = skillStep(skill, leagueTypical(league, "SCOUT", "scouting"));
-  return (1 - step * SCOUTING.skillEffect) * SCOUTING.budget[team?.scouting.budget ?? "normal"];
+  // The GM's own eye (Phase 13): a skilled GM sharpens his department's reads a little.
+  const gm = league.executives.find(
+    (e) => e.role === "GM" && e.teamId === teamId && e.retiredAfter === null,
+  )?.gm;
+  // Measured against the league's GMs today, so owners hiring skilled GMs over the decades
+  // doesn't sharpen the whole league's reads.
+  const eye = gm ? 1 - SCOUTING.gmEye * ((gm.skill - typicalGmSkill(league)) / 50) : 1;
+  return (
+    (1 - step * SCOUTING.skillEffect) * SCOUTING.budget[team?.scouting.budget ?? "normal"] * eye
+  );
 }
 
 /** Study points on a player: the viewer team's, or the league's average for the office. */
@@ -325,23 +347,57 @@ export function perceiveChange(
   };
 }
 
-// A viewer's read of players' overalls, kept while nothing changes (same date, no new
-// transactions): free agency and contract talks ask for the same reads many times.
+// A viewer's read of players' overalls, kept while nothing that changes it moves: the date (games,
+// study, scouts) and the development rounds (ratings change only in them), with the player's team
+// in each entry (his own team reads him better). Free agency, contract talks and the trade market
+// ask for the same reads many times.
 const OVERALLS = new WeakMap<League, { key: string; reads: Map<string, number> }>();
+
+/** When cached reads go stale: a new date or a new development round. */
+export function readsKey(league: League): string {
+  return `${league.date}:${league.development.length}`;
+}
 
 /** The viewer's read of a player's overall at his position (cached; see perceivePlayer). */
 export function readOverall(league: League, player: Player, viewer: Viewer): number {
-  const key = `${league.date}:${league.transactions.length}`;
+  const key = readsKey(league);
   let cache = OVERALLS.get(league);
   if (!cache || cache.key !== key) {
     cache = { key, reads: new Map() };
     OVERALLS.set(league, cache);
   }
-  const id = `${viewer.kind === "team" ? viewer.teamId : "office"}:${player.id}`;
+  const id = `${viewer.kind === "team" ? viewer.teamId : "office"}:${player.id}:${player.teamId}`;
   let overall = cache.reads.get(id);
   if (overall === undefined) {
     overall = perceivePlayer(league, player, viewer).overall;
     cache.reads.set(id, overall);
   }
   return overall;
+}
+
+const FULL_READS = new WeakMap<
+  League,
+  { key: string; reads: Map<string, { overall: number; potential: number }> }
+>();
+
+/** The viewer's read of a player's overall and potential (cached like `readOverall`). */
+export function readPlayer(
+  league: League,
+  player: Player,
+  viewer: Viewer,
+): { overall: number; potential: number } {
+  const key = readsKey(league);
+  let cache = FULL_READS.get(league);
+  if (!cache || cache.key !== key) {
+    cache = { key, reads: new Map() };
+    FULL_READS.set(league, cache);
+  }
+  const id = `${viewer.kind === "team" ? viewer.teamId : "office"}:${player.id}:${player.teamId}`;
+  let read = cache.reads.get(id);
+  if (!read) {
+    const seen = perceivePlayer(league, player, viewer);
+    read = { overall: seen.overall, potential: seen.potential.estimate };
+    cache.reads.set(id, read);
+  }
+  return read;
 }

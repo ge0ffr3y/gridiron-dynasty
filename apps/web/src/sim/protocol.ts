@@ -26,6 +26,13 @@ import type {
   RosterManagementView,
   RosterMoveKind,
   TradeAssets,
+  TradeAnswer,
+  FrontOfficeView,
+  PowerRow,
+  LeagueOverview,
+  ExecutiveView,
+  FormerPlayerView,
+  TradeOffersView,
   TradePreview,
   TradeSide,
   TransactionsView,
@@ -143,8 +150,28 @@ export interface SimApi {
   tradeAssets(params: { teamId: string }): TradeAssets;
   /** What a trade would do to both teams (changes nothing). */
   previewTrade(params: { a: TradeSide; b: TradeSide }): TradePreview;
-  /** Makes a legal trade (saved). Returns what happened. */
+  /** The other team's answer to a proposal (`a` proposes, `b` answers): reasons and a counter. */
+  tradeAnswer(params: { a: TradeSide; b: TradeSide }): TradeAnswer;
+  /** Makes a trade the other team's AI accepts (saved). Returns what happened. */
   makeTrade(params: { a: TradeSide; b: TradeSide }): { message: string };
+  /** A team's front office: GM, owner, where it stands, needs, recent trades (Phase 13). */
+  frontOfficeView(params: { teamId: string }): FrontOfficeView;
+  /** Power rankings (Phase 13b). */
+  powerRankingsView(params: Record<string, never>): PowerRow[];
+  /** Simulation Mode's overview: champions, titles, streaks, every GM, front-office moves. */
+  leagueOverview(params: Record<string, never>): LeagueOverview;
+  /** A long-gone player's history card (Phase 13). */
+  formerPlayerView(params: { id: number }): FormerPlayerView;
+  /** A GM's or an owner's page. */
+  executiveView(params: { id: number }): ExecutiveView;
+  /** Plays to the end of the season and into the next offseason (saved): one step of "Sim N seasons". */
+  simSeason(params: Record<string, never>): CalendarView;
+  /** Trade offers waiting for a person-run team. */
+  tradeOffersView(params: { teamId: string }): TradeOffersView;
+  /** Accept or decline an offer (saved). */
+  respondToOffer(params: { offerId: number; accept: boolean }): { message: string };
+  /** Run a team's trade decisions yourself (offers come to you) or hand them to its AI (saved). */
+  setController(params: { teamId: string; human: boolean }): { message: string };
   /** Whose eyes the screens see through, and the teams to choose from. */
   viewingOptions(params: Record<string, never>): ViewingOptions;
   /** Switches "Viewing as" (null: the league office's consensus). Saved. */

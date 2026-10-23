@@ -1,6 +1,7 @@
 import { RngStreams } from "@fgm/foundation";
 import {
   ArrowLeftRight,
+  FastForward,
   BookOpen,
   CalendarClock,
   Dumbbell,
@@ -43,6 +44,8 @@ import { DevelopmentPage } from "@/pages/DevelopmentPage";
 import { InjuriesPage } from "@/pages/InjuriesPage";
 import { CoachPage } from "@/pages/CoachPage";
 import { TradePage } from "@/pages/TradePage";
+import { SimulationPage } from "@/pages/SimulationPage";
+import { ExecutivePage } from "@/pages/ExecutivePage";
 import { TransactionsPage } from "@/pages/TransactionsPage";
 import { GamePage } from "@/pages/GamePage";
 import { HistoryPage } from "@/pages/HistoryPage";
@@ -80,6 +83,7 @@ const NAV: NavItem[] = [
   { label: "Calendar", icon: CalendarClock, href: "/calendar", needsLeague: true },
   { label: "Transactions", icon: ScrollText, href: "/transactions", needsLeague: true },
   { label: "Trades", icon: ArrowLeftRight, href: "/trade", needsLeague: true },
+  { label: "Simulation", icon: FastForward, href: "/simulation", needsLeague: true },
   { label: "Training camp", icon: Dumbbell, href: "/camp", needsLeague: true },
   { label: "Injuries", icon: HeartPulse, href: "/injuries", needsLeague: true },
   { label: "Development", icon: TrendingUp, href: "/development", needsLeague: true },
@@ -276,6 +280,18 @@ function Shell() {
               {(params) => (
                 <NeedsLeague>
                   <PlayerPage playerId={Number(params.id)} />
+                </NeedsLeague>
+              )}
+            </Route>
+            <Route path="/simulation">
+              <NeedsLeague>
+                <SimulationPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/executive/:id">
+              {(params) => (
+                <NeedsLeague>
+                  <ExecutivePage id={Number(params.id)} />
                 </NeedsLeague>
               )}
             </Route>

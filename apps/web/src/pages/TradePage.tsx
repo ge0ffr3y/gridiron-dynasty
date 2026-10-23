@@ -1,10 +1,11 @@
 /**
  * The trade builder: two teams, the players and picks each sends, and both
  * teams' cap room and roster count before and after, checked against the rules
- * before you confirm. Until GM Mode the league office can trade for any team;
- * AI teams don't judge offers yet (Phase 13).
+ * before you confirm. The league office proposes for the left team (until GM
+ * Mode); the right team's GM answers, with reasons and what it would want
+ * instead (Phase 13). Offers from AI teams to a person-run team wait below.
  */
-import { formatShort, type TradePreview, type TradeSide } from "@fgm/sim-core";
+import { formatShort, type TradeAnswer, type TradePreview, type TradeSide } from "@fgm/sim-core";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { RoomChange } from "@/components/ContractPanel";
@@ -146,6 +147,7 @@ export function TradePage() {
   const [a, setA] = useState<TradeSide>({ teamId: "", players: [], picks: [] });
   const [b, setB] = useState<TradeSide>({ teamId: "", players: [], picks: [] });
   const [preview, setPreview] = useState<TradePreview | null>(null);
+  const [answer, setAnswer] = useState<TradeAnswer | null>(null);
   const [done, setDone] = useState<string>();
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -163,6 +165,13 @@ export function TradePage() {
       (p) => live && setPreview(p),
       (e) => live && setError(String(e)),
     );
+    const empty = a.players.length + a.picks.length + b.players.length + b.picks.length === 0;
+    if (empty) setAnswer(null);
+    else
+      call("tradeAnswer", { a, b }).then(
+        (x) => live && setAnswer(x),
+        (e) => live && setError(String(e)),
+      );
     return () => {
       live = false;
     };
@@ -190,7 +199,7 @@ export function TradePage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Trade builder"
-        subtitle="Players and draft picks between any two teams. Until GM Mode the league office can make any legal trade; AI teams start judging offers in Phase 13."
+        subtitle="Players and draft picks between two teams. The league office proposes for the left team (until GM Mode); the right team's GM decides, with his reasons."
       />
       {done && (
         <p className="rounded-md border border-primary/40 bg-accent p-3 text-sm">
@@ -217,6 +226,7 @@ export function TradePage() {
           teams={list}
         />
       </div>
+      <OffersInbox teamId={a.teamId} />
       {preview && (
         <Card>
           <CardHeader>
@@ -238,8 +248,42 @@ export function TradePage() {
                 ))}
               </ul>
             )}
+            {answer && preview.legal && (
+              <div
+                className={`rounded-md border p-3 text-sm ${answer.accept ? "border-primary/40 bg-accent" : "border-destructive/40"}`}
+              >
+                <div className="font-medium">
+                  {answer.accept ? `${b.teamId}'s GM says yes.` : `${b.teamId}'s GM says no.`}
+                </div>
+                <div className="text-muted-foreground">{answer.reason}</div>
+                <div className="mt-2 grid gap-2 md:grid-cols-2">
+                  <ValueList title={`What ${b.teamId} sees coming in`} items={answer.view.gets} />
+                  <ValueList title={`What ${b.teamId} sees going out`} items={answer.view.gives} />
+                </div>
+                {!answer.accept && answer.counterText && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    <span>{answer.counterText}</span>
+                    {answer.counter && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setA({
+                            ...a,
+                            players: [...a.players, ...answer.counter!.players],
+                            picks: [...a.picks, ...answer.counter!.picks],
+                          })
+                        }
+                      >
+                        Add what they asked for
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             <div>
-              <Button disabled={!preview.legal || busy} onClick={confirm}>
+              <Button disabled={!preview.legal || busy || !answer?.accept} onClick={confirm}>
                 Make this trade
               </Button>
             </div>
@@ -247,5 +291,105 @@ export function TradePage() {
         </Card>
       )}
     </div>
+  );
+}
+
+function ValueList({
+  title,
+  items,
+}: {
+  title: string;
+  items: { label: string; value: number; why: string }[];
+}) {
+  return (
+    <div>
+      <div className="text-xs font-medium text-muted-foreground">{title}</div>
+      {items.length === 0 && <div className="text-xs">Nothing.</div>}
+      {items.map((x) => (
+        <div key={x.label} className="text-xs">
+          <span className="tabular-nums">{x.value.toFixed(1)}</span> {x.label}{" "}
+          {x.why !== x.label && <span className="text-muted-foreground">({x.why})</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Offers from AI teams to the left team, when a person answers its offers. */
+function OffersInbox({ teamId }: { teamId: string }) {
+  const view = useSim("tradeOffersView", { teamId }, useLeagueKey(`offers:${teamId}`));
+  const { bump } = useSession();
+  const [message, setMessage] = useState<string>();
+  const [error, setError] = useState<string>();
+  if (!view.data) return null;
+  const { human, offers } = view.data;
+  const act = async (fn: () => Promise<{ message: string }>) => {
+    setError(undefined);
+    try {
+      setMessage((await fn()).message);
+      bump();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Offers to {teamId}</CardTitle>
+        <CardDescription>
+          {human
+            ? "You answer this team's trade offers: AI teams send them here as they look for deals. Each expires after a week."
+            : "This team's GM answers its own offers. Take them over to see AI teams' offers here."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3 text-sm">
+        <div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => act(() => call("setController", { teamId, human: !human }))}
+          >
+            {human ? "Hand offers back to its GM" : "Answer this team's offers myself"}
+          </Button>
+        </div>
+        {message && <p className="text-muted-foreground">{message}</p>}
+        {error && <ErrorNote message={error} />}
+        {human && offers.length === 0 && (
+          <p className="text-muted-foreground">
+            No offers yet. AI teams look for deals as days pass.
+          </p>
+        )}
+        {offers.map((o) => (
+          <div key={o.id} className="rounded-md border p-3">
+            <div className="font-medium">
+              From {o.from}: you get {o.get.join(", ") || "nothing"}; you give{" "}
+              {o.give.join(", ") || "nothing"}.
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {o.reason} · {o.status === "open" ? `open until ${o.expires}` : o.status}
+            </div>
+            {o.status === "open" && (
+              <div className="mt-2 flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => act(() => call("respondToOffer", { offerId: o.id, accept: true }))}
+                >
+                  Accept
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    act(() => call("respondToOffer", { offerId: o.id, accept: false }))
+                  }
+                >
+                  Decline
+                </Button>
+              </div>
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 }

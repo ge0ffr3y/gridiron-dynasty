@@ -86,6 +86,17 @@ export { marketSeason, REAL_MOVEMENT, type MarketSeason } from "./contracts/mark
 export * from "./people/morale";
 export * from "./people/disputes";
 export * from "./people/views";
+export * from "./front-office/executives";
+export * from "./front-office/evaluate";
+export * from "./front-office/strategy";
+export * from "./front-office/tradeValue";
+export * from "./front-office/tradeAI";
+export * from "./front-office/tradeMarket";
+export * from "./front-office/tradeReport";
+export * from "./front-office/views";
+export * from "./front-office/owners";
+export * from "./front-office/balanceReport";
+export * from "./lifecycle/archive";
 // Draft day (Phase 11b).
 export * from "./draft/views";
 export { draftAction, tradeOffers, type DraftAction, type TradeOffer } from "./draft/day";

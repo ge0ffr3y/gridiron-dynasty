@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 16;
+export const LEAGUE_FORMAT_VERSION = 18;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -252,6 +252,35 @@ export const MeasurablesSchema = z.object({
   shuttle: z.number().nullable(),
 });
 
+/**
+ * A player long gone from the league (Phase 13): retired, or a free agent unsigned, for four
+ * seasons or more. He leaves the player list (which the sim scans all the time) and keeps this
+ * short card for history: draft history, old transactions and his page.
+ */
+export const FormerPlayerSchema = z.object({
+  id: z.number().int().nonnegative(),
+  firstName: z.string(),
+  lastName: z.string(),
+  position: PositionSchema,
+  college: z.string(),
+  birthDate: IsoDate,
+  drafted: DraftInfoSchema.nullable(),
+  experience: z.number().int().nonnegative(),
+  retiredAfter: z.number().int().nullable(),
+  /** First and last seasons in the league, and his age in the last. */
+  firstSeason: z.number().int(),
+  lastSeason: z.number().int(),
+  lastAge: z.number().int(),
+  /** Teams he played for, in order. */
+  teams: z.array(z.string()),
+  /** Seasons he was a regular starter (for draft grades). */
+  seasonsStarted: z.number().int().nonnegative(),
+  /** His best season's overall as the league office read it. */
+  peak: z.number().int(),
+  /** Career totals (regular season). */
+  career: StatLineSchema,
+});
+
 export const PlayerSchema = z.object({
   id: z.number().int().nonnegative(),
   firstName: z.string(),
@@ -480,6 +509,95 @@ export const CoachingMoveSchema = z.object({
   reason: z.string(),
 });
 
+/** Front-office philosophies (Phase 13): the archetype a GM's knobs sit nearest. */
+export const GM_ARCHETYPES = [
+  "analytics",
+  "win-now",
+  "draft-and-develop",
+  "cap-aggressive",
+  "trade-happy",
+  "conservative",
+] as const;
+/** A team's read of where it stands (Phase 13). */
+export const TEAM_STANCES = ["contend", "retool", "rebuild"] as const;
+export const EXECUTIVE_ROLES = ["GM", "owner"] as const;
+
+/**
+ * A general manager's knobs (Phase 13), each -1..1 with 0 typical: how much he discounts the
+ * future (1 = win now), how much he trusts models over scouts and veterans, how freely he pushes
+ * money into later years, how keen he is to trade, how loyal to his own players, how much risk
+ * he takes; and his skill at judging players, 0-100.
+ */
+export const GmStyleSchema = z.object({
+  futureDiscount: z.number().min(-1).max(1),
+  analytics: z.number().min(-1).max(1),
+  capAggression: z.number().min(-1).max(1),
+  tradeAppetite: z.number().min(-1).max(1),
+  loyalty: z.number().min(-1).max(1),
+  risk: z.number().min(-1).max(1),
+  skill: Score,
+});
+
+/** An owner's character (Phase 13), each -1..1 with 0 typical; meddling 0..1. */
+export const OwnerStyleSchema = z.object({
+  patience: z.number().min(-1).max(1),
+  /** Willingness to spend cash (and to carry dead money). */
+  budget: z.number().min(-1).max(1),
+  /** How often he overrules his GM and coaches. */
+  meddling: z.number().min(0).max(1),
+  /** How high he sets the bar. */
+  ambition: z.number().min(-1).max(1),
+});
+
+/** A general manager or an owner (Phase 13). */
+export const ExecutiveSchema = z.object({
+  id: z.number().int().nonnegative(),
+  firstName: z.string(),
+  lastName: z.string(),
+  role: z.enum(EXECUTIVE_ROLES),
+  teamId: z.string().nullable(),
+  birthDate: IsoDate,
+  gm: GmStyleSchema.nullable(),
+  owner: OwnerStyleSchema.nullable(),
+  /** The season he took this job (or first ran a team). */
+  hiredSeason: z.number().int(),
+  /** The last season of a GM's contract (owners: null). */
+  contractThrough: z.number().int().nullable(),
+  /** How the league regards him, 0-100. */
+  reputation: z.number().min(0).max(100),
+  /** A line per season: the team he ran and its record. */
+  career: z.array(
+    z.object({
+      season: z.number().int(),
+      teamId: z.string().nullable(),
+      role: z.enum(EXECUTIVE_ROLES),
+      record: z
+        .object({ wins: z.number().int(), losses: z.number().int(), ties: z.number().int() })
+        .nullable(),
+      playoffs: z.boolean(),
+    }),
+  ),
+  retiredAfter: z.number().int().nullable(),
+});
+
+/** A front-office move (Phase 13): hired, fired, retired, with its reason. */
+export const ExecutiveMoveSchema = z.object({
+  season: z.number().int(),
+  date: IsoDate,
+  kind: z.enum(["fired", "hired", "retired", "left"]),
+  executiveId: z.number().int(),
+  teamId: z.string().nullable(),
+  role: z.enum(EXECUTIVE_ROLES),
+  text: z.string(),
+  reason: z.string(),
+});
+
+/** One side of a trade proposal: players and picks a team sends. */
+export const TradePackageSchema = z.object({
+  players: z.array(z.number().int()),
+  picks: z.array(z.number().int()),
+});
+
 export const StadiumSchema = z.object({
   roof: z.enum(["dome", "outdoor", "retractable"]),
   /** For a retractable roof: the share of games it's open when the weather allows. */
@@ -561,6 +679,21 @@ export const TeamSchema = z.object({
      */
     board: z.array(z.number().int()).nullable(),
   }),
+  /**
+   * The GM's read of where the team stands (Phase 13): contend, retool or rebuild, with the
+   * reasons, roster strength now and in two years, and projected cap room for three seasons.
+   */
+  plan: z
+    .object({
+      stance: z.enum(TEAM_STANCES),
+      season: z.number().int(),
+      date: IsoDate,
+      strength: z.number(),
+      future: z.number(),
+      capRoom: z.array(z.number()),
+      reasons: z.array(z.string()),
+    })
+    .nullable(),
 });
 
 /**
@@ -762,9 +895,11 @@ export const TransactionSchema = z.object({
 });
 
 export const DecisionRequestSchema = z.object({
-  kind: z.literal("placeholder"),
+  /** "trade-offer" (Phase 13): another team offers a trade; `offerId` names it. */
+  kind: z.enum(["placeholder", "trade-offer"]),
   prompt: z.string(),
   options: z.array(z.string()).min(1),
+  offerId: z.number().int().optional(),
 });
 
 export const PendingDecisionSchema = z.object({
@@ -908,6 +1043,45 @@ export const LeagueSchema = z.object({
       response: z.string(),
     }),
   ),
+  /** Players long gone (Phase 13): short history cards, out of the player list. */
+  formerPlayers: z.array(FormerPlayerSchema),
+  /** General managers and owners (Phase 13), past and present. */
+  executives: z.array(ExecutiveSchema),
+  /** Front-office moves (Phase 13), oldest first. */
+  executiveMoves: z.array(ExecutiveMoveSchema),
+  /**
+   * Trades and how each side valued them (Phase 13), kept for three seasons: the trade AI's
+   * memory, so a run of small one-way deals with the same partner gets refused.
+   */
+  tradeHistory: z.array(
+    z.object({
+      season: z.number().int(),
+      date: IsoDate,
+      teams: z.tuple([z.string(), z.string()]),
+      /** Each side's value of what it gave and got, in its own eyes (draft career value). */
+      gave: z.tuple([z.number(), z.number()]),
+      got: z.tuple([z.number(), z.number()]),
+      /** What each side sent, as a neutral judge (true ratings, no biases) values it. */
+      neutral: z.tuple([z.number(), z.number()]),
+      /** Who started it: an AI team, the league office, or an AI offer accepted by a person. */
+      source: z.enum(["ai", "office", "offer"]),
+    }),
+  ),
+  /** Trade offers waiting for an answer from a person-run team (Phase 13). */
+  tradeOffers: z.array(
+    z.object({
+      id: z.number().int().nonnegative(),
+      date: IsoDate,
+      expires: IsoDate,
+      fromTeamId: z.string(),
+      toTeamId: z.string(),
+      /** What the offering team sends, and what it wants back. */
+      give: TradePackageSchema,
+      get: TradePackageSchema,
+      reason: z.string(),
+      status: z.enum(["open", "accepted", "declined", "expired"]),
+    }),
+  ),
   /** One summary per completed season, oldest first. */
   history: z.array(SeasonHistorySchema),
   transactions: z.array(TransactionSchema),
@@ -930,6 +1104,8 @@ export const LeagueSchema = z.object({
     draftPick: z.number().int(),
     transaction: z.number().int(),
     decision: z.number().int(),
+    executive: z.number().int(),
+    tradeOffer: z.number().int(),
   }),
 });
 
@@ -960,3 +1136,10 @@ export type GameResult = NonNullable<Game["result"]>;
 export type Calendar = z.infer<typeof CalendarSchema>;
 export type SeasonHistory = z.infer<typeof SeasonHistorySchema>;
 export type PlayoffExit = (typeof PLAYOFF_EXITS)[number];
+export type Executive = z.infer<typeof ExecutiveSchema>;
+export type ExecutiveMove = z.infer<typeof ExecutiveMoveSchema>;
+export type GmStyle = z.infer<typeof GmStyleSchema>;
+export type OwnerStyle = z.infer<typeof OwnerStyleSchema>;
+export type TradePackage = z.infer<typeof TradePackageSchema>;
+export type TeamPlan = NonNullable<Team["plan"]>;
+export type FormerPlayer = z.infer<typeof FormerPlayerSchema>;

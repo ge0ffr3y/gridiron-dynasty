@@ -13,6 +13,7 @@
  *    restructures first, then releases, each with its reason.
  * 5. Thin rosters sign free agents to minimum deals (until Phase 8).
  */
+import { aggressiveRestructures } from "../front-office/strategy";
 import { overallAt, Rng, streamSeed, type Dollars } from "@fgm/foundation";
 import { POSITIONS } from "@fgm/foundation";
 import type { Contract, League, Player } from "../league/schema";
@@ -172,6 +173,8 @@ export function openLeagueYear(league: League): void {
   }
 
   releaseToMarket(league, expiring);
+  // Cap-aggressive GMs buy room now and pay later (Phase 13).
+  aggressiveRestructures(league);
   // Free agency opens: day one includes the deals agreed in the negotiating period (Phase 12).
   startFreeAgency(league);
   freeAgencyRound(league, 1);

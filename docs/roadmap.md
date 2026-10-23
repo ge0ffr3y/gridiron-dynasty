@@ -473,23 +473,23 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** 32 distinct AI front offices run the league for a century, and the trade AI can't be fleeced.
 
 ### Steps
-- [ ] **GM philosophies** as parameter sets: analytics-driven, win-now, draft-and-develop, cap-aggressive, trade-happy, conservative
-- [ ] **Team evaluation:** needs by position, contention window (contend / retool / rebuild), multi-year cap outlook
-- [ ] **Offseason AI:** re-sign / tag / cut decisions, free agency strategy, draft boards, extensions, restructures (cap-aggressive teams use void years and pay later)
-- [ ] **Trade AI:** player value (age, production, contract surplus value, position), pick value, needs; proposes and evaluates trades with reasons
-- [ ] **Anti-exploit test suite:** a bot tries known fleecing patterns (two-for-one junk deals, injured players, contract dumps, pick-swap tricks, repeated small trades) and must fail
-- [ ] **In-season AI:** waiver claims, injury replacements, trade-deadline buying and selling
-- [ ] **Owners:** patience, budget, meddling, expectations; they hire and fire GMs and coaches with recorded reasons
-- [ ] **Balance check:** no philosophy dominates absurdly; cap-aggressive teams sometimes land in cap hell
-- [ ] **Simulation Mode UI:** hands-off start, sim N seasons, league overview, power rankings, GM and owner pages
-- [ ] **100-season stability run** in the headless runner
+- [x] **GM philosophies** as parameter sets: analytics-driven, win-now, draft-and-develop, cap-aggressive, trade-happy, conservative *(13a: six knobs, labeled by the nearest archetype; real 2025 GMs measured from their teams' trades, draft-day moves and dead money, private)*
+- [x] **Team evaluation:** needs by position, contention window (contend / retool / rebuild), multi-year cap outlook *(13a: the GM's own read now and in two years, record, quarterback, three-year cap room, with reasons; re-read at the League Year, camp and the deadline)*
+- [x] **Offseason AI:** re-sign / tag / cut decisions, free agency strategy, draft boards, extensions, restructures (cap-aggressive teams use void years and pay later) *(13a/13b: limits and budgets by GM and stance, draft boards from the GM, void-year restructures, early extensions; cap-aggressive GMs restructure 3-4x as often and land in cap hell 7-10% of seasons vs. 1-4% for conservative ones)*
+- [x] **Trade AI:** player value (age, production, contract surplus value, position), pick value, needs; proposes and evaluates trades with reasons *(13a: about 79-81 trades a year vs. real 82, by stretch of the year and price mix within a few of real; answers and counters with reasons; offers to person-run teams)*
+- [x] **Anti-exploit test suite:** a bot tries known fleecing patterns (two-for-one junk deals, injured players, contract dumps, pick-swap tricks, repeated small trades) and must fail *(13a: `exploits.test.ts`, hundreds of legal attempts against every team; none clearly lopsided by a neutral judge)*
+- [x] **In-season AI:** waiver claims, injury replacements, trade-deadline buying and selling *(13b: injured starters create needs; contenders buy and rebuilders sell, busiest the deadline week; in-season trades 12-13 a year vs. real 13.4)*
+- [x] **Owners:** patience, budget, meddling, expectations; they hire and fire GMs and coaches with recorded reasons *(13b: 4.2-4.8 GM changes a year vs. real 4.5; head-coach changes 7.8 and 1.4 vs. 7.2 and 1.65)*
+- [x] **Balance check:** no philosophy dominates absurdly; cap-aggressive teams sometimes land in cap hell *(13b: `--frontoffices`; win share by type 0.45-0.57 across seeds; cap hell 7-10% for cap-aggressive and win-now)*
+- [x] **Simulation Mode UI:** hands-off start, sim N seasons, league overview, power rankings, GM and owner pages *(13b: `/simulation` and `/executive/:id`; checked in the browser over 8 seasons; every team is AI-run by default)*
+- [x] **100-season stability run** in the headless runner *(13b: seed 7, every roster legal after every move; it found a cap bug and a name-pool hang, both fixed; history cards made it 3.5x faster)*
 - [ ] **🚀 Release v0.3** (Simulation Mode)
 
 ### Done when
-- [ ] 100 seasons run with no crashes, every team cap- and roster-legal throughout
-- [ ] Dynasties and rebuilds both happen; different GM types build visibly different teams
-- [ ] The anti-exploit suite finds no clearly lopsided trade that the AI accepts
-- [ ] AI owners fire and hire people for reasons you can read
+- [x] 100 seasons run with no crashes, every team cap- and roster-legal throughout *(38 minutes headless, 0 rule breaks, 0 schedule problems)*
+- [x] Dynasties and rebuilds both happen; different GM types build visibly different teams *(partly: runs of 7-11 playoff seasons and 12-15 losing seasons happen, and types differ clearly in cap hell, spending, trades and restructures; but seasons carry over less than real (r 0.20 vs. 0.33) and five-year playoff runs come about two-thirds as often)*
+- [x] The anti-exploit suite finds no clearly lopsided trade that the AI accepts
+- [x] AI owners fire and hire people for reasons you can read *(front-office moves on `/simulation` and each GM's page)*
 
 > [!example]- Kickoff prompt
 > "Phase 13: build AI GMs with distinct philosophies, team evaluation, full offseason and in-season AI, a trade AI with value models and reasons, an anti-exploit test suite, AI owners who hire and fire, and the Simulation Mode screens. Run a 100-season stability check. Plan first."

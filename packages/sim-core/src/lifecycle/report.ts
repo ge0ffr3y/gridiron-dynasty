@@ -118,10 +118,17 @@ function careerSpan(p: Player): { first: number; last: number; lastAge: number }
  */
 export function careerSummary(league: League, from: number, to: number): CareerSummary[] {
   const groups = new Map<string, { seasons: number[]; ages: number[] }>();
-  for (const p of league.players) {
-    const span = careerSpan(p);
+  // Players still in the league, and history cards for those long gone (Phase 13).
+  const people = [
+    ...league.players.map((p) => ({ position: p.position, span: careerSpan(p) })),
+    ...league.formerPlayers.map((c) => ({
+      position: c.position,
+      span: { first: c.firstSeason, last: c.lastSeason, lastAge: c.lastAge },
+    })),
+  ];
+  for (const { position, span } of people) {
     if (!span || span.first < from || span.first > to) continue;
-    const g = careerGroup(p.position);
+    const g = careerGroup(position);
     const entry = groups.get(g) ?? { seasons: [], ages: [] };
     entry.seasons.push(span.last - span.first + 1);
     entry.ages.push(span.lastAge);

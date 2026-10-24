@@ -1,3 +1,4 @@
+import { CoachTree } from "@/pages/HistoryPages";
 import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -199,6 +200,19 @@ export function CoachPage({ coachId }: { coachId: number }) {
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Coaching tree</CardTitle>
+          <CardDescription>
+            Coaches who worked under him and went on to coordinate or lead teams, and theirs in
+            turn. Click a name to open his page.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CoachTree coachId={coachId} />
         </CardContent>
       </Card>
 

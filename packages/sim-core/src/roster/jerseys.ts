@@ -2,8 +2,8 @@
  * Jersey numbers on a team are unique (Phase 8b). Players who join a team
  * keep their number if it's free; otherwise they take the first free number
  * in their position's usual range (generate/config.ts). The longest-serving
- * player keeps a contested number. No randomness: the same roster always
- * gets the same numbers.
+ * player keeps a contested number; retired numbers stay off the roster. No
+ * randomness: the same roster always gets the same numbers.
  */
 import { JERSEY_RANGES } from "../generate/config";
 import type { League, Player } from "../league/schema";
@@ -29,8 +29,11 @@ export function assignJerseys(
     else byTeam.set(p.teamId, [p]);
   }
   let changed = 0;
-  for (const roster of byTeam.values()) {
-    const taken = new Set<number>();
+  for (const [teamId, roster] of byTeam) {
+    // A team's retired numbers (Phase 15) are never handed out again.
+    const taken = new Set<number>(
+      league.retiredNumbers.filter((r) => r.teamId === teamId).map((r) => r.number),
+    );
     // Veterans first, then by id: they keep their numbers.
     for (const p of roster.sort((a, b) => b.experience - a.experience || a.id - b.id)) {
       if (taken.has(p.jersey)) {

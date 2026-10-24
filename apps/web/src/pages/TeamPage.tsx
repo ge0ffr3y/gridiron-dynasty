@@ -1,3 +1,4 @@
+import { TeamHistory } from "@/pages/HistoryPages";
 import { Fragment, useState } from "react";
 import { Link } from "wouter";
 import type { TeamView } from "@fgm/sim-core";
@@ -40,7 +41,8 @@ type Tab =
   | "staff"
   | "picks"
   | "locker"
-  | "office";
+  | "office"
+  | "history";
 
 export function TeamPage({ teamId }: { teamId: string }) {
   const view = useSim("teamView", { teamId }, useLeagueKey(String(teamId)));
@@ -88,6 +90,7 @@ export function TeamPage({ teamId }: { teamId: string }) {
             ["staff", "Staff"],
             ["locker", "Locker room"],
             ["picks", "Draft picks"],
+            ["history", "History"],
             ["stats", "Stats"],
           ] as [Tab, string][]
         ).map(([id, label]) => (
@@ -120,6 +123,7 @@ export function TeamPage({ teamId }: { teamId: string }) {
       {tab === "manage" && <RosterManager teamId={teamId} />}
 
       {tab === "moves" && <TransactionsPage teamId={teamId} />}
+      {tab === "history" && <TeamHistory teamId={teamId} />}
 
       {tab === "stats" && (
         <div className="grid gap-4 md:grid-cols-2">

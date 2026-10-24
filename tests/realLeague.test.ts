@@ -15,6 +15,9 @@ import {
   overallAt,
   rosterProblems,
   parseLeague,
+  seasonAndCareerRecords,
+  recordsView,
+  almanacView,
   serializeLeague,
   startRealLeague,
   type League,
@@ -233,6 +236,31 @@ describe.skipIf(!ready)("the real league build", () => {
     300_000,
   );
 
+  it.skipIf(!existsSync(join(ROOT, "pipeline", "private", "history", "team-names.json")))(
+    "no committed code or data names a real team (nickname) or uses the league's trademarked name",
+    () => {
+      const { nicknames } = JSON.parse(
+        readFileSync(join(ROOT, "pipeline", "private", "history", "team-names.json"), "utf8"),
+      ) as { nicknames: string[] };
+      const pattern = new RegExp(
+        `\\b(${nicknames.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b|super ?bowl`,
+        "i",
+      );
+      const files = execSync("git ls-files", { cwd: ROOT })
+        .toString()
+        .split("\n")
+        .filter((f) => /\.(ts|tsx|json|css|html)$/.test(f) && !f.startsWith("package-lock"));
+      const found: string[] = [];
+      for (const f of files) {
+        const hit = readFileSync(join(ROOT, f), "utf8")
+          .split("\n")
+          .findIndex((line) => pattern.test(line));
+        if (hit >= 0) found.push(`${f}:${hit + 1}`);
+      }
+      expect(found).toEqual([]);
+    },
+  );
+
   it("no committed file contains a 2025 player's or coach's real full name", () => {
     const names = new Set<string>();
     for (const r of csv("roster_weekly_2025.csv.gz")) if (r.full_name) names.add(r.full_name);
@@ -250,4 +278,86 @@ describe.skipIf(!ready)("the real league build", () => {
     }
     expect(found).toEqual([]);
   }, 120_000);
+});
+
+describe.skipIf(!ready)("the real league's past (Phase 15)", () => {
+  const league: League = parseLeague(readFileSync(LEAGUE_FILE, "utf8"));
+
+  it("has every season since the first championship game (1966), with the real champions by franchise", () => {
+    expect(league.annals.map((a) => a.season)).toEqual(
+      Array.from({ length: 59 }, (_, i) => 1966 + i),
+    );
+    const titles = new Map<string, number>();
+    for (const a of league.annals) titles.set(a.championId!, (titles.get(a.championId!) ?? 0) + 1);
+    // Titles 1966-2024 by franchise (a club that moved or renamed is one franchise).
+    expect(titles.get("GB")).toBe(4);
+    expect(titles.get("PIT")).toBe(6);
+    expect(titles.get("NE")).toBe(6);
+    expect(titles.get("KC")).toBe(4);
+    expect(titles.get("LV")).toBe(3);
+    // 2025 is the league's own played-through season, so the almanac has every year once.
+    const seasons = almanacView(league).seasons.map((s) => s.season);
+    expect(new Set(seasons).size).toBe(seasons.length);
+    expect(seasons.at(-1)).toBe(1966);
+    expect(seasons[0]).toBe(2025);
+  });
+
+  it("has an MVP for every season, the Hall of Fame's classes, retired numbers and award winners tied to current players", () => {
+    for (let s = 1966; s <= 2025; s++)
+      expect(
+        league.awards.some((a) => a.season === s && a.award === "mvp"),
+        `${s} MVP`,
+      ).toBe(true);
+    const classes = new Map<number, number>();
+    for (const h of league.hallOfFame.filter((x) => x.kind === "player" && x.inducted >= 2006))
+      classes.set(h.inducted, (classes.get(h.inducted) ?? 0) + 1);
+    expect(classes.get(2026)).toBe(5);
+    expect(league.retiredNumbers.filter((r) => r.teamId === "CHI").length).toBe(14);
+    // The 2025 MVP is a player still on a roster, with his fictional name and a page.
+    const mvp = league.awards.find((a) => a.season === 2025 && a.award === "mvp")!;
+    const player = league.players.find((p) => p.id === mvp.playerId)!;
+    expect(`${player.firstName} ${player.lastName}`).toBe(mvp.name);
+  });
+
+  it("no real person's name appears anywhere in the league's past", () => {
+    const real = new Set<string>();
+    for (const r of csv("players.csv.gz")) {
+      if (r.display_name) real.add(norm(r.display_name));
+      if (r.first_name && r.last_name) real.add(norm(`${r.first_name} ${r.last_name}`));
+    }
+    const names = [
+      ...league.formerPlayers.map((c) => `${c.firstName} ${c.lastName}`),
+      ...league.awards.map((a) => a.name),
+      ...league.hallOfFame.map((h) => h.name),
+      ...league.retiredNumbers.map((r) => r.name),
+      ...league.records.flatMap((r) => r.top.map((e) => e.name)),
+    ];
+    expect(names.filter((n) => real.has(norm(n)))).toEqual([]);
+  });
+
+  it("a real record falls: a quarterback passes the single-season mark, the book keeps the old holder, and the feed says so", () => {
+    const l = parseLeague(readFileSync(LEAGUE_FILE, "utf8"));
+    const list = l.records.find(
+      (r) => r.scope === "league" && r.level === "season" && r.stat === "passYds",
+    )!;
+    const record = list.top[0]!;
+    expect(record.real).toBe(true);
+    const qb = l.players.find((p) => p.position === "QB" && p.teamId && p.experience > 2)!;
+    // He's 40 yards short of the mark this season... then throws for 100 more.
+    qb.stats = qb.stats.filter((s) => s.season !== l.season);
+    qb.stats.push({ season: l.season, teamId: qb.teamId!, line: { passYds: record.value - 40 } });
+    seasonAndCareerRecords(l, [qb]);
+    // (He's passed his own club's marks already; the league record is what's still ahead.)
+    const leagueStory = (n: { kind: string; headline: string }) =>
+      n.kind === "record" && n.headline.includes("the league record");
+    expect(l.news.some(leagueStory)).toBe(false);
+    qb.stats.find((s) => s.season === l.season)!.line.passYds = record.value + 60;
+    seasonAndCareerRecords(l, [qb]);
+    const after = recordsView(l).lists.find((x) => x.level === "season" && x.stat === "passYds")!;
+    expect(after.top[0]!.name).toBe(`${qb.firstName} ${qb.lastName}`);
+    expect(after.top[1]!.name).toBe(record.name);
+    expect(after.recentBreaks[0]!.previous).toContain(record.name);
+    const story = l.news.find((n) => leagueStory(n) && n.headline.includes(qb.lastName));
+    expect(story?.text).toContain(record.name);
+  });
 });

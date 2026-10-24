@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 19;
+export const LEAGUE_FORMAT_VERSION = 20;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -277,8 +277,14 @@ export const FormerPlayerSchema = z.object({
   seasonsStarted: z.number().int().nonnegative(),
   /** His best season's overall as the league office read it. */
   peak: z.number().int(),
-  /** Career totals (regular season). */
+  /** Career totals (regular season). Imported legends carry only what's known. */
   career: StatLineSchema,
+  /** The number he last wore (Phase 15; for retired numbers), if known. */
+  number: z.number().int().min(0).max(99).nullable(),
+  /** A real player from before the league began, imported with the real history (Phase 15). */
+  legend: z.boolean(),
+  /** Championships his teams won while he played for them (Phase 15). */
+  titles: z.number().int().nonnegative(),
 });
 
 export const PlayerSchema = z.object({
@@ -825,6 +831,172 @@ export const PLAYOFF_EXITS = [
   "champion",
 ] as const;
 
+// ---------------------------------------------------------------------------
+// League history (Phase 15)
+
+export const AWARD_KINDS = [
+  "mvp",
+  "opoy",
+  "dpoy",
+  "oroy",
+  "droy",
+  "comeback",
+  "coach",
+  "all-pro-1",
+  "all-pro-2",
+  "pro-bowl",
+] as const;
+
+/** One award line: a winner (place 1) or a runner-up in the vote; All-Pro and Pro Bowl spots. */
+export const AwardSchema = z.object({
+  season: z.number().int(),
+  award: z.enum(AWARD_KINDS),
+  place: z.number().int().positive(),
+  /** A player (current, or a history card) or a coach; null for people the league never had. */
+  playerId: z.number().int().nullable(),
+  coachId: z.number().int().nullable(),
+  name: z.string(),
+  position: z.string(),
+  teamId: z.string().nullable(),
+  /** Share of the vote, when known (0-1). */
+  share: z.number().nullable(),
+  reason: z.string(),
+  /** Imported from the real league's past. */
+  real: z.boolean(),
+});
+
+/** The stats the record book keeps. */
+export const RECORD_STATS = [
+  "passYds",
+  "passTd",
+  "rushYds",
+  "rushTd",
+  "rec",
+  "recYds",
+  "recTd",
+  "sacks",
+  "defInt",
+  "fgm",
+] as const;
+export const RECORD_LEVELS = ["game", "season", "career"] as const;
+
+export const RecordEntrySchema = z.object({
+  value: z.number(),
+  playerId: z.number().int().nullable(),
+  name: z.string(),
+  teamId: z.string().nullable(),
+  /** The season (game and season records) or last season (career). */
+  season: z.number().int().nullable(),
+  /** When it was set, if in the league (game records: the game's date). */
+  date: IsoDate.nullable(),
+  real: z.boolean(),
+});
+
+/** One record list: league-wide or a franchise's, at one level, for one stat. */
+export const RecordListSchema = z.object({
+  /** "league" or a team id. */
+  scope: z.string(),
+  level: z.enum(RECORD_LEVELS),
+  stat: z.enum(RECORD_STATS),
+  /** Best first. */
+  top: z.array(RecordEntrySchema),
+  /** Times the record changed hands in the league, newest last (kept short). */
+  broken: z.array(
+    z.object({
+      date: IsoDate,
+      season: z.number().int(),
+      value: z.number(),
+      name: z.string(),
+      playerId: z.number().int().nullable(),
+      previous: z.object({
+        value: z.number(),
+        name: z.string(),
+        season: z.number().int().nullable(),
+      }),
+    }),
+  ),
+});
+
+export const HallOfFamerSchema = z.object({
+  kind: z.enum(["player", "coach", "contributor"]),
+  playerId: z.number().int().nullable(),
+  coachId: z.number().int().nullable(),
+  executiveId: z.number().int().nullable(),
+  name: z.string(),
+  position: z.string(),
+  teams: z.array(z.string()),
+  /** The class he went in with. */
+  inducted: z.number().int(),
+  /** Years he waited after first being eligible (0 = first ballot), if known. */
+  waited: z.number().int().nullable(),
+  reason: z.string(),
+  real: z.boolean(),
+});
+
+export const RetiredNumberSchema = z.object({
+  teamId: z.string(),
+  number: z.number().int().min(0).max(99),
+  name: z.string(),
+  playerId: z.number().int().nullable(),
+  /** The season it was retired, if known. */
+  season: z.number().int().nullable(),
+  real: z.boolean(),
+});
+
+/** A season from before the league began (the real league's past), compact. */
+export const AnnalSchema = z.object({
+  season: z.number().int(),
+  championId: z.string().nullable(),
+  runnerUpId: z.string().nullable(),
+  /** The championship game's score (winner first), if known. */
+  final: z.tuple([z.number().int(), z.number().int()]).nullable(),
+  /** Each franchise that played (from 1970 on), under its city then. */
+  teams: z.array(
+    z.object({
+      teamId: z.string(),
+      city: z.string(),
+      wins: z.number().int(),
+      losses: z.number().int(),
+      ties: z.number().int(),
+      pointsFor: z.number().int(),
+      pointsAgainst: z.number().int(),
+      playoffs: z.boolean(),
+    }),
+  ),
+  /** Head coaches that season, if known (team id -> name). */
+  coaches: z.record(z.string(), z.string()),
+});
+
+export const NEWS_KINDS = [
+  "trade",
+  "signing",
+  "injury",
+  "record",
+  "milestone",
+  "race",
+  "streak",
+  "hot-seat",
+  "coaching",
+  "front-office",
+  "award",
+  "hall-of-fame",
+  "owner",
+  "draft",
+] as const;
+
+export const NewsItemSchema = z.object({
+  id: z.number().int(),
+  date: IsoDate,
+  season: z.number().int(),
+  week: z.number().int().nullable(),
+  kind: z.enum(NEWS_KINDS),
+  headline: z.string(),
+  text: z.string(),
+  teamIds: z.array(z.string()),
+  playerIds: z.array(z.number().int()),
+  link: z.string().nullable(),
+});
+
 export const SeasonHistorySchema = z.object({
   season: z.number().int(),
   championId: z.string(),
@@ -1159,6 +1331,22 @@ export const LeagueSchema = z.object({
   ),
   /** One summary per completed season, oldest first. */
   history: z.array(SeasonHistorySchema),
+  /** Seasons from before the league began (the real league's past, Phase 15), oldest first. */
+  annals: z.array(AnnalSchema),
+  /** Awards, every season (and the real past's winners), oldest first. */
+  awards: z.array(AwardSchema),
+  /** The record book (Phase 15). */
+  records: z.array(RecordListSchema),
+  hallOfFame: z.array(HallOfFamerSchema),
+  retiredNumbers: z.array(RetiredNumberSchema),
+  /** The newsfeed (Phase 15), this season's and last's, oldest first. */
+  news: z.array(NewsItemSchema),
+  /** Where the newsfeed has read up to in the league's logs. */
+  newsCursor: z.object({
+    transaction: z.number().int(),
+    coachingMove: z.number().int(),
+    executiveMove: z.number().int(),
+  }),
   transactions: z.array(TransactionSchema),
   /** The coaching carousel's moves (Phase 10b), oldest first. */
   coachingMoves: z.array(CoachingMoveSchema),
@@ -1183,6 +1371,7 @@ export const LeagueSchema = z.object({
     decision: z.number().int(),
     executive: z.number().int(),
     tradeOffer: z.number().int(),
+    news: z.number().int(),
   }),
 });
 
@@ -1220,5 +1409,15 @@ export type OwnerStyle = z.infer<typeof OwnerStyleSchema>;
 export type TradePackage = z.infer<typeof TradePackageSchema>;
 export type TeamPlan = NonNullable<Team["plan"]>;
 export type FormerPlayer = z.infer<typeof FormerPlayerSchema>;
+export type Award = z.infer<typeof AwardSchema>;
+export type AwardKind = (typeof AWARD_KINDS)[number];
+export type RecordStat = (typeof RECORD_STATS)[number];
+export type RecordLevel = (typeof RECORD_LEVELS)[number];
+export type RecordList = z.infer<typeof RecordListSchema>;
+export type RecordEntry = z.infer<typeof RecordEntrySchema>;
+export type HallOfFamer = z.infer<typeof HallOfFamerSchema>;
+export type RetiredNumber = z.infer<typeof RetiredNumberSchema>;
+export type Annal = z.infer<typeof AnnalSchema>;
+export type NewsItem = z.infer<typeof NewsItemSchema>;
 export type Career = z.infer<typeof CareerSchema>;
 export type DelegationArea = (typeof DELEGATION_AREAS)[number];

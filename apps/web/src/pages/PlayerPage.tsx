@@ -1,3 +1,4 @@
+import { HonorsCard } from "@/pages/HistoryPages";
 import { Link } from "wouter";
 import { ContractPanel } from "@/components/ContractPanel";
 import { RatingHistoryChart } from "@/components/RatingHistoryChart";
@@ -98,6 +99,8 @@ export function PlayerPage({ playerId }: { playerId: number }) {
           </div>
         </div>
       </div>
+
+      <HonorsCard honors={p.honors} />
 
       <Card>
         <CardContent>
@@ -352,6 +355,7 @@ function FormerPlayerPage({ id }: { id: number }) {
           </p>
         </CardContent>
       </Card>
+      <HonorsCard honors={c.honors} />
       <Card>
         <CardHeader>
           <CardTitle>Career totals</CardTitle>

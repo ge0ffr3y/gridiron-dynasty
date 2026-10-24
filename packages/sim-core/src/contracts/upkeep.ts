@@ -13,6 +13,7 @@
  *    restructures first, then releases, each with its reason.
  * 5. Thin rosters sign free agents to minimum deals (until Phase 8).
  */
+import { proBowls } from "../history/awards";
 import { aggressiveRestructures } from "../front-office/strategy";
 import { overallAt, Rng, streamSeed, type Dollars } from "@fgm/foundation";
 import { POSITIONS } from "@fgm/foundation";
@@ -214,7 +215,13 @@ function decideOption(league: League, p: Player, ranks: ReturnType<typeof market
     league,
     p.id,
     exercise,
-    fifthYearOptionSalary(league, p.position, option.season, shares),
+    fifthYearOptionSalary(
+      league,
+      p.position,
+      option.season,
+      shares,
+      proBowls(league, p.id, season - league.rules.cap.fifthYearOption.proBowlSeasons, season - 1),
+    ),
     exercise
       ? "He's a starter-level player: worth his option year."
       : "Not a starter-level player: the option year costs more than he's worth.",

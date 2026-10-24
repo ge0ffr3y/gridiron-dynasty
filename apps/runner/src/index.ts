@@ -15,9 +15,11 @@
  *   npm run sim -- --market 10 [--seed 42] [--league file]   free agency and contracts vs. the real market
  *   npm run sim -- --trades 10 [--seed 42] [--league file]   the trade market vs. real trades (counts, timing, prices)
  *   npm run sim -- --frontoffices 50 [--seed 42] [--league file]   GM types' results and the league's parity vs. real
+ *   npm run sim -- --history 20 [--seed 42] [--league file]   awards by position, Hall of Fame classes and records vs. real
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import REAL_DRAFT from "../../../calibration/draft.json";
+import REAL_AWARDS from "../../../calibration/awards.json";
 import { resolve } from "node:path";
 import {
   GAME_ENGINE_VERSION,
@@ -40,6 +42,7 @@ import {
   disputeSeason,
   REAL_DISPUTES,
   tradeSeason,
+  hallOfFameAudit,
   REAL_TRADES,
   REAL_EXECUTIVES,
   REAL_PARITY,
@@ -135,6 +138,12 @@ if (injuriesArg !== undefined) {
 const foArg = option(args, "--frontoffices");
 if (foArg !== undefined) {
   runFrontOffices(readSeed(args), Number(foArg), option(args, "--league"));
+  process.exit(0);
+}
+
+const historyArg = option(args, "--history");
+if (historyArg !== undefined) {
+  runHistoryReport(readSeed(args), Number(historyArg), option(args, "--league"));
   process.exit(0);
 }
 
@@ -972,6 +981,100 @@ function runFrontOffices(seed: number, count: number, file?: string): void {
   ).length;
   console.log(
     `\nGM changes ${(gmChanges / count).toFixed(2)} a year (real about ${REAL_EXECUTIVES.gmChangesPerYear.mean}).`,
+  );
+  const seconds = Number(process.hrtime.bigint() - started) / 1e9;
+  console.log(`${count} seasons in ${seconds.toFixed(0)} s.`);
+}
+
+/**
+ * The history check (Phase 15): plays seasons, then compares who wins each award (by position),
+ * the Hall of Fame's classes, and how often records fall, with the real league's shapes.
+ */
+function runHistoryReport(seed: number, count: number, file?: string): void {
+  if (!Number.isInteger(count) || count < 1)
+    throw new Error("--history must be a whole number of seasons");
+  const started = process.hrtime.bigint();
+  const league = file
+    ? fromFile(parseLeague(readFileSync(fromCaller(file), "utf8")), seed)
+    : createLeague({ seed, name: `League ${seed}` });
+  console.log(`\nHistory: ${count} seasons from seed ${seed}${file ? " (real league)" : ""}\n`);
+  const firstSeason = league.season;
+  for (let i = 0; i < count; i++) {
+    advanceUntil(league, (l) => l.calendar.stage === "complete");
+    advance(league);
+    if ((i + 1) % 5 === 0) console.log(`  ${i + 1} seasons...`);
+  }
+  const pct = (x: number) => `${Math.round(x * 100)}%`;
+  console.log("\nAward winners by position (sim | real since 1999)");
+  for (const award of ["mvp", "opoy", "dpoy", "oroy", "droy", "comeback"] as const) {
+    const wins = league.awards.filter((a) => a.award === award && a.place === 1 && !a.real);
+    const mix = new Map<string, number>();
+    for (const a of wins) mix.set(a.position, (mix.get(a.position) ?? 0) + 1);
+    const real = (REAL_AWARDS.winnerMix as Record<string, Record<string, number>>)[award] ?? {};
+    const keys = [...new Set([...mix.keys(), ...Object.keys(real)])].sort(
+      (a, b) => (mix.get(b) ?? 0) - (mix.get(a) ?? 0) || (real[b] ?? 0) - (real[a] ?? 0),
+    );
+    console.log(
+      `  ${award.padEnd(9)}${keys.map((k) => `${k} ${pct((mix.get(k) ?? 0) / Math.max(1, wins.length))}|${pct(real[k] ?? 0)}`).join("  ")}`,
+    );
+  }
+  const mvps = league.awards.filter((a) => a.award === "mvp" && a.place === 1 && !a.real);
+  const repeat = mvps.filter((a, i) =>
+    mvps.slice(0, i).some((b) => b.playerId === a.playerId),
+  ).length;
+  console.log(
+    `\nMVPs: ${new Set(mvps.map((a) => a.playerId)).size} different players in ${mvps.length} seasons (${repeat} repeat wins); winning teams averaged ${(
+      mvps.reduce((s, a) => {
+        const h = league.history
+          .find((x) => x.season === a.season)
+          ?.standings.find((x) => x.teamId === a.teamId);
+        return s + (h ? h.wins + h.ties / 2 : 8.5);
+      }, 0) / Math.max(1, mvps.length)
+    ).toFixed(1)} wins.`,
+  );
+  const classes = new Map<number, number>();
+  for (const h of league.hallOfFame.filter((x) => !x.real))
+    classes.set(h.inducted, (classes.get(h.inducted) ?? 0) + 1);
+  const sizes = [...classes.values()];
+  const H = league.rules.hallOfFame;
+  console.log(
+    `\nHall of Fame: ${league.hallOfFame.length} members in ${classes.size} classes (bylaws: ${H.classMin}-${H.classMax} a year; real players-only classes ${REAL_AWARDS.hallOfFame.playerClassMin}-${REAL_AWARDS.hallOfFame.playerClassMax}, mean ${REAL_AWARDS.hallOfFame.playerClassMean}). Sim classes: ${sizes.join(", ") || "none yet"}.`,
+  );
+  const waited = league.hallOfFame.filter((h) => !h.real).map((h) => h.waited ?? 0);
+  if (waited.length)
+    console.log(
+      `  first ballot ${pct(waited.filter((w) => w === 0).length / waited.length)}; waited an average ${(waited.reduce((a, b) => a + b, 0) / waited.length).toFixed(1)} years.`,
+    );
+  const audit = hallOfFameAudit(league);
+  console.log(
+    `  ${audit.eligible} eligible careers, ${audit.inducted} in; ${audit.topTwentyIn} of the twenty strongest are in (inducted cases: lowest ${audit.inductedScore.min.toFixed(1)}, average ${audit.inductedScore.mean.toFixed(1)}; best still out: ${audit.bestOut ? `${audit.bestOut.score.toFixed(1)}` : "none"}).`,
+  );
+  console.log(
+    `  retired numbers: ${league.retiredNumbers.length}; Hall of Famers' average All-Pro firsts: ${(
+      league.hallOfFame
+        .filter((h) => h.playerId !== null)
+        .reduce(
+          (s, h) =>
+            s +
+            league.awards.filter((a) => a.playerId === h.playerId && a.award === "all-pro-1")
+              .length,
+          0,
+        ) / Math.max(1, league.hallOfFame.filter((h) => h.playerId !== null).length)
+    ).toFixed(1)}.`,
+  );
+  const broken = league.records.flatMap((r) =>
+    r.broken.map((b) => ({ ...b, scope: r.scope, level: r.level })),
+  );
+  const bySeason = new Map<number, number>();
+  for (const b of broken.filter((x) => x.scope === "league"))
+    bySeason.set(b.season, (bySeason.get(b.season) ?? 0) + 1);
+  console.log(
+    `\nLeague records changing hands, season by season: ${Array.from({ length: count }, (_, i) => bySeason.get(firstSeason + i) ?? 0).join(" ")}.`,
+  );
+  const news = new Map<string, number>();
+  for (const n of league.news) news.set(n.kind, (news.get(n.kind) ?? 0) + 1);
+  console.log(
+    `Newsfeed (last two seasons, ${league.news.length} items): ${[...news].map(([k, v]) => `${k} ${v}`).join(", ")}.`,
   );
   const seconds = Number(process.hrtime.bigint() - started) / 1e9;
   console.log(`${count} seasons in ${seconds.toFixed(0)} s.`);

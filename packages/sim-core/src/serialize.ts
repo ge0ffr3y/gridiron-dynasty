@@ -2,6 +2,7 @@
  * The league file format: JSON with object keys in sorted order, so the same
  * league always produces exactly the same text (and the same fingerprint).
  */
+import { emptyHistory } from "./history/state";
 import { COACH_SKILL, ROLE_FOCUS } from "./coaches/config";
 import { drawStyle } from "./coaches/style";
 import { careerStart, fillStaff } from "./generate/coaches";
@@ -276,6 +277,24 @@ function upgrade(data: Record<string, unknown>): void {
     data["career"] = null;
     for (const e of (data["executives"] as Record<string, unknown>[]) ?? []) e["person"] = false;
     data["formatVersion"] = 19;
+  }
+  // Version 19 -> 20: league history (Phase 15). Older saves start their awards, record book, Hall
+  // of Fame and newsfeed from here on; the newsfeed starts after what's already happened.
+  if (data["formatVersion"] === 19) {
+    Object.assign(data, emptyHistory());
+    const ids = (data["transactions"] as { id: number }[]) ?? [];
+    data["newsCursor"] = {
+      transaction: ids.reduce((m, t) => Math.max(m, t.id), 0),
+      coachingMove: ((data["coachingMoves"] as unknown[]) ?? []).length,
+      executiveMove: ((data["executiveMoves"] as unknown[]) ?? []).length,
+    };
+    (data["nextIds"] as Record<string, number>)["news"] = 0;
+    for (const f of (data["formerPlayers"] as Record<string, unknown>[]) ?? []) {
+      f["number"] = null;
+      f["legend"] = false;
+      f["titles"] = 0;
+    }
+    data["formatVersion"] = 20;
   }
 }
 

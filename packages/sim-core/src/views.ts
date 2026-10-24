@@ -3,6 +3,7 @@
  * perception layer, so screens never see true ratings. Everything returned is
  * plain data that can cross from the worker to the page.
  */
+import { honorsOf, type Honors } from "./history/honors";
 import { capHit, span, totalValue } from "./contracts/contract";
 import { ageOn } from "@fgm/foundation";
 import { STARTERS } from "./generate/config";
@@ -176,6 +177,8 @@ export interface PlayerView {
   } | null;
   /** A knock he's playing through (listed Questionable). */
   knock: { part: string; since: string } | null;
+  /** Awards, Hall of Fame and retired number (Phase 15). */
+  honors: Honors;
   /** Every injury, newest first: when, what, where, and games he was expected to miss. */
   injuryHistory: { season: number; date: string; part: string; kind: string; games: number }[];
   /** His overall at the end of each season, oldest first, then where he stands now. */
@@ -577,6 +580,7 @@ export function playerView(league: League, playerId: number, viewer: Viewer): Pl
     name: `${player.firstName} ${player.lastName}`,
     position: player.position,
     positionName: POSITION_INFO[player.position].name,
+    honors: honorsOf(league, player.id),
     team: team ? teamCard(league, team) : null,
     jersey: player.jersey,
     age: ageOn(player.birthDate, league.date),

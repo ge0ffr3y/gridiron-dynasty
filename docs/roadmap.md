@@ -70,7 +70,7 @@ Decisions that block a phase. Record the answer here when made.
 | Is the generated real-league file published in the public repo, or built locally only? | Phase 6 | Built locally only (git-ignored), rebuilt by `npm run pipeline -- league`; revisit when the repo goes public (decided in Phase 6) |
 | Real college names for prospects, or fictional schools? | Phase 11 | Fictional schools, the same mapping as players' colleges; each school has a scouting region (decided in Phase 11a) |
 | Can more than one team be human-controlled? | Phase 14 | One person-run team for now. The owner has a long-range vision of multiplayer (see Stretch goals); decisions, delegation and the inbox are keyed by team so it stays possible (decided in Phase 14) |
-| How far back imported history goes (since 1920 vs. championship era + all-time record books) | Phase 15 | |
+| How far back imported history goes (since 1920 vs. championship era + all-time record books) | Phase 15 | The league's story from the first championship game (the 1966 season) on: champions, standings, awards, the Hall of Fame. Full player stats only from 1999 (what nflverse has); before that, only what still stands: league and franchise records (game, season, career) and award, All-Pro and Hall of Fame names. Owners read only the last ten real seasons; deeper history is for reading (decided in Phase 15) |
 | Fully fictional league as an alternative start? | Phase 1 | *Effectively yes: it's how we build Phases 1–5* (built in Phase 1) |
 | Release v0.1 timing | Phase 4 | When the repo goes public: README with screenshots, GitHub Pages deploy and the v0.1 tag together (decided after Phase 4b) |
 | Real contract data (OverTheCap, directly or via nflverse): how to use it | Phase 7 | Treated as private like the Madden file: archived cap pages and contract data stay in `pipeline/private/` and `pipeline/cache/`; only derived numbers reach the local league file, and only the fitted rookie scale (shares of the cap) is committed. Revisit with the public release (decided in Phase 7) |
@@ -526,20 +526,20 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** The league has a past and makes its own: awards, records, legends, and a newsfeed that tells the story.
 
 ### Steps
-- [ ] Decide history scope (Decisions log)
-- [ ] **Import real history** (renamed via the same mapping): champions, standings, award winners, Hall of Famers, all-time and single-season record books, franchise records
-- [ ] **Awards:** MVP, Offensive / Defensive Player of the Year, Offensive / Defensive Rookie of the Year, Coach of the Year, Comeback Player, All-Pro, Pro Bowl; voting that mimics media voters
-- [ ] **Record book** (game, season, career; team and league) with "record broken" events
-- [ ] **Hall of Fame voting** with real eligibility timing
-- [ ] Retired numbers, franchise history pages, dynasty and drought detection
-- [ ] **Coaching tree viewer** (family-tree style, reusing the phylogeny viewer idea)
-- [ ] **Newsfeed:** weekly storylines from real sim events (trades and reactions, signings, injuries, award races, hot seats, streaks)
-- [ ] Season recap pages
+- [x] Decide history scope (Decisions log) *(from the first championship game, the 1966 season; standing records at every level)*
+- [ ] **Import real history** (renamed via the same mapping): champions, standings, award winners, Hall of Famers, all-time and single-season record books, franchise records *(15a, partly: 59 seasons 1966-2024 with standings and champions, award winners and All-Pro teams since 1966, 292 Hall of Famers, 158 retired numbers, league record books (25 of 30 lists: the other five pages have no archived copy), franchise record books for 10 of 32 teams (the others have no readable public page; their books fill from the sim); the last three Pro Bowls)*
+- [x] **Awards:** MVP, Offensive / Defensive Player of the Year, Offensive / Defensive Rookie of the Year, Coach of the Year, Comeback Player, All-Pro, Pro Bowl; voting that mimics media voters *(15a: production z-scores, team record and the voters' habits by position, fitted to the real winners' mix; two 20-season runs land within about 15 points of it by position)*
+- [x] **Record book** (game, season, career; team and league) with "record broken" events *(15a: checked after every game and week; a broken record keeps its old holder and makes news)*
+- [x] **Hall of Fame voting** with real eligibility timing *(15a: five seasons' wait, 13 finalists plus a coach and a GM, 80% approval, 3-7 a class, all from the Hall's own pages)*
+- [x] Retired numbers, franchise history pages, dynasty and drought detection *(15a/15b)*
+- [x] **Coaching tree viewer** (family-tree style, reusing the phylogeny viewer idea) *(15b: drawn on each coach's page)*
+- [x] **Newsfeed:** weekly storylines from real sim events (trades and reactions, signings, injuries, award races, hot seats, streaks) *(15b)*
+- [x] Season recap pages *(15b: /season/:year)*
 
 ### Done when
-- [ ] After 20 seasons, the history pages read like a real league almanac
-- [ ] Breaking a real-era record (renamed) shows up in the newsfeed
-- [ ] Hall of Fame classes look right: the best careers get in
+- [x] After 20 seasons, the history pages read like a real league almanac *(`--history 20` on generated and real leagues; the almanac, recaps, records, team histories and newsfeed checked in the browser)*
+- [x] Breaking a real-era record (renamed) shows up in the newsfeed *(`tests/realLeague.test.ts`: a quarterback passes the real single-season mark; the book keeps the old holder)*
+- [x] Hall of Fame classes look right: the best careers get in *(all twenty strongest careers in after 16 classes; classes 3-7; about 56% first ballot against about a third in the real Hall)*
 
 > [!example]- Kickoff prompt
 > "Phase 15: import real league history through the pipeline (renamed), build awards voting, the record book with record-broken events, Hall of Fame voting, franchise histories, the coaching tree viewer, and a newsfeed generated from sim events. Plan first."

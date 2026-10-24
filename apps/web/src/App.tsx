@@ -14,6 +14,8 @@ import {
   FolderOpen,
   Handshake,
   Inbox,
+  Award,
+  Newspaper,
   UserRound,
   BookA,
   Home,
@@ -36,6 +38,7 @@ import { SessionProvider, useLeagueKey, useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { CalendarPage } from "@/pages/CalendarPage";
+import { NewsPage, RecordsPage, SeasonPage } from "@/pages/HistoryPages";
 import { CareerPage, GlossaryPage, InboxPage, StartCareerPage } from "@/pages/CareerPages";
 import { CampPage } from "@/pages/CampPage";
 import { DraftPage } from "@/pages/DraftPage";
@@ -86,6 +89,8 @@ const NAV: NavItem[] = [
   { label: "Leaders", icon: Medal, href: "/leaders", needsLeague: true },
   { label: "Playoffs", icon: Trophy, href: "/playoffs", needsLeague: true },
   { label: "History", icon: BookOpen, href: "/history", needsLeague: true },
+  { label: "Records", icon: Award, href: "/records", needsLeague: true },
+  { label: "Newsfeed", icon: Newspaper, href: "/news", needsLeague: true },
   { label: "Calendar", icon: CalendarClock, href: "/calendar", needsLeague: true },
   { label: "Transactions", icon: ScrollText, href: "/transactions", needsLeague: true },
   { label: "Trades", icon: ArrowLeftRight, href: "/trade", needsLeague: true },
@@ -305,6 +310,25 @@ function Shell() {
             <Route path="/inbox">
               <NeedsLeague>
                 <InboxPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/season/:year">
+              {(params) => (
+                <NeedsLeague>
+                  <SeasonPage season={Number(params.year)} />
+                </NeedsLeague>
+              )}
+            </Route>
+            <Route path="/records/:scope?">
+              {(params) => (
+                <NeedsLeague>
+                  <RecordsPage scope={params.scope} />
+                </NeedsLeague>
+              )}
+            </Route>
+            <Route path="/news">
+              <NeedsLeague>
+                <NewsPage />
               </NeedsLeague>
             </Route>
             <Route path="/career">

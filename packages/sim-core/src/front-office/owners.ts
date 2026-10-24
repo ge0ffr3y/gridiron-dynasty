@@ -13,6 +13,7 @@
  * Odds are tuned to the real turnover: about 4.5 new GMs a year (calibration/frontoffice.json),
  * while head-coach changes stay at 7.2 a year between seasons and 1.65 during them.
  */
+import { recentSeasons } from "../history/past";
 import { offersAfterReviews, reviewPerson } from "../career/job";
 import { addDays, ageOn, dmath, Rng, streamSeed } from "@fgm/foundation";
 import type { Executive, League } from "../league/schema";
@@ -102,9 +103,8 @@ export function ownerCoachTerm(league: League, teamId: string): number {
 /** Seasons in a row a team has missed the playoffs, ending with the last finished one. */
 function drought(league: League, teamId: string): number {
   let n = 0;
-  for (let i = league.history.length - 1; i >= 0; i--) {
-    const s = league.history[i]!.standings.find((x) => x.teamId === teamId);
-    if (!s || s.seed !== null) break;
+  for (const s of recentSeasons(league, teamId)) {
+    if (s.playoffs) break;
     n += 1;
   }
   return n;

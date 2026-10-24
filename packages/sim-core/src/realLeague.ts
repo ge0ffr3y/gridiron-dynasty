@@ -8,6 +8,8 @@
  * attributes, ratings for players with no rating source) is generated here
  * from a seed per person, so rebuilding gives the same league.
  */
+import { applyRealHistory, type RealHistoryInput } from "./history/real";
+import { emptyHistory } from "./history/state";
 import {
   applyRealFrontOffices,
   generateExecutives,
@@ -158,6 +160,8 @@ export interface RealLeagueInput {
   draftOrder?: { overall: number; round: number; teamId: string }[];
   /** Each team's front office as measured (Phase 13, private): GM habits and owner patience. */
   frontOffices?: Record<string, RealFrontOffice>;
+  /** The real past before the league began (Phase 15, private, renamed). */
+  history?: RealHistoryInput;
 }
 
 /** A seeded random stream for one person, independent of everyone else. */
@@ -371,6 +375,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     ],
     pendingDecisions: [],
     career: null,
+    ...emptyHistory(),
     rng: {},
     nextIds: {
       player: players.length,
@@ -380,6 +385,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
       decision: 0,
       executive: 0,
       tradeOffer: 0,
+      news: 0,
     },
   };
   // A GM and an owner for every team (Phase 13): generated people, the GMs' knobs moved to their
@@ -442,6 +448,14 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     seedSalaryHistory(league);
   }
   if (input.draftOrder?.length) applyRealDraftOrder(league, input.draftOrder);
+  if (input.history)
+    applyRealHistory(
+      league,
+      input.history,
+      new Map(
+        [...input.players].sort((a, b) => a.key.localeCompare(b.key)).map((p, i) => [p.key, i]),
+      ),
+    );
   // The 2026 draft class (the real one when the file has it), with scouts assigned (Phase 11).
   if (input.prospects?.length) {
     league.prospects = realClass(league, input.prospects, league.season);

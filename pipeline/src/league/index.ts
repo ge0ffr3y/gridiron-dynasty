@@ -58,6 +58,8 @@ import { alignSpecialists, buildRatings } from "./ratings";
 import { buildRoster, experienceAfter, mapPosition } from "./roster";
 import { sanitySheet } from "./sanity";
 import { seasonGames } from "./season";
+import { realPickTrades, realSchedule } from "./schedule";
+import { validateDayOne, type DayOneReport } from "./dayOne";
 
 /** The base league's seed. Each new real league in the app gets its own seed on top. */
 export const REAL_LEAGUE_SEED = 2026;
@@ -70,6 +72,7 @@ export async function buildLeague(): Promise<{
   report: string[];
   sheet: string;
   validation: CapValidation;
+  dayOne: DayOneReport;
 }> {
   await download();
   const report: string[] = [];
@@ -303,6 +306,8 @@ export async function buildLeague(): Promise<{
     prospects: prospectInputs,
     draftOrder: draftOrder2026,
     history,
+    schedule: realSchedule(games),
+    pickTrades: realPickTrades(`${SEASON + 1}-02-09`),
     ...(fronts ? { frontOffices: fronts } : {}),
     ...(snapshot
       ? {
@@ -403,6 +408,26 @@ export async function buildLeague(): Promise<{
   // The cap validation report: imported contracts vs. the published Feb 10, 2026 figures.
   report.push("", ...validation.lines);
 
+  // Day One (Phase 16): the league as built against the real facts, team by team.
+  const schedule2026 = realSchedule(games);
+  const pickTrades = realPickTrades(`${SEASON + 1}-02-09`);
+  const dayOne = validateDayOne(league, {
+    people,
+    contracts: contractRows,
+    teamNames: contractNames,
+    imported,
+    capValidation: validation,
+    headCoach: new Map(
+      coachInputs
+        .filter((c) => c.role === "HC")
+        .map((c) => [c.teamId, `${c.firstName} ${c.lastName}`]),
+    ),
+    draftOrder: draftOrder2026,
+    pickTrades,
+    schedule: schedule2026,
+  });
+  report.push("", ...dayOne.lines);
+
   // The unmatched report (real names: private).
   report.push("", "## Unmatched", "", `Roster rows skipped: ${roster.problems.length}`);
   for (const line of roster.problems) report.push(`- ${line}`);
@@ -443,11 +468,11 @@ export async function buildLeague(): Promise<{
     games,
     keyByName,
   });
-  return { league, report, sheet, validation };
+  return { league, report, sheet, validation, dayOne };
 }
 
 export async function league(): Promise<void> {
-  const { league, report, sheet, validation } = await buildLeague();
+  const { league, report, sheet, validation, dayOne } = await buildLeague();
   mkdirSync(OUT, { recursive: true });
   writeFileSync(join(OUT, "sanity.html"), sheet);
   // The cap validation's numbers, for the local tests (no names).
@@ -472,6 +497,8 @@ export async function league(): Promise<void> {
       2,
     ) + "\n",
   );
+  // Day One's per-team checks, for the local tests (team ids and numbers only).
+  writeFileSync(join(OUT, "day-one.json"), JSON.stringify(dayOne, null, 2) + "\n");
   writeFileSync(LEAGUE_FILE, serializeLeague(league));
   writeFileSync(join(OUT, "report.md"), report.join("\n") + "\n");
   mkdirSync(join(WEB_COPY, ".."), { recursive: true });

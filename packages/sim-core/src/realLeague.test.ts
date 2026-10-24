@@ -20,6 +20,7 @@ import {
 import { parseLeague, serializeLeague } from "./serialize";
 import { advanceUntil } from "./season/flow";
 import { winnerOf } from "./season/playoffs";
+import { rosterProblems } from "./roster/legality";
 
 /** A season "played for real": a fictional league's 2026 season, start to finish. */
 const played = createLeague({ seed: 61, name: "Source" });
@@ -138,4 +139,74 @@ describe("assembling a real league", () => {
     expect(() => startRealLeague(played, { name: "X", seed: 1 })).toThrow(/real-league/);
     // Two offseasons (free agency, the draft, camp) and a week each: longer than the default.
   }, 180_000);
+});
+
+describe("the first day of a real league (Phase 16)", () => {
+  const base: League = assembleRealLeague(input());
+
+  it("the file keeps the real season's games; a new game plays its own carousel and drops them", () => {
+    expect(base.priorSeason?.season).toBe(played.season);
+    expect(base.priorSeason?.games).toHaveLength(played.games.length);
+    const game = startRealLeague(base, { name: "G", seed: 3 });
+    expect(game.priorSeason).toBeNull();
+    // The carousel borrowed the calendar and gave it back.
+    expect(game.season).toBe(base.season);
+    expect(game.calendar).toEqual(base.calendar);
+    expect(game.date).toBe(base.date);
+    expect(game.games).toEqual(base.games);
+  });
+
+  it("the starting carousel is the same for a seed and differs across seeds", () => {
+    const moves = (seed: number) => {
+      const g = startRealLeague(base, { name: "G", seed });
+      return JSON.stringify([g.coachingMoves, g.executiveMoves]);
+    };
+    expect(moves(5)).toBe(moves(5));
+    const runs = [1, 2, 3, 4, 5, 6].map(moves);
+    expect(new Set(runs).size).toBeGreaterThan(1);
+    // Real leagues change about seven head coaches a year; across six games something happens.
+    expect(runs.some((r) => JSON.parse(r)[0].length > 0)).toBe(true);
+  });
+
+  it("every team has a head coach after the carousel, and the league stays legal", () => {
+    for (const seed of [11, 12, 13]) {
+      const g = startRealLeague(base, { name: "G", seed });
+      for (const t of g.teams)
+        expect(
+          g.coaches.filter((c) => c.teamId === t.id && c.role === "HC"),
+          t.id,
+        ).toHaveLength(1);
+      expect(rosterProblems(g)).toEqual([]);
+    }
+  });
+
+  it("uses the real schedule and moves later picks that were traded before the start", () => {
+    const generated = createLeague({ seed: 62, name: "Sched" });
+    const real = generated.games.map((g) => ({
+      week: g.week,
+      date: g.date.replace("2026", "2027"),
+      homeId: g.awayId, // flipped, so it can't be the league's own schedule by accident
+      awayId: g.homeId,
+      neutral: g.neutral,
+    }));
+    const [a, b] = base.teams.map((t) => t.id) as [string, string];
+    const league = assembleRealLeague({
+      ...input(),
+      schedule: real,
+      pickTrades: [
+        { id: 1, date: "2026-01-20", season: base.season + 1, round: 1, from: a, to: b },
+      ],
+    });
+    const ours = league.games.filter((g) => g.round === "regular");
+    expect(ours.map((g) => [g.week, g.homeId, g.awayId])).toEqual(
+      real.map((g) => [g.week, g.homeId, g.awayId]),
+    );
+    const firsts = (team: string) =>
+      league.draftPicks.filter(
+        (p) => p.season === base.season + 1 && p.round === 1 && p.ownerTeamId === team,
+      ).length;
+    expect(firsts(a)).toBe(0);
+    expect(firsts(b)).toBe(2);
+    expect(() => assembleRealLeague({ ...input(), schedule: real.slice(1) })).toThrow(/schedule/);
+  });
 });

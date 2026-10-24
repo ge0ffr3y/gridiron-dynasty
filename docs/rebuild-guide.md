@@ -64,7 +64,9 @@ stopped. Everything else takes minutes.
   free agents, so a team may be a player or two short);
 - **cap space** against the published figure (the cap report's tolerance applies);
 - **draft picks** for this year and next against the real order and the trades made before the start;
-- **pending free agents** against the real expiring contracts;
+- **contracts into the new season**: every player the real contracts file has under a deal signed
+  before the league year must have one in ours (the file is newer than the start date, so later
+  signings are ignored);
 - **opponents** against the real schedule: all 17, home or away;
 - **head coach** against the staffs file.
 

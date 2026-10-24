@@ -168,6 +168,7 @@ export function createLeague(options: NewLeagueOptions): League {
     ],
     pendingDecisions: [],
     career: null,
+    priorSeason: null,
     ...emptyHistory(),
     rng: {},
     nextIds: {

@@ -22,7 +22,13 @@ export function LeaguePage() {
       <PageHeader
         title={s.name}
         subtitle={`${s.season} · ${s.stage} · ${formatLeagueDate(s.date)}`}
-      />
+      >
+        {s.stage === "offseason" && (
+          <Link href="/start" className="text-sm underline">
+            Where things stand
+          </Link>
+        )}
+      </PageHeader>
 
       <Card>
         <CardContent>

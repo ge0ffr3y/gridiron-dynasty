@@ -36,6 +36,7 @@ import type {
   GmCareerView,
   CareerPageView,
   AlmanacView,
+  DayOneView,
   SeasonRecapView,
   RecordsView,
   TeamHistoryView,
@@ -200,6 +201,8 @@ export interface SimApi {
   takeJob(params: { teamId: string }): GmCareerView;
   /** Retire from GM Mode: the league carries on in Simulation Mode (saved). */
   retireCareer(params: Record<string, never>): GmCareerView;
+  /** "Where things stand": a new league's first day (Phase 16). */
+  dayOneView(params: Record<string, never>): DayOneView;
   /** The almanac: every season, franchises, dynasties, droughts and the Hall of Fame (Phase 15). */
   almanacView(params: Record<string, never>): AlmanacView;
   /** One season's recap: standings, playoffs, awards, leaders, records broken, news. */

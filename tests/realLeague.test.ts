@@ -20,6 +20,7 @@ import {
   almanacView,
   serializeLeague,
   startRealLeague,
+  dayOneView,
   type League,
 } from "@fgm/sim-core";
 import { describe, expect, it } from "vitest";
@@ -30,6 +31,7 @@ const CACHE = join(ROOT, "pipeline", "cache", "nflverse");
 const MADDEN = join(ROOT, "pipeline", "private", "madden", "ratings-2025.csv");
 const ready = existsSync(LEAGUE_FILE) && existsSync(join(CACHE, "players.csv.gz"));
 const CAP_VALIDATION = join(ROOT, "pipeline", "private", "out", "cap-validation.json");
+const DAY_ONE = join(ROOT, "pipeline", "private", "out", "day-one.json");
 
 /** Cap and roster legality (CLAUDE.md rule 9): every rule, as the sim checks it. */
 const capProblems = (league: League) => rosterProblems(league);
@@ -359,5 +361,80 @@ describe.skipIf(!ready)("the real league's past (Phase 15)", () => {
     expect(after.recentBreaks[0]!.previous).toContain(record.name);
     const story = l.news.find((n) => leagueStory(n) && n.headline.includes(qb.lastName));
     expect(story?.text).toContain(record.name);
+  });
+});
+
+describe.skipIf(!ready)("the real league's first day (Phase 16)", () => {
+  const league: League = ready ? parseLeague(readFileSync(LEAGUE_FILE, "utf8")) : (null as never);
+  const games = ready ? csv("games.csv.gz") : [];
+  const real = games.filter((g) => g.season === "2026" && g.game_type === "REG");
+
+  it.skipIf(real.length === 0)(
+    "the 2026 schedule is the real one: every game's week, opponent and home side",
+    () => {
+      const key = (home: string, away: string, week: string | number) => `${week}:${home}:${away}`;
+      const theirs = real.map((g) => key(team(g.home_team!), team(g.away_team!), g.week!)).sort();
+      const ours = league.games.map((g) => key(g.homeId, g.awayId, g.week)).sort();
+      expect(ours).toEqual(theirs);
+      for (const t of league.teams)
+        expect(
+          league.games.filter((g) => g.homeId === t.id || g.awayId === t.id),
+          t.id,
+        ).toHaveLength(17);
+    },
+  );
+
+  it("keeps the real 2025 games for the starting carousel, and a new game drops them", () => {
+    expect(league.priorSeason?.season).toBe(2025);
+    expect(league.priorSeason!.games.filter((g) => g.round === "regular")).toHaveLength(272);
+    expect(startRealLeague(league, { name: "G", seed: 1 }).priorSeason).toBeNull();
+  });
+
+  it("the Day One report passes for every team, or each miss is explained", () => {
+    expect(existsSync(DAY_ONE)).toBe(true);
+    const report = JSON.parse(readFileSync(DAY_ONE, "utf8")) as {
+      teams: { teamId: string; ok: boolean; checks: { name: string; ok: boolean }[] }[];
+      league: { name: string; ok: boolean }[];
+      passed: number;
+    };
+    expect(report.teams).toHaveLength(32);
+    expect(report.teams.filter((t) => !t.ok).map((t) => t.teamId)).toEqual([]);
+    expect(report.league.filter((c) => !c.ok)).toEqual([]);
+    // Nearly all pass outright; the rest are cap-space misses with a reason.
+    expect(report.passed).toBeGreaterThanOrEqual(24);
+    for (const t of report.teams)
+      for (const c of t.checks.filter((x) => !x.ok)) expect(c.name, t.teamId).toMatch(/cap space/);
+  });
+
+  it("2027 picks follow the trades made before the start: 224 in all, some teams with more or fewer than seven", () => {
+    const picks = league.draftPicks.filter((p) => p.season === 2027);
+    expect(picks).toHaveLength(224);
+    const owned = new Map<string, number>();
+    for (const p of picks) owned.set(p.ownerTeamId, (owned.get(p.ownerTeamId) ?? 0) + 1);
+    expect([...owned.values()].some((n) => n !== 7)).toBe(true);
+  });
+
+  it("a new game's carousel changes some head coaches, never the same ones for every seed, and stays legal", () => {
+    const headCoaches = (l: League) =>
+      l.teams.map((t) => l.coaches.find((c) => c.teamId === t.id && c.role === "HC")!.id);
+    const before = headCoaches(league);
+    const changed = [1, 2, 3].map((seed) => {
+      const g = startRealLeague(league, { name: "G", seed });
+      expect(capProblems(g)).toEqual([]);
+      return headCoaches(g)
+        .map((id, i) => (id === before[i] ? "" : String(id)))
+        .join(",");
+    });
+    expect(changed.every((c) => c.replace(/,/g, "") === "")).toBe(false);
+    expect(new Set(changed).size).toBeGreaterThan(1);
+  });
+
+  it("the first-day view reads: a champion, the top picks, the carousel's changes", () => {
+    const g = startRealLeague(league, { name: "G", seed: 4 });
+    const v = dayOneView(g);
+    expect(v.lastSeason?.champion).toBeTruthy();
+    expect(v.draft[0]!.overall).toBe(1);
+    expect(v.freeAgents.length).toBe(12);
+    expect(v.coaching.length).toBeGreaterThan(0);
   });
 });

@@ -127,6 +127,8 @@ export { careerPageView, type CareerPageView } from "./career/views";
 export { jobSecurity, ownerWatch, retireCareer, takeJob, type JobSecurity } from "./career/job";
 export { currentTips, dismissTip, type Tip } from "./career/tips";
 export { glossaryView, type GlossaryEntry } from "./career/glossary";
+// Day One (Phase 16)
+export { dayOneView, type DayOneView } from "./dayOne";
 // League history (Phase 15)
 export {
   almanacView,
@@ -147,3 +149,4 @@ export { honorsOf, type Honors } from "./history/honors";
 export type { RealHistoryInput, RealLegend } from "./history/real";
 export { hallOfFameAudit } from "./history/hallOfFame";
 export { seasonAndCareerRecords } from "./history/records";
+export type { RealScheduleGame, RealPickTrade } from "./realLeague";

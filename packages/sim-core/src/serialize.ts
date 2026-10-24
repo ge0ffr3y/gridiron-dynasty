@@ -296,6 +296,12 @@ function upgrade(data: Record<string, unknown>): void {
     }
     data["formatVersion"] = 20;
   }
+  // Version 20 -> 21: the real file's prior season for the starting carousel (Phase 16). Saves
+  // never carry one.
+  if (data["formatVersion"] === 20) {
+    data["priorSeason"] = null;
+    data["formatVersion"] = 21;
+  }
 }
 
 /** Set on an upgraded save whose teams still need their Phase 10 staff (removed before validation). */

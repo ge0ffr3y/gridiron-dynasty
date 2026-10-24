@@ -283,7 +283,7 @@ describe.skipIf(!ready)("the real league build", () => {
 });
 
 describe.skipIf(!ready)("the real league's past (Phase 15)", () => {
-  const league: League = parseLeague(readFileSync(LEAGUE_FILE, "utf8"));
+  const league: League = ready ? parseLeague(readFileSync(LEAGUE_FILE, "utf8")) : (null as never);
 
   it("has every season since the first championship game (1966), with the real champions by franchise", () => {
     expect(league.annals.map((a) => a.season)).toEqual(

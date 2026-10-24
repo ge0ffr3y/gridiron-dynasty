@@ -283,8 +283,21 @@ export function hireGm(
   mayReplaceCoach = true,
 ): Executive {
   const O = OWNERS;
+  // A club never takes back the general manager it just fired (this season's or last).
+  const justFired = new Set(
+    league.executiveMoves
+      .filter((m) => m.kind === "fired" && m.teamId === teamId && m.season >= league.season - 1)
+      .map((m) => m.executiveId),
+  );
   const pool = league.executives
-    .filter((e) => e.role === "GM" && e.teamId === null && e.retiredAfter === null && e.gm)
+    .filter(
+      (e) =>
+        e.role === "GM" &&
+        e.teamId === null &&
+        e.retiredAfter === null &&
+        e.gm &&
+        !justFired.has(e.id),
+    )
     .sort((a, b) => b.reputation - a.reputation || a.id - b.id)
     .slice(0, O.candidates);
   const fresh = newcomers(league, teamId);

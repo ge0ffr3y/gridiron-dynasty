@@ -55,6 +55,7 @@ import { SimulationPage } from "@/pages/SimulationPage";
 import { ExecutivePage } from "@/pages/ExecutivePage";
 import { TransactionsPage } from "@/pages/TransactionsPage";
 import { GamePage } from "@/pages/GamePage";
+import { DayOnePage } from "@/pages/DayOnePage";
 import { HistoryPage } from "@/pages/HistoryPage";
 import { HomePage } from "@/pages/HomePage";
 import { LeaguePage } from "@/pages/LeaguePage";
@@ -238,6 +239,11 @@ function Shell() {
             <Route path="/development">
               <NeedsLeague>
                 <DevelopmentPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/start">
+              <NeedsLeague>
+                <DayOnePage />
               </NeedsLeague>
             </Route>
             <Route path="/history">

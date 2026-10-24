@@ -551,16 +551,16 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** The real-league start is exactly right: the day after championship game LX, with everything as it actually stood.
 
 ### Steps
-- [ ] Start date is the day after the 2025 championship (Feb 9, 2026); Seattle champion, New England runner-up, playoff results stand
-- [ ] **Coaching staffs as of the end of the 2025 regular season**, so the real carousel's decisions happen in the sim instead
-- [ ] **Real 2026 free-agent class** (expiring contracts), **real 2026 draft order** including traded and compensatory picks, real 2026 opponents, the real 2026 cap
-- [ ] **Automated Day One validation report:** per team, roster size, cap space vs. real, picks owned vs. real, pending free agents vs. real
-- [ ] "Where things stand" intro screen for a new real-league save
-- [ ] **Rebuild guide:** how to rerun the pipeline for a 2027 start
+- [x] Start date is the day after the 2025 championship (Feb 9, 2026); Seattle champion, New England runner-up, playoff results stand *(the real file's 2025 season matches the real results, 29-13 in the final; tested against nflverse)*
+- [x] **Coaching staffs as of the end of the 2025 regular season**, so the real carousel's decisions happen in the sim instead *(each new game plays its own carousel on its seed: about 9.5 head coaches and 6.5 general managers change per start, against 7.2 and 4.5 in a typical real year; recorded in the devlog)*
+- [x] **Real 2026 free-agent class** (expiring contracts), **real 2026 draft order** including traded and compensatory picks, real 2026 opponents, the real 2026 cap *(draft order, 2027 trades, schedule and cap checked per team; the free-agent class is checked in one direction only: every real deal into 2026 exists in ours; players with minimum or practice-squad deals aren't in the real contracts file, so there is no independent real list to compare the rest with)*
+- [x] **Automated Day One validation report:** per team, roster size, cap space vs. real, picks owned vs. real, pending free agents vs. real *(`npm run pipeline -- league` writes `day-one.json` and a report section; contracts replace the pending-free-agent count for the reason above)*
+- [x] "Where things stand" intro screen for a new real-league save *(`/start`)*
+- [x] **Rebuild guide:** how to rerun the pipeline for a 2027 start *(`docs/rebuild-guide.md`; written from the code, not yet followed for a real 2027 build)*
 
 ### Done when
-- [ ] The validation report passes for all 32 teams (or lists explained exceptions)
-- [ ] The first screen of a new real-league save matches what a fan would expect on Feb 9, 2026 (renamed)
+- [x] The validation report passes for all 32 teams (or lists explained exceptions) *(25 pass outright; 7 miss only on cap space, each with its reason: the cap page was archived on another day than the published figure)*
+- [x] The first screen of a new real-league save matches what a fan would expect on Feb 9, 2026 (renamed) *(checked in the browser on the private league: Seattle over New England, the real top of the draft with traded picks marked, the cap room extremes, the carousel's changes; no screenshot committed)*
 
 > [!example]- Kickoff prompt
 > "Phase 16: make the real-league start exact. Set the start date and staffs, the real 2026 free-agent class, draft order with traded and compensatory picks, opponents, and cap. Build an automated per-team validation report against the real figures, an intro screen, and a pipeline rebuild guide. Plan first."

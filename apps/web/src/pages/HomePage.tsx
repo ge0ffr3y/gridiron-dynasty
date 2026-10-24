@@ -217,7 +217,8 @@ export function HomePage() {
         onOpenChange={setCreating}
         onCreated={(saved, mode) => {
           setLeague(saved);
-          navigate(mode === "gm" ? "/career/start" : "/league");
+          // A real league opens on "where things stand"; GM Mode's first stop is still the career page.
+          navigate(mode === "gm" ? "/career/start" : saved.kind === "real" ? "/start" : "/league");
         }}
       />
 

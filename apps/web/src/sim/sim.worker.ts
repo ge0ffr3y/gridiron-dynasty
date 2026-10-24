@@ -84,6 +84,7 @@ import {
   retireCareer,
   glossaryView,
   almanacView,
+  dayOneView,
   seasonRecapView,
   recordsView,
   teamHistoryView,
@@ -358,6 +359,10 @@ const handlers: Handlers = {
     retireCareer(league);
     open = { saved: await save(league, open!.saved), league };
     return gmCareerView(league);
+  },
+
+  dayOneView() {
+    return dayOneView(requireLeague());
   },
 
   almanacView() {

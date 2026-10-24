@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 20;
+export const LEAGUE_FORMAT_VERSION = 21;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -1362,6 +1362,12 @@ export const LeagueSchema = z.object({
   pendingDecisions: z.array(PendingDecisionSchema),
   /** GM Mode (Phase 14): the person's career, or null in Simulation Mode. */
   career: CareerSchema.nullable(),
+  /**
+   * The real league's starting file keeps the season it began after (Phase 16): its games let each
+   * new game run its own coaching carousel (Black Monday, interviews, hires) for that season, then
+   * drops this. Null everywhere else.
+   */
+  priorSeason: z.object({ season: z.number().int(), games: z.array(GameSchema) }).nullable(),
   rng: z.partialRecord(z.string(), RngStateSchema),
   nextIds: z.object({
     player: z.number().int(),

@@ -8,6 +8,7 @@
  * attributes, ratings for players with no rating source) is generated here
  * from a seed per person, so rebuilding gives the same league.
  */
+import { runStartingCarousel } from "./coaches/startCarousel";
 import { applyRealHistory, type RealHistoryInput } from "./history/real";
 import { emptyHistory } from "./history/state";
 import {
@@ -162,6 +163,29 @@ export interface RealLeagueInput {
   frontOffices?: Record<string, RealFrontOffice>;
   /** The real past before the league began (Phase 15, private, renamed). */
   history?: RealHistoryInput;
+  /** The real first season's regular-season schedule (Phase 16); the formula builds it otherwise. */
+  schedule?: RealScheduleGame[];
+  /** Picks of later drafts traded before the league began (Phase 16), in the order made. */
+  pickTrades?: RealPickTrade[];
+}
+
+/** One game of the real first season's schedule. */
+export interface RealScheduleGame {
+  week: number;
+  date: LeagueDate;
+  homeId: string;
+  awayId: string;
+  neutral: boolean;
+}
+
+/** A pick of a later draft that changed hands before the league began. */
+export interface RealPickTrade {
+  id: number;
+  date: LeagueDate;
+  season: number;
+  round: number;
+  from: string;
+  to: string;
 }
 
 /** A seeded random stream for one person, independent of everyone else. */
@@ -375,6 +399,7 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     ],
     pendingDecisions: [],
     career: null,
+    priorSeason: null,
     ...emptyHistory(),
     rng: {},
     nextIds: {
@@ -401,7 +426,10 @@ export function assembleRealLeague(input: RealLeagueInput): League {
   // Jobs the real data doesn't cover (position coaches, trainers, scouts) get generated people.
   fillStaff(league, date, "real");
   completeSeasonFromResults(league);
+  // The season just played, for each new game's own carousel (Phase 16).
+  const priorGames = league.games;
   startNextSeason(league, { agePlayers: false });
+  league.priorSeason = { season: input.season, games: priorGames };
   // Money: everyone on a roster gets a contract, and the tag history starts from them.
   if (input.players.some((p) => p.contract)) {
     // Real contracts as they stood, plus each team's published dead money and carried-over room.
@@ -448,6 +476,8 @@ export function assembleRealLeague(input: RealLeagueInput): League {
     seedSalaryHistory(league);
   }
   if (input.draftOrder?.length) applyRealDraftOrder(league, input.draftOrder);
+  if (input.schedule?.length) applyRealSchedule(league, input.schedule);
+  if (input.pickTrades?.length) applyPickTrades(league, input.pickTrades);
   if (input.history)
     applyRealHistory(
       league,
@@ -476,6 +506,10 @@ export function startRealLeague(base: League, options: { name: string; seed: num
   league.rng = {};
   // This game's own busts and gems in the real class.
   redrawClass(league);
+  // The coaching carousel the real staffs missed (Black Monday on), on this game's own seed.
+  runStartingCarousel(league);
+  // Scouts may have changed teams: their assignments are made again.
+  assignScouts(league);
   league.transactions = league.transactions.map((t) =>
     t.type === "league-created"
       ? {
@@ -485,6 +519,44 @@ export function startRealLeague(base: League, options: { name: string; seed: num
       : t,
   );
   return league;
+}
+
+/**
+ * The real first season's schedule replaces the formula's (the formula finds the same 17
+ * opponents for every club; the real schedule also fixes each game's week, day and home side).
+ */
+function applyRealSchedule(league: League, schedule: RealScheduleGame[]): void {
+  const expected = (league.teams.length * (league.rules.schedule.regularSeasonWeeks - 1)) / 2;
+  if (schedule.length !== expected)
+    throw new Error(`the real schedule has ${schedule.length} games, not ${expected}`);
+  league.games = schedule.map((g, id) => ({
+    id,
+    season: league.season,
+    round: "regular",
+    week: g.week,
+    date: g.date,
+    homeId: g.homeId,
+    awayId: g.awayId,
+    neutral: g.neutral,
+    result: null,
+    boxScore: null,
+    weather: null,
+  }));
+}
+
+/**
+ * Picks of later drafts that changed hands before the league began: each trade moves a pick of
+ * that year and round from the club that gave it, its own pick first; a pick it acquired earlier
+ * goes only once its own is gone.
+ */
+function applyPickTrades(league: League, trades: RealPickTrade[]): void {
+  for (const t of trades) {
+    const mine = league.draftPicks.filter(
+      (p) => p.season === t.season && p.round === t.round && p.ownerTeamId === t.from,
+    );
+    const pick = mine.find((p) => p.originalTeamId === t.from) ?? mine[0];
+    if (pick) pick.ownerTeamId = t.to;
+  }
 }
 
 /**

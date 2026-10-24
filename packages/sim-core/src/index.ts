@@ -110,3 +110,20 @@ export {
 
 /** Bumped when the league save format or simulation rules change in a breaking way. */
 export const SIM_CORE_VERSION = "0.13.0";
+// GM Mode (Phase 14)
+export {
+  AREA_LABELS,
+  DEFAULT_DELEGATION,
+  assertYourTeam,
+  personTeam,
+  staffDecides,
+} from "./career/delegation";
+export { inbox } from "./career/inbox";
+export { startCareer, ownerMeeting, type OwnerMeeting } from "./career/start";
+export { answerInbox, type InboxAnswer } from "./career/answers";
+export { gmCareerView, type GmCareerView, type InboxItem, type JobRow } from "./career/views";
+export { delegate, tidyInbox } from "./career/staff";
+export { careerPageView, type CareerPageView } from "./career/views";
+export { jobSecurity, ownerWatch, retireCareer, takeJob, type JobSecurity } from "./career/job";
+export { currentTips, dismissTip, type Tip } from "./career/tips";
+export { glossaryView, type GlossaryEntry } from "./career/glossary";

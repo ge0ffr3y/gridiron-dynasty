@@ -12,6 +12,7 @@
  * - Injured reserve: at least four games out; returns are designated, eight a
  *   season (two more in the playoffs).
  */
+import { staffDecides } from "../career/delegation";
 import { ageOn, formatDollars, overallAt, type Dollars } from "@fgm/foundation";
 import { minimumSalary, practiceSquadWeeklyRate } from "../contracts/cap";
 import { capHit } from "../contracts/contract";
@@ -212,8 +213,7 @@ function wantsClaim(
   roster: Player[],
   value: number,
 ): boolean {
-  const team = league.teams.find((t) => t.id === teamId)!;
-  if (team.controller !== "ai") return false;
+  if (!staffDecides(league, teamId, "waivers")) return false;
   const weakest = weakestIn(league, roster, p.position);
   if (weakest && value < playerValue(league, weakest) + ROSTER_AI.claimMargin) return false;
   if (!weakest && openSpots(league, teamId) <= 0) return false;

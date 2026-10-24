@@ -13,6 +13,7 @@
  * Odds are tuned to the real turnover: about 4.5 new GMs a year (calibration/frontoffice.json),
  * while head-coach changes stay at 7.2 a year between seasons and 1.65 during them.
  */
+import { offersAfterReviews, reviewPerson } from "../career/job";
 import { addDays, ageOn, dmath, Rng, streamSeed } from "@fgm/foundation";
 import type { Executive, League } from "../league/schema";
 import { GM_ARCHETYPES } from "../league/schema";
@@ -132,6 +133,8 @@ export function gmFiringOdds(
   league: League,
   teamId: string,
   inPlayoffs: Set<string>,
+  /** Extra log-odds (the owner's reactions to a person GM's moves, Phase 14b). */
+  extra = 0,
 ): { chance: number; reason: string } {
   const G = OWNERS.gm;
   const gm = gmOf(league, teamId);
@@ -150,7 +153,8 @@ export function gmFiringOdds(
     G.perDroughtSeason * Math.max(0, dry - 2) +
     G.perLosingSeasonInRow * Math.max(0, losing - 1) -
     G.impatience * o.patience +
-    G.ambition * o.ambition;
+    G.ambition * o.ambition +
+    extra;
   if (dead > G.capHellShare) logOdds += G.capHell;
   if (gm.contractThrough !== null && gm.contractThrough <= league.season) logOdds += G.contractUp;
   if (t <= 2) logOdds += G.grace[t - 1]!;
@@ -176,17 +180,24 @@ export function ownerReviews(league: League, inPlayoffs: Set<string>): void {
       hireGm(league, team.id, "The job was open.");
       continue;
     }
+    // The person is judged by the same odds, plus the owner's view of his moves (Phase 14b).
+    if (gm.person) {
+      if (reviewPerson(league, inPlayoffs)) hireGm(league, team.id, `Replaces ${name(gm)}.`);
+      continue;
+    }
     const odds = gmFiringOdds(league, team.id, inPlayoffs);
     if (!rng(league, `gm:${team.id}`).chance(odds.chance)) continue;
     fireGm(league, gm, odds.reason);
     hireGm(league, team.id, `Replaces ${name(gm)}.`);
   }
+  // A person out of work hears from owners now (Phase 14b).
+  offersAfterReviews(league);
 }
 
 /** After an in-season head-coach firing: the owner sometimes cleans house. */
 export function ownerAfterCoachFiring(league: League, teamId: string, week: number): void {
   const gm = gmOf(league, teamId);
-  if (!gm || gmTenure(league, gm) < OWNERS.inSeasonGm.minTenure) return;
+  if (!gm || gm.person || gmTenure(league, gm) < OWNERS.inSeasonGm.minTenure) return;
   const o = ownerStyle(league, teamId);
   const chance = OWNERS.inSeasonGm.base + OWNERS.inSeasonGm.impatience * Math.max(0, -o.patience);
   if (!rng(league, `in-season-gm:${teamId}:${week}`).chance(chance)) return;
@@ -256,6 +267,7 @@ function newcomers(league: League, teamId: string): Executive[] {
       reputation: O.newcomerReputation,
       career: [],
       retiredAfter: null,
+      person: false,
     };
   });
 }
@@ -335,6 +347,8 @@ export function executivesSeasonEnd(
   const season = league.season;
   for (const gm of league.executives.filter((e) => e.role === "GM" && e.retiredAfter === null)) {
     if (gm.teamId === null) {
+      // The person's career ends when he says so (Phase 14).
+      if (gm.person) continue;
       const last = gm.career.at(-1)?.season ?? gm.hiredSeason - 1;
       if (season - last >= O.retirement.idleSeasons) {
         gm.retiredAfter = season;
@@ -366,7 +380,7 @@ export function executivesSeasonEnd(
     // Retirement: odds rise with age.
     const age = ageOn(gm.birthDate, league.date);
     const odds = dmath.logistic((age - O.retirement.evenOddsAge) / O.retirement.yearsPerStep);
-    if (rng(league, `retire:${gm.id}`).chance(odds)) {
+    if (!gm.person && rng(league, `retire:${gm.id}`).chance(odds)) {
       gm.retiredAfter = season;
       gm.teamId = null;
       gm.contractThrough = null;

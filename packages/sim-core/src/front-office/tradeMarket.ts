@@ -7,6 +7,7 @@
  * count of trades in each stretch of the year (calibration/frontoffice.json), scaled by each
  * GM's trade appetite. A team run by a person gets an offer to answer instead.
  */
+import { staffDecides } from "../career/delegation";
 import { addDays, ageOn, type Position } from "@fgm/foundation";
 import frontOffice from "../../../../calibration/frontoffice.json";
 import { askTeam } from "../decisions";
@@ -180,7 +181,8 @@ function tryDeal(
   const sellerSide: TradeSide = { teamId: seller, players: [player.id], picks: [] };
   const buyerSide: TradeSide = { teamId: buyer, players: [], picks: pack.picks.map((d) => d.id) };
   // A person-run team gets an offer to answer instead.
-  const human = (id: string) => league.teams.find((t) => t.id === id)?.controller === "human";
+  // A person who keeps trades gets an offer to answer (Phase 13-14); delegated, his staff answer.
+  const human = (id: string) => !staffDecides(league, id, "trades");
   if (human(seller) || human(buyer)) {
     const [from, to] = human(seller) ? [buyerSide, sellerSide] : [sellerSide, buyerSide];
     offerTrade(league, from, to, why);
@@ -226,7 +228,7 @@ export function shopPlayer(
 ): string | null {
   if (!tradingOpen(league).open) return null;
   const buyers = league.teams
-    .filter((t) => t.id !== seller && t.controller === "ai")
+    .filter((t) => t.id !== seller && staffDecides(league, t.id, "trades"))
     .map((t) => ({ id: t.id, v: playerTradeValue(league, player, { teamId: t.id }, true).value }))
     .sort((a, b) => b.v - a.v || a.id.localeCompare(b.id))
     .slice(0, 8);
@@ -360,7 +362,8 @@ export function tradeMarket(
   if (!tradingOpen(league).open) return 0;
   let n = 0;
   for (const team of [...league.teams].sort((a, b) => a.id.localeCompare(b.id))) {
-    if (team.controller !== "ai") continue;
+    // A person-run team makes its own deals, unless his staff handle trades (Phase 14).
+    if (!staffDecides(league, team.id, "trades")) continue;
     const tries = searches(league, team.id, stretch, days, boost);
     for (let i = 0; i < tries; i++) {
       const stance = stanceOf(league, team.id);
@@ -391,12 +394,19 @@ export function offerTrade(league: League, from: TradeSide, to: TradeSide, reaso
     reason,
     status: "open",
   });
-  askTeam(league, to.teamId, {
-    kind: "trade-offer",
-    prompt: `${from.teamId} offers a trade: ${reason}`,
-    options: ["accept", "decline"],
-    offerId: id,
-  });
+  askTeam(
+    league,
+    to.teamId,
+    {
+      kind: "trade-offer",
+      prompt: `${from.teamId} offers a trade: ${reason}`,
+      options: ["accept", "decline"],
+      offerId: id,
+      area: "trades",
+      link: "/trade",
+    },
+    addDays(league.date, TRADE_MARKET.offerDays),
+  );
 }
 
 /** Offers past their date expire (and leave the person's queue). */

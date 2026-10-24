@@ -9,6 +9,7 @@
  *   retirement (the model is in lifecycle/retirement.ts).
  * Every move records why.
  */
+import { staffDecides } from "../career/delegation";
 import { Rng, streamSeed, type Position } from "@fgm/foundation";
 import { capHit, remainingGuarantees, remainingProration } from "../contracts/contract";
 import { batch, recordTransaction } from "../contracts/operations";
@@ -40,7 +41,6 @@ import {
 } from "./moves";
 
 const name = (p: Player) => `${p.firstName} ${p.lastName}`;
-const aiTeams = (league: League) => league.teams.filter((t) => t.controller === "ai");
 
 /** The fewest players a team keeps at a position on the 53 (a typical real roster). */
 function keepAtLeast(position: Position): number {
@@ -144,7 +144,14 @@ export function cutdownDay(league: League): void {
   batch(league, () => {
     league.date = dates.cutdown;
     const pending: { p: Player; from: string }[] = [];
-    for (const team of aiTeams(league)) {
+    // A person who kept final cuts but didn't finish them by cutdown day: his staff cut for him
+    // (a roster can't go into the season over 53).
+    const overLimit = (id: string) =>
+      onTeam(league, id, "active").length > league.rules.roster.regularSeasonMax;
+    const cutting = league.teams.filter(
+      (t) => staffDecides(league, t.id, "cutdown") || overLimit(t.id),
+    );
+    for (const team of cutting) {
       for (const list of ["pup", "nfi"] as const)
         for (const p of onTeam(league, team.id, list).sort((a, b) => a.id - b.id)) {
           const label = list === "pup" ? "PUP" : "NFI";
@@ -200,7 +207,7 @@ export function cutdownDay(league: League): void {
       practiceSquadWeekly(league, { experience: 0 } as Player) *
       league.rules.schedule.regularSeasonWeeks;
     // The 53 comes first, then the practice squad.
-    for (const team of aiTeams(league)) {
+    for (const team of cutting) {
       getUnderCap(league, team.id, {
         amount: squadCost,
         what: "a full practice squad",
@@ -214,9 +221,7 @@ export function cutdownDay(league: League): void {
 
 /** Practice squads: teams take turns in claim order, one player a round, by need and value. */
 function formPracticeSquads(league: League, cutBy: Map<number, string>): void {
-  const order = claimOrder(league).filter(
-    (id) => league.teams.find((t) => t.id === id)!.controller === "ai",
-  );
+  const order = claimOrder(league).filter((id) => staffDecides(league, id, "reserve-lists"));
   const max = league.rules.roster.practiceSquad.max;
   // Free agents' values don't change while squads form: score each once.
   const values = new Map(freeAgents(league).map((p) => [p.id, playerValue(league, p)]));
@@ -360,7 +365,12 @@ export function weeklyRosterUpkeep(league: League): void {
   if (!inSeasonRosters(league)) return;
   const r = league.rules.roster.reserve;
   batch(league, () => {
-    for (const team of aiTeams(league)) {
+    for (const team of league.teams) {
+      // A person-run team that keeps its reserve lists only gets the safety net: never over 53.
+      if (!staffDecides(league, team.id, "reserve-lists")) {
+        keepFiftyThree(league, team.id);
+        continue;
+      }
       // Out for weeks: injured reserve frees his spot. Teams keep shorter injuries on the 53,
       // unless the position is short of healthy players (then anyone the rule allows goes).
       const irFrom = Math.max(r.injuredMinGames, ROSTER_AI.injuredReserveFromGames);
@@ -439,7 +449,7 @@ export function gameDayElevations(league: League, teamIds: string[]): Map<string
   const out = new Map<string, number[]>();
   for (const teamId of teamIds) {
     const team = league.teams.find((t) => t.id === teamId)!;
-    if (team.controller !== "ai") continue;
+    if (!staffDecides(league, teamId, "elevations")) continue;
     const healthy = onTeam(league, teamId, "active").filter((p) => !p.injury);
     const chosen: number[] = [];
     for (const pos of (Object.keys(STARTERS) as Position[]).sort()) {
@@ -490,7 +500,8 @@ export function countReserveGames(league: League, teamIds: string[]): void {
 export function seasonEnds(league: League): void {
   const season = league.season;
   batch(league, () => {
-    for (const team of aiTeams(league)) {
+    // Every team, a person's too: practice squads can't outlast the season (rule 9).
+    for (const team of league.teams) {
       const squad = onTeam(league, team.id, "practice-squad").sort(
         (a, b) => playerValue(league, b) - playerValue(league, a) || a.id - b.id,
       );

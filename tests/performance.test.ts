@@ -1,8 +1,10 @@
 /**
  * Speed guard. The goal is a full season (272 games and the playoffs) in under
  * 5 seconds in the browser, saving included: Phase 5b measured 1.5 s there and
- * 1.4 s headless. Tests run side by side (and CI machines are slower), so this
- * guard allows more and only catches a big slowdown; the time is printed.
+ * 1.4 s headless. `npm test` runs it on its own after the rest (Phase 14's
+ * multi-season GM Mode tests made it flaky side by side); CI machines are
+ * slower, so the guard still allows more and only catches a big slowdown.
+ * The time is printed.
  */
 import { advanceUntil, createLeague } from "@fgm/sim-core";
 import { describe, expect, it } from "vitest";

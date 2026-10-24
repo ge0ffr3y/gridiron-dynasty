@@ -25,6 +25,8 @@ import { seasonDates } from "../season/calendar";
 import { currentStandings, starterStrengths } from "../season/flow";
 import { ownerAfterCoachFiring, ownerCoachTerm, ownerReviews } from "../front-office/owners";
 import { loserOf } from "../season/playoffs";
+import { personTeam, staffDecides } from "../career/delegation";
+import { ask, resolveWhere } from "../career/inbox";
 import {
   CAREERS,
   CAROUSEL,
@@ -295,6 +297,8 @@ function firingReason(
 export function inSeasonFirings(league: League, week: number): void {
   if (week < C.inSeason.fromWeek || week > C.inSeason.toWeek) return;
   for (const team of league.teams) {
+    // A person who keeps coaching decisions fires his own coaches (Phase 14).
+    if (!staffDecides(league, team.id, "coaching")) continue;
     const hc = league.coaches.find((c) => c.teamId === team.id && c.role === "HC");
     if (!hc || hc.interim || tenure(league, hc) <= 1) continue;
     const r = recordOf(league, team.id);
@@ -377,6 +381,7 @@ export function blackMonday(league: League): void {
 
 function blackMondayMoves(league: League): void {
   for (const team of [...league.teams].sort((a, b) => a.id.localeCompare(b.id))) {
+    if (!staffDecides(league, team.id, "coaching")) continue;
     const hc = league.coaches.find((c) => c.teamId === team.id && c.role === "HC");
     if (!hc) continue;
     const r = recordOf(league, team.id);
@@ -635,6 +640,28 @@ function interviewForOpenings(league: League): void {
         },
         date,
       );
+      // GM Mode: your coach interviewing elsewhere is news for your inbox; the anti-tampering
+      // rules let him interview, so there's nothing to block (Phase 14).
+      if (
+        c.teamId !== null &&
+        c.teamId !== o.teamId &&
+        c.teamId === personTeam(league) &&
+        !staffDecides(league, c.teamId, "coaching")
+      )
+        ask(
+          league,
+          c.teamId,
+          {
+            kind: "interview",
+            prompt: `${teamName(league, o.teamId)} interviewed your ${ROLE_NAMES[c.role].toLowerCase()}, ${name(c)}, for ${ROLE_NAMES[o.role].toLowerCase()}. The rules allow it: if they hire him, his job opens.`,
+            options: ["ok"],
+            playerId: c.id,
+            role: c.role,
+            area: "coaching",
+            link: `/coach/${c.id}`,
+          },
+          addDays(league.date, VACANCY_DAYS),
+        );
     }
   }
 }
@@ -666,6 +693,21 @@ function fillRole(league: League, role: CoachRole, final: boolean): void {
     if (open.length === 0) return;
     const wants = new Map<number, { o: Opening; score: number }[]>();
     for (const o of open) {
+      // A person who keeps coaching hires makes his own (Phase 14): his inbox gets the opening,
+      // and his staff hire if he lets the deadline pass. Every job is filled in the final round.
+      if (!staffDecides(league, o.teamId, "coaching")) {
+        if (!final) {
+          askVacancy(league, o);
+          continue;
+        }
+        resolveWhere(
+          league,
+          (d) =>
+            d.teamId === o.teamId && d.request.kind === "coach-vacancy" && d.request.role === role,
+          "staff",
+          `The job had to be filled before the new season: your staff hired a ${ROLE_NAMES[role].toLowerCase()}.`,
+        );
+      }
       const list = candidates(league, o);
       const ready = list.filter((x) => seasonOver(league, x.c.teamId));
       let pick = ready[0];
@@ -704,6 +746,42 @@ function fillRole(league: League, role: CoachRole, final: boolean): void {
 /** How appealing a job is: the team's record this season and its roster. */
 function attractiveness(league: League, teamId: string): number {
   return winShare(recordOf(league, teamId)) + expectedWinShare(league, teamId);
+}
+
+/** Days a person has to fill a big coaching job before his staff do. */
+const VACANCY_DAYS = 14;
+
+function askVacancy(league: League, o: Opening): void {
+  ask(
+    league,
+    o.teamId,
+    {
+      kind: "coach-vacancy",
+      prompt: `Your ${ROLE_NAMES[o.role].toLowerCase()} job is open. Interview candidates and hire one on the Coaching page.`,
+      options: ["hire"],
+      role: o.role,
+      area: "coaching",
+      link: "/coaching",
+    },
+    addDays(league.date, VACANCY_DAYS),
+  );
+}
+
+/** A person's staff fill an opening he left unfilled past its deadline (the AI's own choice). */
+export function staffHire(league: League, teamId: string, role: CoachRole): string | null {
+  const o = openings(league).find((x) => x.teamId === teamId && x.role === role);
+  if (!o) return null;
+  let pick = candidates(league, o).find((x) => seasonOver(league, x.c.teamId));
+  if (!pick) {
+    addNewcomers(league, o);
+    pick = candidates(league, o).find((x) => seasonOver(league, x.c.teamId));
+  }
+  if (!pick) return null;
+  const interim = league.coaches.find((x) => x.teamId === teamId && x.role === "HC" && x.interim);
+  if (role === "HC" && interim && interim.id !== pick.c.id)
+    release(league, interim, "left", "A permanent head coach was hired.");
+  hire(league, pick.c, o);
+  return `Your staff hired ${name(pick.c)} as ${ROLE_NAMES[role].toLowerCase()}.`;
 }
 
 function hire(league: League, c: Coach, o: Opening): void {
@@ -940,7 +1018,12 @@ export function officeFire(league: League, coachId: number): string {
   if (!c || c.teamId === null) throw new Error("That coach isn't on a team.");
   const teamId = c.teamId;
   const wasHead = c.role === "HC" && !c.interim;
-  release(league, c, "fired", OFFICE);
+  release(
+    league,
+    c,
+    "fired",
+    personTeam(league) === teamId ? "Your decision as general manager." : OFFICE,
+  );
   if (wasHead && league.calendar.stage === "regular") namedInterim(league, teamId);
   return `${teamName(league, teamId)} fired ${name(c)}.`;
 }
@@ -965,7 +1048,14 @@ export function officeHire(
   const interim = league.coaches.find((x) => x.teamId === teamId && x.role === "HC" && x.interim);
   if (role === "HC" && interim && interim.id !== c.id)
     release(league, interim, "left", "A permanent head coach was hired.");
-  take(league, c, teamId, role, c.teamId === teamId ? "promoted" : "hired", OFFICE);
+  take(
+    league,
+    c,
+    teamId,
+    role,
+    c.teamId === teamId ? "promoted" : "hired",
+    personTeam(league) === teamId ? "Your decision as general manager." : OFFICE,
+  );
   return `${teamName(league, teamId)} hired ${name(c)} as ${ROLE_NAMES[role].toLowerCase()}.`;
 }
 

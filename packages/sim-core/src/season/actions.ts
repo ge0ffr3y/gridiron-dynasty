@@ -4,8 +4,10 @@
 import type { League } from "../league/schema";
 import { advance, advanceUntil, type SimHooks } from "./flow";
 import { FREE_AGENCY } from "../contracts/freeAgency";
+import { personTeam } from "../career/delegation";
 
 export type SimActionId =
+  | "next-decision"
   | "league-year"
   | "fa-step"
   | "draft-day"
@@ -52,6 +54,14 @@ const STAGE_ORDER: League["calendar"]["stage"][] = [
 ];
 
 export function availableActions(league: League): SimAction[] {
+  const all = stageActions(league);
+  // GM Mode (Phase 14): step until something needs you.
+  return personTeam(league)
+    ? [{ id: "next-decision", label: "Sim to next decision" }, ...all]
+    : all;
+}
+
+function stageActions(league: League): SimAction[] {
   const { stage, week } = league.calendar;
   const deadline = league.rules.schedule.tradeDeadlineAfterWeek;
   const start = { id: "start-season" as const, label: `Sim to the ${league.season} season opener` };
@@ -114,7 +124,11 @@ export function availableActions(league: League): SimAction[] {
 /** Runs an action, reporting each step (and each game, if asked). */
 export function runAction(league: League, id: SimActionId, hooks: SimHooks = {}): void {
   const deadline = league.rules.schedule.tradeDeadlineAfterWeek;
-  const step = () => hooks.onStep?.(advance(league, hooks));
+  // Advance first: `onStep?.(advance())` would skip the step itself when there's no listener.
+  const step = () => {
+    const label = advance(league, hooks);
+    hooks.onStep?.(label);
+  };
   const until = (stage: League["calendar"]["stage"]) =>
     advanceUntil(
       league,
@@ -122,6 +136,25 @@ export function runAction(league: League, id: SimActionId, hooks: SimHooks = {})
       hooks,
     );
   switch (id) {
+    case "next-decision": {
+      // At least one step (anything already due, his staff decide), then on until a new decision
+      // arrives, one comes due, or the season is over.
+      const team = personTeam(league);
+      const before = new Set(league.pendingDecisions.map((d) => d.id));
+      step();
+      advanceUntil(
+        league,
+        (l) =>
+          l.calendar.stage === "complete" ||
+          l.pendingDecisions.some(
+            (d) =>
+              d.teamId === team &&
+              (!before.has(d.id) || (d.deadline != null && d.deadline <= l.date)),
+          ),
+        hooks,
+      );
+      return;
+    }
     case "league-year":
       return until("free-agency");
     case "draft-day":

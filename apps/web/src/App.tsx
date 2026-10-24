@@ -13,6 +13,9 @@ import {
   ClipboardList,
   FolderOpen,
   Handshake,
+  Inbox,
+  UserRound,
+  BookA,
   Home,
   ListOrdered,
   Medal,
@@ -33,6 +36,7 @@ import { SessionProvider, useLeagueKey, useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { CalendarPage } from "@/pages/CalendarPage";
+import { CareerPage, GlossaryPage, InboxPage, StartCareerPage } from "@/pages/CareerPages";
 import { CampPage } from "@/pages/CampPage";
 import { DraftPage } from "@/pages/DraftPage";
 import { FreeAgencyPage } from "@/pages/FreeAgencyPage";
@@ -73,6 +77,8 @@ type NavItem = {
 const NAV: NavItem[] = [
   { label: "Leagues", icon: FolderOpen, href: "/" },
   { label: "League", icon: Home, href: "/league", needsLeague: true },
+  { label: "Inbox", icon: Inbox, href: "/inbox", needsLeague: true },
+  { label: "Career", icon: UserRound, href: "/career", needsLeague: true },
   { label: "Teams", icon: Shield, href: "/teams", needsLeague: true },
   { label: "Players", icon: Users, href: "/players", needsLeague: true },
   { label: "Schedule", icon: CalendarDays, href: "/schedule", needsLeague: true },
@@ -90,6 +96,7 @@ const NAV: NavItem[] = [
   { label: "Coaching", icon: BriefcaseBusiness, href: "/coaching", needsLeague: true },
   { label: "Draft", icon: ClipboardList, href: "/draft", needsLeague: true },
   { label: "Free agency", icon: Handshake, href: "/free-agency", needsLeague: true },
+  { label: "Glossary", icon: BookA, href: "/glossary", needsLeague: true },
 ];
 
 export function App() {
@@ -294,6 +301,26 @@ function Shell() {
                   <ExecutivePage id={Number(params.id)} />
                 </NeedsLeague>
               )}
+            </Route>
+            <Route path="/inbox">
+              <NeedsLeague>
+                <InboxPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/career">
+              <NeedsLeague>
+                <CareerPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/glossary">
+              <NeedsLeague>
+                <GlossaryPage />
+              </NeedsLeague>
+            </Route>
+            <Route path="/career/start">
+              <NeedsLeague>
+                <StartCareerPage />
+              </NeedsLeague>
             </Route>
             <Route path="/coach/:id">
               {(params) => (

@@ -23,6 +23,7 @@ import { STARTERS } from "../generate/config";
 import type { League, Offer, Player } from "../league/schema";
 import { readOverall } from "../perception";
 import { MORALE } from "../people/morale";
+import { staffDecides } from "../career/delegation";
 import { gmBudgetShift, gmLimitFactor, wantsEarlyExtension } from "../front-office/strategy";
 import { teamNeeds } from "../draft/boards";
 import { uniformFrom } from "../scouting/noise";
@@ -312,7 +313,7 @@ function negotiateOwn(
 }
 
 /** Restricted and exclusive-rights free agents: the tender a team would give (or none). */
-function tenderFor(
+export function tenderFor(
   league: League,
   p: Player,
 ): { kind: NonNullable<Player["rights"]>["kind"]; amount: Dollars } | null {
@@ -343,7 +344,7 @@ function tenderFor(
 }
 
 /** A one-year tender or tag contract that holds his rights (it counts on the cap). */
-function holdRights(
+export function holdRights(
   league: League,
   p: Player,
   teamId: string,
@@ -384,20 +385,49 @@ function holdRights(
   });
 }
 
+/** What a franchise or transition tag on him costs this League Year (CBA Article 10). */
+export function tagPrice(league: League, p: Player, kind: "franchise" | "transition"): Dollars {
+  const prior = p.contract?.years.find((y) => y.season === league.season - 1)?.base ?? 0;
+  const timesTagged = league.transactions.filter(
+    (t) => t.type === "tagged" && t.playerIds.includes(p.id) && t.text.includes("franchise tag"),
+  ).length;
+  return tagTender(league, kind, p.position, league.season, prior, timesTagged);
+}
+
 /**
  * The re-signing window (before the League Year): every team talks to its expiring players it
  * wants back, may tag a star whose talks failed, and tenders its restricted and exclusive-rights
  * free agents. Players it doesn't keep hit free agency when the League Year opens.
  */
-export function reSigningWindow(league: League): void {
+export function reSigningWindow(
+  league: League,
+  /** Only these teams' (or players') decisions: a person's staff stepping in (Phase 14). */
+  only?: { teamIds?: string[]; playerIds?: number[] },
+): void {
   const season = league.season;
-  const tagsUsed = new Set<string>();
+  // A team's one tag a year: those already used this League Year count.
+  const tagsUsed = new Set<string>(
+    league.players.flatMap((p) =>
+      p.rights &&
+      p.rights.season === season &&
+      (p.rights.kind === "franchise" ||
+        p.rights.kind === "franchise-exclusive" ||
+        p.rights.kind === "transition")
+        ? [p.rights.teamId]
+        : [],
+    ),
+  );
   // First every team gets under the new League Year's cap (restructures, then releases).
-  for (const team of league.teams) getUnderCap(league, team.id);
-  for (const team of [...league.teams].sort((a, b) => a.id.localeCompare(b.id))) {
+  if (!only) for (const team of league.teams) getUnderCap(league, team.id);
+  const teams = [...league.teams]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .filter((t) =>
+      only?.teamIds ? only.teamIds.includes(t.id) : staffDecides(league, t.id, "re-signing"),
+    );
+  for (const team of teams) {
     const needs = teamNeeds(league, team.id);
     const mine = expiringPlayers(league)
-      .filter((p) => p.teamId === team.id)
+      .filter((p) => p.teamId === team.id && (!only?.playerIds || only.playerIds.includes(p.id)))
       .sort((a, b) => marketValue(league, b).apy - marketValue(league, a).apy || a.id - b.id);
     for (const p of mine) {
       const tender = tenderFor(league, p);
@@ -456,12 +486,7 @@ export function reSigningWindow(league: League): void {
       const tagRank = p.position === "QB" ? FREE_AGENCY.tagTopRankQb : FREE_AGENCY.tagTopRank;
       if (tagsUsed.has(team.id) || value.rank > tagRank) continue;
       const category = tagCategory(league.rules.cap, p.position);
-      const prior = p.contract?.years.find((y) => y.season === season - 1)?.base ?? 0;
-      const timesTagged = league.transactions.filter(
-        (t) =>
-          t.type === "tagged" && t.playerIds.includes(p.id) && t.text.includes("franchise tag"),
-      ).length;
-      const amount = tagTender(league, "franchise", p.position, season, prior, timesTagged);
+      const amount = tagPrice(league, p, "franchise");
       if (amount <= value.apy * 1.25 && teamBudget(league, team.id) >= amount) {
         tagsUsed.add(team.id);
         holdRights(
@@ -542,6 +567,8 @@ export function freeAgencyRound(league: League, days: number): number {
   const start = fa.day % teams.length;
   const ordered = [...teams.slice(start), ...teams.slice(0, start)];
   for (const team of ordered) {
+    // A person-run team bids itself, unless his staff handle free agency (Phase 14).
+    if (!staffDecides(league, team.id, "free-agency")) continue;
     const needs = teamNeeds(league, team.id);
     const room = teamBudget(league, team.id);
     // Most offers won't be accepted, so a team has more out than it could pay (signing checks room).
@@ -738,6 +765,8 @@ export function weeklyExtensions(league: League, week: number): number {
   const F = FREE_AGENCY;
   let n = 0;
   for (const team of [...league.teams].sort((a, b) => a.id.localeCompare(b.id))) {
+    // A person-run team extends players himself, unless his staff do (Phase 14).
+    if (!staffDecides(league, team.id, "extensions")) continue;
     // Most weeks a team doesn't extend anyone: decide that first (cheap), then look.
     if (
       uniformFrom(`${league.meta.seed}:extend:${team.id}:${league.season}:${week}`) >=
@@ -868,6 +897,7 @@ function makeOfferSheets(league: League): void {
     const rounds = compensationRounds(league, p);
     for (const team of [...league.teams].sort((a, b) => a.id.localeCompare(b.id))) {
       if (team.id === holder || roleOn(league, team.id, p) !== "starter") continue;
+      if (!staffDecides(league, team.id, "free-agency")) continue;
       // One offer sheet a year per team, and only with room for it (it's a binding contract).
       if (
         fa.offerSheets.some((x) => x.teamId === team.id) ||

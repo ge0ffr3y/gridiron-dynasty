@@ -15,10 +15,23 @@ export interface PlayLog {
   plays: Play[];
 }
 
+/** A league as it stood when a season began (Phase 14b). */
+export interface Backup {
+  leagueId: string;
+  season: number;
+  date: string;
+  savedAt: number;
+  text: string;
+}
+
+/** Season backups kept per league. */
+export const BACKUPS_KEPT = 3;
+
 class LeagueDatabase extends Dexie {
   leagues!: Table<SavedLeague, string>;
   leagueData!: Table<{ id: string; text: string }, string>;
   playLogs!: Table<PlayLog, [string, number, number]>;
+  backups!: Table<Backup, [string, number]>;
 
   constructor() {
     super("footballgm-sim");
@@ -27,6 +40,13 @@ class LeagueDatabase extends Dexie {
       leagues: "id, lastOpenedAt",
       leagueData: "id",
       playLogs: "[leagueId+season+gameId], leagueId, [leagueId+season]",
+    });
+    // Phase 14b: a backup of each league at the start of each season (the last few kept).
+    this.version(3).stores({
+      leagues: "id, lastOpenedAt",
+      leagueData: "id",
+      playLogs: "[leagueId+season+gameId], leagueId, [leagueId+season]",
+      backups: "[leagueId+season], leagueId",
     });
   }
 }

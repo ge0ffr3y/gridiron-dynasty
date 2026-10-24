@@ -83,6 +83,12 @@ import {
   takeJob,
   retireCareer,
   glossaryView,
+  almanacView,
+  seasonRecapView,
+  recordsView,
+  teamHistoryView,
+  newsView,
+  coachTreeView,
   previewTradeDeal,
   rosterManagementView,
   tradeAssetsView,
@@ -352,6 +358,30 @@ const handlers: Handlers = {
     retireCareer(league);
     open = { saved: await save(league, open!.saved), league };
     return gmCareerView(league);
+  },
+
+  almanacView() {
+    return almanacView(requireLeague());
+  },
+
+  seasonRecapView({ season }) {
+    return seasonRecapView(requireLeague(), season);
+  },
+
+  recordsView({ scope }) {
+    return recordsView(requireLeague(), scope);
+  },
+
+  teamHistoryView({ teamId }) {
+    return teamHistoryView(requireLeague(), teamId);
+  },
+
+  newsView({ teamId }) {
+    return newsView(requireLeague(), teamId);
+  },
+
+  coachTreeView({ id }) {
+    return coachTreeView(requireLeague(), id);
   },
 
   glossaryView() {

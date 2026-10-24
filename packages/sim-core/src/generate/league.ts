@@ -2,6 +2,7 @@
  * Creates a complete fictional league from a seed: 32 teams, 90-man rosters,
  * coaching staffs, and draft picks. Same seed -> byte-identical league.
  */
+import { emptyHistory } from "../history/state";
 import { generateExecutives } from "../front-office/executives";
 import { generateAgents } from "../people/agents";
 import { emptyScouting } from "../scouting/config";
@@ -167,6 +168,7 @@ export function createLeague(options: NewLeagueOptions): League {
     ],
     pendingDecisions: [],
     career: null,
+    ...emptyHistory(),
     rng: {},
     nextIds: {
       player: players.length,
@@ -176,6 +178,7 @@ export function createLeague(options: NewLeagueOptions): League {
       decision: 0,
       executive: 0,
       tradeOffer: 0,
+      news: 0,
     },
   };
 

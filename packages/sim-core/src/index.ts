@@ -127,3 +127,23 @@ export { careerPageView, type CareerPageView } from "./career/views";
 export { jobSecurity, ownerWatch, retireCareer, takeJob, type JobSecurity } from "./career/job";
 export { currentTips, dismissTip, type Tip } from "./career/tips";
 export { glossaryView, type GlossaryEntry } from "./career/glossary";
+// League history (Phase 15)
+export {
+  almanacView,
+  coachTreeView,
+  newsView,
+  recordsView,
+  seasonRecapView,
+  teamHistoryView,
+  type AlmanacView,
+  type NewsView,
+  type RecordsView,
+  type SeasonRecapView,
+  type TeamHistoryView,
+  type TreeNode,
+} from "./history/views";
+export { AWARD_LABELS } from "./history/awards";
+export { honorsOf, type Honors } from "./history/honors";
+export type { RealHistoryInput, RealLegend } from "./history/real";
+export { hallOfFameAudit } from "./history/hallOfFame";
+export { seasonAndCareerRecords } from "./history/records";

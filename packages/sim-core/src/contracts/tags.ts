@@ -136,20 +136,30 @@ export function tagTender(
 }
 
 /**
- * Fifth-year option salary (Article 7, Section 7(g)) for a first-round pick's
- * fifth season. Pro Bowl tiers wait for awards (Phase 15); until then the
- * tiers are playing time: 75% of snaps in two of his first three seasons, a
- * 75% average, or 50% in each.
+ * Fifth-year option salary (Article 7, Section 7(g)) for a first-round pick's fifth season.
+ * Pro Bowls on the original ballot in his first three seasons set the top tiers (one: the
+ * transition tender, two or more: the franchise tender); otherwise the tiers are playing time:
+ * 75% of snaps in two of his first three seasons, a 75% average, or 50% in each.
  */
 export function fifthYearOptionSalary(
   league: League,
   position: string,
   optionSeason: number,
   snapShares: number[],
+  /** Pro Bowls in his first three seasons (Phase 15). */
+  proBowls = 0,
 ): Dollars {
   const cap = league.rules.cap;
   const rule = cap.fifthYearOption;
   const category = tagCategory(cap, position);
+  if (proBowls >= 1)
+    return tagTender(
+      league,
+      proBowls >= 2 ? "franchise" : "transition",
+      position,
+      optionSeason - 1,
+      0,
+    );
   const average = snapShares.reduce((a, b) => a + b, 0) / Math.max(1, snapShares.length);
   const playedEnough =
     snapShares.filter((s) => s >= rule.playingTimeShare).length >= rule.playingTimeSeasons ||

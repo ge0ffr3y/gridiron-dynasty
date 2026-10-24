@@ -1,3 +1,4 @@
+import { NewsList } from "@/pages/HistoryPages";
 import { Link } from "wouter";
 import { ErrorNote, Facts, Loading, OverallBadge, PageHeader, TeamChip } from "@/components/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +12,7 @@ export function LeaguePage() {
   const summary = useSim("leagueSummary", {}, key);
   const calendar = useSim("calendar", {}, key);
   const history = useSim("historyView", {}, key);
+  const news = useSim("newsView", {}, key);
   if (summary.error) return <ErrorNote message={summary.error} />;
   if (!summary.data) return <Loading />;
   const s = summary.data;
@@ -117,6 +119,9 @@ export function LeaguePage() {
         The number beside each team is its starters' average overall.
       </p>
 
+      {news.data && news.data.items.length > 0 && (
+        <NewsList items={news.data.items.slice(0, 8)} title="Around the league" />
+      )}
       <DisputesCard />
 
       <Card>

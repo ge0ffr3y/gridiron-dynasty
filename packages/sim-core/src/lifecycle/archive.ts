@@ -5,6 +5,7 @@
  * seasons started, peak and career totals. A century of history then costs a few hundred cards a
  * year instead of full players that every step of the sim would have to look past.
  */
+import { honorsOf, type Honors } from "../history/honors";
 import { ageOn } from "@fgm/foundation";
 import type { FormerPlayer, League, Player } from "../league/schema";
 import { perceiveHistory } from "../perception";
@@ -24,6 +25,15 @@ function lastActive(p: Player): number | null {
   for (const s of p.stats) last = Math.max(last ?? s.season, s.season);
   if (p.drafted) last = Math.max(last ?? p.drafted.season, p.drafted.season);
   return last;
+}
+
+/** Championships won by the teams he played for, in the seasons he played for them. */
+export function titlesOf(league: League, p: Player): number {
+  const champs = new Map(league.history.map((h) => [h.season, h.championId]));
+  for (const a of league.annals) if (a.championId) champs.set(a.season, a.championId);
+  const won = new Set<number>();
+  for (const s of p.stats) if (champs.get(s.season) === s.teamId) won.add(s.season);
+  return won.size;
 }
 
 /** A player's history card. */
@@ -50,6 +60,9 @@ export function formerPlayerCard(league: League, p: Player): FormerPlayer {
     seasonsStarted: seasonsStarted(p),
     peak: history.length ? Math.max(...history.map((h) => h.overall)) : 0,
     career: sumLines(p.stats.map((s) => s.line)),
+    number: p.jersey,
+    legend: false,
+    titles: titlesOf(league, p),
   };
 }
 
@@ -95,6 +108,9 @@ export interface FormerPlayerView {
   seasonsStarted: number;
   peak: number;
   career: FormerPlayer["career"];
+  honors: Honors;
+  /** Imported from the real league's past (a legend). */
+  legend: boolean;
 }
 
 /** A long-gone player's page: his history card. */
@@ -108,6 +124,8 @@ export function formerPlayerView(league: League, id: number): FormerPlayerView {
     college: c.college,
     birthDate: c.birthDate,
     drafted: c.drafted,
+    honors: honorsOf(league, c.id),
+    legend: c.legend,
     years: c.firstSeason === c.lastSeason ? `${c.firstSeason}` : `${c.firstSeason}-${c.lastSeason}`,
     retiredAfter: c.retiredAfter,
     teams: c.teams,

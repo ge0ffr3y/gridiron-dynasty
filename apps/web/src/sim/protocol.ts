@@ -35,6 +35,12 @@ import type {
   TradeOffersView,
   GmCareerView,
   CareerPageView,
+  AlmanacView,
+  SeasonRecapView,
+  RecordsView,
+  TeamHistoryView,
+  NewsView,
+  TreeNode,
   GlossaryEntry,
   OwnerMeeting,
   InboxAnswer,
@@ -194,6 +200,18 @@ export interface SimApi {
   takeJob(params: { teamId: string }): GmCareerView;
   /** Retire from GM Mode: the league carries on in Simulation Mode (saved). */
   retireCareer(params: Record<string, never>): GmCareerView;
+  /** The almanac: every season, franchises, dynasties, droughts and the Hall of Fame (Phase 15). */
+  almanacView(params: Record<string, never>): AlmanacView;
+  /** One season's recap: standings, playoffs, awards, leaders, records broken, news. */
+  seasonRecapView(params: { season?: number }): SeasonRecapView;
+  /** The record book for the league or one franchise. */
+  recordsView(params: { scope?: string }): RecordsView;
+  /** A franchise's history: seasons, titles, retired numbers, Hall of Famers, records. */
+  teamHistoryView(params: { teamId: string }): TeamHistoryView;
+  /** The newsfeed, newest first (a team's, or the league's). */
+  newsView(params: { teamId?: string }): NewsView;
+  /** A coach's coaching tree. */
+  coachTreeView(params: { id: number }): TreeNode;
   /** Cap and roster terms in plain English, with this league's rule numbers. */
   glossaryView(params: Record<string, never>): GlossaryEntry[];
   /** Saves a copy of the open league under a new name (a save slot). */

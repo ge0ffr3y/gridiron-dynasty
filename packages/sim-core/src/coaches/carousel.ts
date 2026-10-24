@@ -17,6 +17,7 @@
  * Every move records its reason. Every draw is seeded by the season, team and
  * coach, so results never depend on the order things are done in.
  */
+import { recentSeasons } from "../history/past";
 import { addDays, ageOn, dmath, Rng, streamSeed, type LeagueDate } from "@fgm/foundation";
 import { generateCoach } from "../generate/coaches";
 import { NamePicker } from "../generate/people";
@@ -111,9 +112,8 @@ const EXPECTATION_PER_SD = 0.12;
 /** Losing seasons in a row for a team, ending with the last finished one. */
 export function losingSeasonsInRow(league: League, teamId: string): number {
   let n = 0;
-  for (let i = league.history.length - 1; i >= 0; i--) {
-    const s = league.history[i]!.standings.find((x) => x.teamId === teamId);
-    if (!s || s.wins >= s.losses) break;
+  for (const s of recentSeasons(league, teamId)) {
+    if (s.wins >= s.losses) break;
     n += 1;
   }
   return n;

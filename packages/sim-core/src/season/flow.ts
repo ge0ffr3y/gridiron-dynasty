@@ -58,6 +58,11 @@ import {
 import { batch } from "../contracts/operations";
 import { finishDraft, simPicks, startDraft } from "../draft/day";
 import { careerSeasonEnd, inSeasonReview, ownerWatch } from "../career/job";
+import { seasonAwards } from "../history/awards";
+import { hallOfFameVote } from "../history/hallOfFame";
+import { pruneNews } from "../history/news";
+import { gameRecords, seasonAndCareerRecords } from "../history/records";
+import { newsFromLogs, weeklyNews } from "../history/storylines";
 import { personTeam, staffDecides } from "../career/delegation";
 import {
   askCutdown,
@@ -254,7 +259,11 @@ function playGames(league: League, games: Game[], hooks: SimHooks): void {
     g.boxScore = output.box;
     g.weather = weather;
     // Season totals are regular-season stats, as in real record books; playoff box scores stay on the games.
-    if (g.round === "regular") recordStats(league, g, output.box, players);
+    if (g.round === "regular") {
+      recordStats(league, g, output.box, players);
+      // Single-game records, league and franchise (Phase 15).
+      if (!hooks.historyOnly) gameRecords(league, g, output.box, players);
+    }
     applyInjuries(league, g, output.injuries, players);
     if (!hooks.historyOnly) countReserveGames(league, [g.homeId, g.awayId]);
     // Elevated players go back to the practice squad after the game.
@@ -513,6 +522,18 @@ function advanceOnce(league: League, hooks: SimHooks): string {
         inSeasonFirings(league, week);
         // Rarer still, a GM in GM Mode far below expectations (Phase 14b).
         inSeasonReview(league, week);
+        // The week's season and career records, and the newsfeed (Phase 15).
+        const played = new Set(
+          league.games
+            .filter((g) => g.round === "regular" && g.week === week && g.boxScore)
+            .flatMap((g) => g.boxScore!.players.map((e) => e.id)),
+        );
+        seasonAndCareerRecords(
+          league,
+          league.players.filter((p) => played.has(p.id)),
+        );
+        newsFromLogs(league);
+        weeklyNews(league, week);
       }
       if (week >= league.rules.schedule.regularSeasonWeeks) {
         cal.stage = "wildcard";
@@ -550,6 +571,11 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       } else {
         cal.stage = "complete";
         completeSeason(league);
+        // The season's awards are announced with the champion (Phase 15).
+        if (!hooks.historyOnly) {
+          seasonAwards(league);
+          newsFromLogs(league);
+        }
       }
       return `${round === "championship" ? "Championship" : round[0]!.toUpperCase() + round.slice(1) + " round"} played`;
     }
@@ -566,10 +592,16 @@ function advanceOnce(league: League, hooks: SimHooks): string {
           last?.championId ?? null,
         );
       }
+      // The Hall of Fame's vote (Phase 15).
+      if (!hooks.historyOnly) {
+        hallOfFameVote(league);
+        newsFromLogs(league);
+      }
       seasonEnds(league);
       // The owner's reactions to the person's moves fade with the new year (Phase 14b).
       careerSeasonEnd(league);
       startNextSeason(league, { agePlayers: true });
+      if (!hooks.historyOnly) pruneNews(league);
       retirePlayers(league, ended);
       // Players long gone become short history cards (Phase 13), so the list stays lean.
       if (!hooks.historyOnly) archivePlayers(league, ended);

@@ -124,6 +124,10 @@ export const CapRulesSchema = z.object({
     playingTimeShare: Share,
     playingTimeSeasons: z.number().int(),
     everySeasonShare: Share,
+    /** Pro Bowls on the original ballot in his first seasons (Phase 15): one sets the option at the
+     * transition tender, two or more at the franchise tender. */
+    proBowlSeasons: z.number().int().positive(),
+    proBowlSource: z.string(),
   }),
   rookieScale: z.object({
     years: z.number().int().positive(),
@@ -220,6 +224,21 @@ export const RulesSchema = z
       }),
       rookieExtensionAfterSeasons: z.number().int().positive(),
       campFinePerDay: z.object({ veteran: z.number().int(), rookie: z.number().int() }),
+    }),
+    /** The Hall of Fame's election (Phase 15). */
+    hallOfFame: z.object({
+      source: z.string(),
+      /** A player is eligible once he last played at least this many full seasons ago. */
+      waitSeasons: z.number().int().positive(),
+      /** New members a year (players, coaches and contributors together). */
+      classMin: z.number().int().positive(),
+      classMax: z.number().int().positive(),
+      /** Finalists before the committee each year. */
+      playerFinalists: z.number().int().positive(),
+      coachFinalists: z.number().int().nonnegative(),
+      contributorFinalists: z.number().int().nonnegative(),
+      /** Share of the committee a finalist needs. */
+      approvalShare: Share,
     }),
     /** Hiring coaches under contract with other clubs (Phase 10b). */
     staff: z.object({

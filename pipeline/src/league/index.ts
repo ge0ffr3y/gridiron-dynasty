@@ -49,9 +49,10 @@ import {
 import { careers, FIRST_STATS_SEASON, injuryHistory, injuryTraits, rescaleTraits } from "./careers";
 import { fetchTeamPages, matchPages, readTeamPages } from "./capPages";
 import { capSnapshot, contractAtStart, readContracts, teamNameMap } from "./contracts";
-import { matchMadden, parseMadden } from "./madden";
+import { matchMadden, normName, parseMadden } from "./madden";
 import { validateCaps, type CapValidation } from "./validate";
 import { fictionalCollege, Renamer } from "./names";
+import { buildRealHistory, realHistoryNames } from "../history/build";
 import { adjustForPerformance, adjustForTeamResults, defenseByPfr } from "./performance";
 import { alignSpecialists, buildRatings } from "./ratings";
 import { buildRoster, experienceAfter, mapPosition } from "./roster";
@@ -221,6 +222,8 @@ export async function buildLeague(): Promise<{
     ...realCoaches.map((c) => c.name ?? ""),
     // The real GMs too (Phase 13): generated executives must not share their names.
     ...realGmNames(),
+    // The real past's people too (Phase 15): legends get fictional names that match no one real.
+    ...realHistoryNames(),
   ]);
   const playerInputs: RealPlayerInput[] = people.map((p) => ({
     key: p.gsis,
@@ -275,6 +278,17 @@ export async function buildLeague(): Promise<{
       : "Front offices: no front-office-habits.json (run npm run pipeline -- frontoffice); GMs and owners are generated.",
   );
 
+  // The real league's past (Phase 15): seasons, awards, the Hall of Fame, retired numbers, records.
+  const history = buildRealHistory({
+    renamer,
+    currentByPfr: new Map(people.filter((p) => p.pfr).map((p) => [p.pfr, p.gsis])),
+    currentByName: new Map(people.map((p) => [normName(`${p.realFirst} ${p.realLast}`), p.gsis])),
+    names: new Map(
+      playerInputs.map((p) => [p.key, { firstName: p.firstName, lastName: p.lastName }]),
+    ),
+    report,
+  });
+
   const league = assembleRealLeague({
     name: "Real league",
     seed: REAL_LEAGUE_SEED,
@@ -288,6 +302,7 @@ export async function buildLeague(): Promise<{
     names: new NamePicker(new Rng(streamSeed(REAL_LEAGUE_SEED, "generated-names"))),
     prospects: prospectInputs,
     draftOrder: draftOrder2026,
+    history,
     ...(fronts ? { frontOffices: fronts } : {}),
     ...(snapshot
       ? {
@@ -326,6 +341,20 @@ export async function buildLeague(): Promise<{
     );
     fixed += 1;
   }
+  // The past's people (legends, award winners, Hall of Famers, record holders) too.
+  const pastNames = [
+    ...league.formerPlayers.map((c) => `${c.firstName} ${c.lastName}`),
+    ...league.awards.map((a) => a.name),
+    ...league.hallOfFame.map((h) => h.name),
+    ...league.retiredNumbers.map((r) => r.name),
+    ...league.records.flatMap((r) => r.top.map((e) => e.name)),
+  ];
+  const stillRealPast = pastNames.filter((n) => {
+    const [first, ...rest] = n.split(" ");
+    return renamer.isReal(first ?? "", rest.join(" "));
+  });
+  if (stillRealPast.length > 0)
+    throw new Error(`${stillRealPast.length} real names survived in the league's history`);
   const stillReal = [
     ...league.players,
     ...league.coaches,

@@ -337,6 +337,30 @@ describe.skipIf(!ready)("the real league's past (Phase 15)", () => {
     expect(names.filter((n) => real.has(norm(n)))).toEqual([]);
   });
 
+  it("every club has a franchise record book: career and season lists three deep, biggest first", () => {
+    const l = parseLeague(readFileSync(LEAGUE_FILE, "utf8"));
+    for (const t of l.teams) {
+      const lists = l.records.filter((r) => r.scope === t.id);
+      expect(
+        lists.filter((r) => r.level === "career").length,
+        `${t.id} career lists`,
+      ).toBeGreaterThanOrEqual(9);
+      expect(
+        lists.filter((r) => r.level === "season").length,
+        `${t.id} season lists`,
+      ).toBeGreaterThanOrEqual(7);
+      for (const list of lists.filter((r) => r.level !== "game")) {
+        expect(list.top.every((e) => e.real)).toBe(true);
+        const values = list.top.map((e) => e.value);
+        expect([...values].sort((a, b) => b - a)).toEqual(values);
+        expect(values.length).toBeLessThanOrEqual(3);
+      }
+    }
+    // The book is read by the screens for a club that had no public records page.
+    const view = recordsView(l, "NYA");
+    expect(view.lists.some((x) => x.level === "career" && x.stat === "passYds")).toBe(true);
+  });
+
   it("a real record falls: a quarterback passes the single-season mark, the book keeps the old holder, and the feed says so", () => {
     const l = parseLeague(readFileSync(LEAGUE_FILE, "utf8"));
     const list = l.records.find(

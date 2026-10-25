@@ -10,6 +10,7 @@ import type { Position, RealHistoryInput, RecordLevel, RecordStat } from "@fgm/s
 import { pageFile } from "./fetch";
 import { num, tableRows, type Row } from "./html";
 import { allTeamRecords } from "./teamRecords";
+import { franchiseLeaderRecords } from "./teamLeaders";
 
 export interface RecordsContext {
   person: (
@@ -108,7 +109,7 @@ export function leagueRecords(
   return out;
 }
 
-const POSITION_FOR: Record<RecordStat, Position> = {
+export const POSITION_FOR: Record<RecordStat, Position> = {
   passYds: "QB",
   passTd: "QB",
   rushYds: "RB",
@@ -121,10 +122,19 @@ const POSITION_FOR: Record<RecordStat, Position> = {
   fgm: "K",
 };
 
-/** Each franchise's standing record holders (the top of each list). */
-export function franchiseRecords(ctx: RecordsContext): RealHistoryInput["records"] {
-  const out: RealHistoryInput["records"] = [];
+/**
+ * Each franchise's standing record holders: the top three of each career and season list from the
+ * club's leader pages, and the single-game marks (and any list a leader page lacks) from the club's
+ * public records page, where it has one.
+ */
+export function franchiseRecords(
+  ctx: RecordsContext,
+  franchise: (code: string) => string | null,
+): RealHistoryInput["records"] {
+  const out = franchiseLeaderRecords(ctx, franchise);
+  const have = new Set(out.map((r) => `${r.scope}|${r.level}|${r.stat}`));
   for (const r of allTeamRecords()) {
+    if (have.has(`${r.teamId}|${r.level}|${r.stat}`)) continue;
     const p = ctx.person(null, r.name, {
       position: POSITION_FOR[r.stat],
       seasons: r.season ? [r.season] : [],
@@ -153,9 +163,9 @@ export function buildRecords(
   franchise: (code: string) => string | null,
 ): RealHistoryInput["records"] {
   const league = leagueRecords(ctx, franchise);
-  const teams = franchiseRecords(ctx);
+  const teams = franchiseRecords(ctx, franchise);
   ctx.report.push(
-    `Records: ${league.length} league lists from the archived leader pages, ${teams.length} franchise records from the teams' public record pages.`,
+    `Records: ${league.length} league lists from the archived leader pages, ${teams.length} franchise record lists (leader pages for career and season marks, the clubs' public record pages for single games).`,
   );
   return [...league, ...teams];
 }

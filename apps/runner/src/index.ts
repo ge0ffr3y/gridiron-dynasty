@@ -117,6 +117,25 @@ if (args.includes("--calibrate")) {
   process.exit(0);
 }
 
+if (args.includes("--experiments")) {
+  const { listExperiments } = await import("./experiments/cli");
+  listExperiments();
+  process.exit(0);
+}
+
+const experimentArg = option(args, "--experiment");
+if (experimentArg !== undefined) {
+  const { experimentCli } = await import("./experiments/cli");
+  const runs = option(args, "--runs");
+  await experimentCli(
+    experimentArg,
+    Number(option(args, "--workers") ?? 6),
+    runs === undefined ? undefined : Number(runs),
+    process.env["INIT_CWD"] ?? process.cwd(),
+  );
+  process.exit(0);
+}
+
 const carouselArg = option(args, "--carousel");
 if (carouselArg !== undefined) {
   runCarousel(readSeed(args), Number(carouselArg), option(args, "--league"));
@@ -186,6 +205,8 @@ if (!args.includes("--new-league")) {
   console.log("Usage:");
   console.log("  npm run sim -- --new-league [--seed N] [--out league.json]");
   console.log("  npm run sim -- --seasons N [--seed N]");
+  console.log("  npm run sim -- --experiment experiments/<file>.json [--workers N] [--runs N]");
+  console.log("  npm run sim -- --experiments   (list the experiment files)");
   process.exit(0);
 }
 

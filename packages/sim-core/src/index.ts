@@ -66,6 +66,7 @@ export { exhibitionRig, type ExhibitionRig } from "./season/exhibition";
 export { starterStrengths } from "./season/flow";
 export { gameDepthChart } from "./season/depthChart";
 export { coachIn, staffInput } from "./coaches/style";
+export { uniformFrom } from "./scouting/noise";
 export { expectedWinShare } from "./coaches/carousel";
 export * from "./lifecycle/report";
 export * from "./lifecycle/views";

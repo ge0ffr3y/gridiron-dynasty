@@ -1,0 +1,44 @@
+{
+  "id": "draft-vs-free-agency",
+  "title": "Draft and develop vs free-agency spending",
+  "question": "Over twenty years, does building through the draft beat buying in free agency?",
+  "kind": "team-groups",
+  "start": { "type": "generated" },
+  "runs": { "count": 60, "firstSeed": 2000 },
+  "seasons": 20,
+  "hold": true,
+  "baseline": [
+    { "type": "owner", "style": {} },
+    { "type": "gm", "knobs": {}, "skill": 55 }
+  ],
+  "groups": [
+    {
+      "name": "draft",
+      "label": "Draft and develop",
+      "levers": [
+        {
+          "type": "gm",
+          "knobs": { "futureDiscount": -1, "capAggression": -0.5, "loyalty": 0.5, "risk": -0.2 },
+          "skill": 55
+        }
+      ]
+    },
+    {
+      "name": "free-agency",
+      "label": "Free-agency spending",
+      "levers": [
+        { "type": "gm", "knobs": { "futureDiscount": 1, "capAggression": 1 }, "skill": 55 },
+        { "type": "owner", "style": { "budget": 1 } }
+      ]
+    }
+  ],
+  "params": {
+    "bands": [
+      [1, 5],
+      [6, 10],
+      [11, 20]
+    ]
+  },
+  "visibility": "public",
+  "conclusion": ""
+}

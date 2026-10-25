@@ -1,0 +1,35 @@
+{
+  "id": "cap-aggressive-gms",
+  "title": "Cap-aggressive vs conservative general managers",
+  "question": "Do general managers who run the cap hard win more titles, or do they rise sooner and collapse harder than conservative ones?",
+  "kind": "team-groups",
+  "start": { "type": "generated" },
+  "runs": { "count": 60, "firstSeed": 1000 },
+  "seasons": 20,
+  "hold": true,
+  "baseline": [
+    { "type": "owner", "style": {} },
+    { "type": "gm", "knobs": {}, "skill": 55 }
+  ],
+  "groups": [
+    {
+      "name": "conservative",
+      "label": "Conservative cap management",
+      "levers": [{ "type": "gm", "knobs": { "capAggression": -1 }, "skill": 55 }]
+    },
+    {
+      "name": "aggressive",
+      "label": "Aggressive cap management",
+      "levers": [{ "type": "gm", "knobs": { "capAggression": 1 }, "skill": 55 }]
+    }
+  ],
+  "params": {
+    "bands": [
+      [1, 5],
+      [6, 10],
+      [11, 20]
+    ]
+  },
+  "visibility": "public",
+  "conclusion": ""
+}

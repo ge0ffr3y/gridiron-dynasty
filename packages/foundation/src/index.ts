@@ -7,6 +7,7 @@ export * from "./rng";
 export * as dmath from "./math";
 export * from "./money";
 export * from "./dates";
+export * from "./stats";
 export * from "./players/positions";
 export {
   overallAt,

@@ -1,0 +1,12 @@
+{
+  "id": "playoff-randomness",
+  "title": "How random is a single-elimination playoff?",
+  "question": "How often does the strongest team win the title, and how does that compare with a coin flip in every game?",
+  "kind": "playoff-randomness",
+  "start": { "type": "generated" },
+  "runs": { "count": 40, "firstSeed": 6000 },
+  "seasons": 1,
+  "params": { "gamesPerPair": 20, "replays": 200 },
+  "visibility": "public",
+  "conclusion": ""
+}

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   advance,
+  advanceUntil,
   createLeague,
   parseLeague,
   startRealLeague,
@@ -27,6 +28,9 @@ export function prepareBase(spec: Spec): Base {
   const file = resolve(ROOT, spec.start.file);
   const real = parseLeague(readFileSync(file, "utf8"));
   const started = startRealLeague(real, { name: spec.id, seed: spec.start.seed });
+  // Some experiments start from the first week of the season, after one shared offseason.
+  if (spec.params.advanceTo === "regular")
+    advanceUntil(started, (l) => l.calendar.stage === "regular");
   return { text: JSON.stringify(started) };
 }
 
@@ -90,4 +94,19 @@ export function header(spec: Spec, runs: number): ResultHeader {
     seasons: spec.seasons,
     conclusion: spec.conclusion,
   };
+}
+
+/** An independent copy of a league (plain JSON, no classes), on a new seed with no saved streams. */
+export function cloneLeague(league: League, seed?: number): League {
+  const copy = JSON.parse(JSON.stringify(league)) as League;
+  if (seed !== undefined) {
+    copy.meta.seed = seed;
+    copy.rng = {};
+  }
+  return copy;
+}
+
+/** A whole number from a label, for seeds that must be the same wherever they are asked for. */
+export function seedFrom(hash: (label: string) => number, label: string): number {
+  return Math.floor(hash(label) * 2_147_483_647);
 }

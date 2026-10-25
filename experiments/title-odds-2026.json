@@ -1,0 +1,12 @@
+{
+  "id": "title-odds-2026",
+  "title": "Alternate histories: the 2026 season, again and again",
+  "question": "From the real start, how often does each team win the title, reach the final, make the playoffs, and how far does its record swing?",
+  "kind": "title-odds",
+  "start": { "type": "real", "file": "pipeline/private/out/real-league-2026.json", "seed": 1 },
+  "runs": { "count": 1000, "firstSeed": 1 },
+  "seasons": 1,
+  "params": { "advanceTo": "regular" },
+  "visibility": "private",
+  "conclusion": ""
+}

@@ -1,0 +1,39 @@
+{
+  "id": "coach-vs-quarterback",
+  "title": "A great head coach vs a great quarterback",
+  "question": "Which does more for a team's wins: the best coaching staff in the league, or the best quarterback?",
+  "kind": "swap-study",
+  "start": { "type": "generated" },
+  "runs": { "count": 150, "firstSeed": 4000 },
+  "seasons": 1,
+  "hold": true,
+  "baseline": [
+    { "type": "owner", "style": {} },
+    { "type": "gm", "knobs": {}, "skill": 55 }
+  ],
+  "groups": [
+    { "name": "baseline", "label": "As built", "levers": [] },
+    {
+      "name": "coach",
+      "label": "Best staff (head coach, both coordinators)",
+      "levers": [
+        {
+          "type": "coach",
+          "roles": ["HC"],
+          "ratings": { "leadership": 99, "gameManagement": 99 },
+          "style": { "adaptability": 1 }
+        },
+        { "type": "coach", "roles": ["OC"], "ratings": { "offense": 99 } },
+        { "type": "coach", "roles": ["DC"], "ratings": { "defense": 99 } }
+      ]
+    },
+    {
+      "name": "quarterback",
+      "label": "Best quarterback",
+      "levers": [{ "type": "quarterback", "level": 96 }]
+    }
+  ],
+  "params": { "gamesPerOpponent": 40, "season": true },
+  "visibility": "public",
+  "conclusion": ""
+}

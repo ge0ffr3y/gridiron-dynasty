@@ -3,10 +3,18 @@
   "title": "How random is a single-elimination playoff?",
   "question": "How often does the strongest team win the title, and how does that compare with a coin flip in every game?",
   "kind": "playoff-randomness",
-  "start": { "type": "generated" },
-  "runs": { "count": 40, "firstSeed": 6000 },
+  "start": {
+    "type": "generated"
+  },
+  "runs": {
+    "count": 40,
+    "firstSeed": 6000
+  },
   "seasons": 1,
-  "params": { "gamesPerPair": 20, "replays": 200 },
+  "params": {
+    "gamesPerPair": 20,
+    "replays": 200
+  },
   "visibility": "public",
-  "conclusion": ""
+  "conclusion": "In this simulated league the strongest team, the one that beats every other team most often on a neutral field, wins the title 30% of the time (25% to 35%) and reaches the final 45% of the time (39% to 51%). It always makes the playoffs. If every game were a coin flip it would win 9%. So talent matters a great deal, and the playoff is still a lottery: even the best team fails to win the title seven times in ten, the best regular-season record wins it only 26% of the time, and replaying one bracket 200 times crowns about 11 different champions out of 14 playoff teams.\nA caution: this league is lopsided. The best team beats an average one about 85% of the time and the worst about 15%. I haven't measured whether the real league's spread is that wide; if it is narrower, real playoffs are more random than these."
 }

@@ -1,0 +1,228 @@
+{
+  "id": "coach-vs-quarterback",
+  "title": "A great head coach vs a great quarterback",
+  "question": "Which does more for a team's wins: the best coaching staff in the league, or the best quarterback?",
+  "kind": "swap-study",
+  "visibility": "public",
+  "runs": 150,
+  "seasons": 1,
+  "conclusion": "The best quarterback in the league is worth about three times as much as the best coaching staff. Moving one team from its own quarterback to the best one adds 11.8 points of win share on neutral fields (95% interval 10.5 to 13.1), about 4.2 points a game, and 11.3 points over a real season (8.6 to 14.0), nearly two wins. The best staff (head coach and both coordinators at the top of the scale) adds 3.7 points (3.4 to 4.0), 1.4 points a game, and 3.5 points over a season (1.2 to 5.9), about half a win.\nThese sizes come from how the engine treats each. A quarterback's attributes decide every pass; coaches work through a small play-calling edge, penalties and in-game adjustments. The study held one season, so it leaves out what a coach does over years (developing players, hiring). It is the answer inside this model, not evidence about the real league. The gain from the quarterback also depends on whom he replaces: the starters here average well below the best.",
+  "conditions": [
+    {
+      "name": "baseline",
+      "label": "As built",
+      "winShare": {
+        "mean": 0.5175333333333333,
+        "lo": 0.48911964402387126,
+        "hi": 0.5459470226427953,
+        "n": 150,
+        "sd": 0.1761013625391444
+      },
+      "pointDiff": {
+        "mean": 0.6437999999999999,
+        "lo": -0.40540929503325174,
+        "hi": 1.6930092950332516,
+        "n": 150,
+        "sd": 6.502752403312918
+      },
+      "season": {
+        "mean": 0.5296133333333335,
+        "lo": 0.49836307274823655,
+        "hi": 0.5608635939184304,
+        "n": 150,
+        "sd": 0.1936817640540002
+      }
+    },
+    {
+      "name": "coach",
+      "label": "Best staff (head coach, both coordinators)",
+      "winShare": {
+        "mean": 0.554191333333333,
+        "lo": 0.526179492449582,
+        "hi": 0.5822031742170841,
+        "n": 150,
+        "sd": 0.17361080052408306
+      },
+      "pointDiff": {
+        "mean": 2.0165333333333346,
+        "lo": 0.9697090279407765,
+        "hi": 3.0633576387258925,
+        "n": 150,
+        "sd": 6.487970798545106
+      },
+      "season": {
+        "mean": 0.564904,
+        "lo": 0.5351413615924624,
+        "hi": 0.5946666384075375,
+        "n": 150,
+        "sd": 0.18446183173340483
+      }
+    },
+    {
+      "name": "quarterback",
+      "label": "Best quarterback",
+      "winShare": {
+        "mean": 0.6355333333333335,
+        "lo": 0.6069975155414339,
+        "hi": 0.6640691511252331,
+        "n": 150,
+        "sd": 0.1768582861448003
+      },
+      "pointDiff": {
+        "mean": 4.877800000000002,
+        "lo": 3.794479114315413,
+        "hi": 5.961120885684592,
+        "n": 150,
+        "sd": 6.714168018041898
+      },
+      "season": {
+        "mean": 0.6425486666666669,
+        "lo": 0.6148621944112194,
+        "hi": 0.6702351389221144,
+        "n": 150,
+        "sd": 0.17159424230287817
+      }
+    }
+  ],
+  "differences": [
+    {
+      "name": "coach",
+      "versus": "baseline",
+      "winShare": {
+        "mean": 0.03665800000000002,
+        "lo": 0.03381566005274242,
+        "hi": 0.039500339947257615,
+        "n": 150,
+        "sd": 0.017616154384598626
+      },
+      "pointDiff": {
+        "mean": 1.3727333333333334,
+        "lo": 1.277772317597429,
+        "hi": 1.4676943490692378,
+        "n": 150,
+        "sd": 0.5885460376884271
+      },
+      "season": {
+        "mean": 0.03529066666666668,
+        "lo": 0.011565575109379153,
+        "hi": 0.059015758223954204,
+        "n": 150,
+        "sd": 0.1470425365780629
+      }
+    },
+    {
+      "name": "quarterback",
+      "versus": "baseline",
+      "winShare": {
+        "mean": 0.11800000000000006,
+        "lo": 0.1049886946424694,
+        "hi": 0.13101130535753072,
+        "n": 150,
+        "sd": 0.08064100993428516
+      },
+      "pointDiff": {
+        "mean": 4.234,
+        "lo": 3.783258663170738,
+        "hi": 4.684741336829262,
+        "n": 150,
+        "sd": 2.7935887770095214
+      },
+      "season": {
+        "mean": 0.11293533333333326,
+        "lo": 0.0862815364389325,
+        "hi": 0.13958913022773403,
+        "n": 150,
+        "sd": 0.16519396333310796
+      }
+    }
+  ],
+  "gamesPerOpponent": 40,
+  "spec": {
+    "id": "coach-vs-quarterback",
+    "title": "A great head coach vs a great quarterback",
+    "question": "Which does more for a team's wins: the best coaching staff in the league, or the best quarterback?",
+    "kind": "swap-study",
+    "start": {
+      "type": "generated"
+    },
+    "runs": {
+      "count": 150,
+      "firstSeed": 4000
+    },
+    "seasons": 1,
+    "baseline": [
+      {
+        "type": "owner",
+        "style": {}
+      },
+      {
+        "type": "gm",
+        "knobs": {},
+        "skill": 55
+      }
+    ],
+    "groups": [
+      {
+        "name": "baseline",
+        "label": "As built",
+        "levers": []
+      },
+      {
+        "name": "coach",
+        "label": "Best staff (head coach, both coordinators)",
+        "levers": [
+          {
+            "type": "coach",
+            "roles": [
+              "HC"
+            ],
+            "ratings": {
+              "leadership": 99,
+              "gameManagement": 99
+            },
+            "style": {
+              "adaptability": 1
+            }
+          },
+          {
+            "type": "coach",
+            "roles": [
+              "OC"
+            ],
+            "ratings": {
+              "offense": 99
+            },
+            "style": {}
+          },
+          {
+            "type": "coach",
+            "roles": [
+              "DC"
+            ],
+            "ratings": {
+              "defense": 99
+            },
+            "style": {}
+          }
+        ]
+      },
+      {
+        "name": "quarterback",
+        "label": "Best quarterback",
+        "levers": [
+          {
+            "type": "quarterback",
+            "level": 96
+          }
+        ]
+      }
+    ],
+    "hold": true,
+    "params": {
+      "gamesPerOpponent": 40,
+      "season": true
+    },
+    "visibility": "public",
+    "conclusion": "The best quarterback in the league is worth about three times as much as the best coaching staff. Moving one team from its own quarterback to the best one adds 11.8 points of win share on neutral fields (95% interval 10.5 to 13.1), about 4.2 points a game, and 11.3 points over a real season (8.6 to 14.0), nearly two wins. The best staff (head coach and both coordinators at the top of the scale) adds 3.7 points (3.4 to 4.0), 1.4 points a game, and 3.5 points over a season (1.2 to 5.9), about half a win.\nThese sizes come from how the engine treats each. A quarterback's attributes decide every pass; coaches work through a small play-calling edge, penalties and in-game adjustments. The study held one season, so it leaves out what a coach does over years (developing players, hiring). It is the answer inside this model, not evidence about the real league. The gain from the quarterback also depends on whom he replaces: the starters here average well below the best."
+  }
+}

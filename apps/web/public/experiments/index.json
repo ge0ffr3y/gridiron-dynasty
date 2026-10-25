@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "id": "coach-vs-quarterback",
+    "title": "A great head coach vs a great quarterback",
+    "question": "Which does more for a team's wins: the best coaching staff in the league, or the best quarterback?",
+    "kind": "swap-study",
+    "visibility": "public",
+    "runs": 150,
+    "seasons": 1,
+    "conclusion": "The best quarterback in the league is worth about three times as much as the best coaching staff. Moving one team from its own quarterback to the best one adds 11.8 points of win share on neutral fields (95% interval 10.5 to 13.1), about 4.2 points a game, and 11.3 points over a real season (8.6 to 14.0), nearly two wins. The best staff (head coach and both coordinators at the top of the scale) adds 3.7 points (3.4 to 4.0), 1.4 points a game, and 3.5 points over a season (1.2 to 5.9), about half a win.\nThese sizes come from how the engine treats each. A quarterback's attributes decide every pass; coaches work through a small play-calling edge, penalties and in-game adjustments. The study held one season, so it leaves out what a coach does over years (developing players, hiring). It is the answer inside this model, not evidence about the real league. The gain from the quarterback also depends on whom he replaces: the starters here average well below the best."
+  },
+  {
+    "id": "fourth-down-coaches",
+    "title": "Aggressive vs conservative fourth-down coaches",
+    "question": "Does a head coach who goes for it on fourth down win more games than one who punts?",
+    "kind": "team-groups",
+    "visibility": "public",
+    "runs": 200,
+    "seasons": 2,
+    "conclusion": "Going for it more often is worth a little, not a lot. Teams with a head coach two standard deviations more aggressive than typical won 1.1 points more of their games than teams with one two deviations more conservative (95% interval 0.3 to 1.9), about 0.2 wins a season. They made the playoffs 2.1 points more often (0.1 to 4.0). Their edge in titles (0.2 points) is within noise.\nThat is the gap between two extremes, wider than most real pairs of coaches, so the difference between ordinary coaches is smaller still. The simulated coaches decide from a win-probability model tilted by their style, so this says the model's close calls favor going for it slightly, which agrees with the analytics view, but that agreement was built into the model when it was calibrated."
+  },
+  {
+    "id": "playoff-randomness",
+    "title": "How random is a single-elimination playoff?",
+    "question": "How often does the strongest team win the title, and how does that compare with a coin flip in every game?",
+    "kind": "playoff-randomness",
+    "visibility": "public",
+    "runs": 40,
+    "seasons": 1,
+    "conclusion": "In this simulated league the strongest team, the one that beats every other team most often on a neutral field, wins the title 30% of the time (25% to 35%) and reaches the final 45% of the time (39% to 51%). It always makes the playoffs. If every game were a coin flip it would win 9%. So talent matters a great deal, and the playoff is still a lottery: even the best team fails to win the title seven times in ten, the best regular-season record wins it only 26% of the time, and replaying one bracket 200 times crowns about 11 different champions out of 14 playoff teams.\nA caution: this league is lopsided. The best team beats an average one about 85% of the time and the worst about 15%. I haven't measured whether the real league's spread is that wide; if it is narrower, real playoffs are more random than these."
+  }
+]

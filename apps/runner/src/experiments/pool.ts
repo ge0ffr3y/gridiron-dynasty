@@ -147,7 +147,16 @@ export async function runExperiment(
   const rows = seeds.map((s) => done.get(s)!);
   const summary = kind.summarize(spec, rows as never[]);
   const resultFile = join(folder, `${spec.id}.json`);
-  writeFileSync(resultFile, JSON.stringify({ ...(summary as object), spec }, null, 2) + "\n");
+  // A conclusion can live in its own file beside the results (so a private experiment's stays private).
+  const conclusionFile = join(folder, `${spec.id}.conclusion.txt`);
+  const conclusion = existsSync(conclusionFile)
+    ? readFileSync(conclusionFile, "utf8").trim()
+    : spec.conclusion;
+  writeFileSync(
+    resultFile,
+    JSON.stringify({ ...(summary as object), conclusion, spec: { ...spec, conclusion } }, null, 2) +
+      "\n",
+  );
   log(`${spec.id}: wrote ${resultFile}`);
   if (options.publish !== false) publishExperiments();
   return { resultFile, rows: rows.length };

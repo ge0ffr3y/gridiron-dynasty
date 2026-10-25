@@ -1,0 +1,107 @@
+{
+  "id": "playoff-randomness",
+  "title": "How random is a single-elimination playoff?",
+  "question": "How often does the strongest team win the title, and how does that compare with a coin flip in every game?",
+  "kind": "playoff-randomness",
+  "visibility": "public",
+  "runs": 40,
+  "seasons": 1,
+  "conclusion": "In this simulated league the strongest team, the one that beats every other team most often on a neutral field, wins the title 30% of the time (25% to 35%) and reaches the final 45% of the time (39% to 51%). It always makes the playoffs. If every game were a coin flip it would win 9%. So talent matters a great deal, and the playoff is still a lottery: even the best team fails to win the title seven times in ten, the best regular-season record wins it only 26% of the time, and replaying one bracket 200 times crowns about 11 different champions out of 14 playoff teams.\nA caution: this league is lopsided. The best team beats an average one about 85% of the time and the worst about 15%. I haven't measured whether the real league's spread is that wide; if it is narrower, real playoffs are more random than these.",
+  "strongestWinsTitle": {
+    "mean": 0.30062500000000003,
+    "lo": 0.25107041041378386,
+    "hi": 0.3501795895862162,
+    "n": 40,
+    "sd": 0.15495320840457547
+  },
+  "strongestReachesFinal": {
+    "mean": 0.44587500000000013,
+    "lo": 0.38511028476234094,
+    "hi": 0.5066397152376593,
+    "n": 40,
+    "sd": 0.19000636797695716
+  },
+  "strongestInPlayoffsWinsTitle": {
+    "mean": 0.30062500000000003,
+    "lo": 0.25107041041378386,
+    "hi": 0.3501795895862162,
+    "n": 40,
+    "sd": 0.15495320840457547
+  },
+  "bestRecordWinsTitle": {
+    "mean": 0.26400000000000007,
+    "lo": 0.21216287596442035,
+    "hi": 0.3158371240355798,
+    "n": 40,
+    "sd": 0.1620905096954579
+  },
+  "topSeedsWinTitle": {
+    "mean": 0.4384999999999999,
+    "lo": 0.38044521044005497,
+    "hi": 0.4965547895599448,
+    "n": 40,
+    "sd": 0.1815326487552654
+  },
+  "strongestMadePlayoffs": {
+    "mean": 1,
+    "lo": 1,
+    "hi": 1,
+    "n": 40,
+    "sd": 0
+  },
+  "coinFlipStrongestTitle": 0.090625,
+  "distinctChampions": {
+    "mean": 11.4,
+    "lo": 10.873761078333827,
+    "hi": 11.926238921666174,
+    "n": 40,
+    "sd": 1.6455067024148848
+  },
+  "strengthSpread": {
+    "best": {
+      "mean": 0.8469999999999999,
+      "lo": 0.8307374382585917,
+      "hi": 0.863262561741408,
+      "n": 40,
+      "sd": 0.05085172008789313
+    },
+    "median": {
+      "mean": 0.5030750000000002,
+      "lo": 0.4945913870876125,
+      "hi": 0.5115586129123878,
+      "n": 40,
+      "sd": 0.02652757394650291
+    },
+    "worst": {
+      "mean": 0.14629999999999999,
+      "lo": 0.1330494446103571,
+      "hi": 0.15955055538964288,
+      "n": 40,
+      "sd": 0.041433418940852625
+    }
+  },
+  "replays": 200,
+  "spec": {
+    "id": "playoff-randomness",
+    "title": "How random is a single-elimination playoff?",
+    "question": "How often does the strongest team win the title, and how does that compare with a coin flip in every game?",
+    "kind": "playoff-randomness",
+    "start": {
+      "type": "generated"
+    },
+    "runs": {
+      "count": 40,
+      "firstSeed": 6000
+    },
+    "seasons": 1,
+    "baseline": [],
+    "groups": [],
+    "hold": true,
+    "params": {
+      "gamesPerPair": 20,
+      "replays": 200
+    },
+    "visibility": "public",
+    "conclusion": "In this simulated league the strongest team, the one that beats every other team most often on a neutral field, wins the title 30% of the time (25% to 35%) and reaches the final 45% of the time (39% to 51%). It always makes the playoffs. If every game were a coin flip it would win 9%. So talent matters a great deal, and the playoff is still a lottery: even the best team fails to win the title seven times in ten, the best regular-season record wins it only 26% of the time, and replaying one bracket 200 times crowns about 11 different champions out of 14 playoff teams.\nA caution: this league is lopsided. The best team beats an average one about 85% of the time and the worst about 15%. I haven't measured whether the real league's spread is that wide; if it is narrower, real playoffs are more random than these."
+  }
+}

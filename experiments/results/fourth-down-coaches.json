@@ -1,0 +1,395 @@
+{
+  "id": "fourth-down-coaches",
+  "title": "Aggressive vs conservative fourth-down coaches",
+  "question": "Does a head coach who goes for it on fourth down win more games than one who punts?",
+  "kind": "team-groups",
+  "visibility": "public",
+  "runs": 200,
+  "seasons": 2,
+  "conclusion": "Going for it more often is worth a little, not a lot. Teams with a head coach two standard deviations more aggressive than typical won 1.1 points more of their games than teams with one two deviations more conservative (95% interval 0.3 to 1.9), about 0.2 wins a season. They made the playoffs 2.1 points more often (0.1 to 4.0). Their edge in titles (0.2 points) is within noise.\nThat is the gap between two extremes, wider than most real pairs of coaches, so the difference between ordinary coaches is smaller still. The simulated coaches decide from a win-probability model tilted by their style, so this says the model's close calls favor going for it slightly, which agrees with the analytics view, but that agreement was built into the model when it was calibrated.",
+  "bands": [
+    [
+      1,
+      1
+    ],
+    [
+      2,
+      2
+    ]
+  ],
+  "groups": [
+    {
+      "name": "conservative",
+      "label": "Conservative (two standard deviations below typical)",
+      "metrics": {
+        "winShareYears1to1": {
+          "mean": 0.4955330882352936,
+          "lo": 0.4907306707287547,
+          "hi": 0.5003355057418324,
+          "n": 200,
+          "sd": 0.034439332127589393
+        },
+        "winShareYears2to2": {
+          "mean": 0.4935937499999997,
+          "lo": 0.4890603778996988,
+          "hi": 0.49812712210030063,
+          "n": 200,
+          "sd": 0.032509940505512834
+        },
+        "winShare": {
+          "mean": 0.49456341911764684,
+          "lo": 0.4906136359348856,
+          "hi": 0.4985132023004081,
+          "n": 200,
+          "sd": 0.02832487901725944
+        },
+        "titleShare": {
+          "mean": 0.03,
+          "lo": 0.026794496911114997,
+          "hi": 0.033205503088885,
+          "n": 200,
+          "sd": 0.02298746107846992
+        },
+        "playoffRate": {
+          "mean": 0.4271875,
+          "lo": 0.417408145064771,
+          "hi": 0.436966854935229,
+          "n": 200,
+          "sd": 0.07013019008642274
+        },
+        "winShareSpread": {
+          "mean": 0.11609419515014084,
+          "lo": 0.11317534835363317,
+          "hi": 0.11901304194664851,
+          "n": 200,
+          "sd": 0.020931777405360584
+        },
+        "bestThreeYears": {
+          "mean": 0.49456341911764684,
+          "lo": 0.4906136359348856,
+          "hi": 0.4985132023004081,
+          "n": 200,
+          "sd": 0.02832487901725944
+        },
+        "worstThreeYears": {
+          "mean": 0.49456341911764684,
+          "lo": 0.4906136359348856,
+          "hi": 0.4985132023004081,
+          "n": 200,
+          "sd": 0.02832487901725944
+        },
+        "deadMoneyShare": {
+          "mean": 0.042299358645178226,
+          "lo": 0.04146104919126308,
+          "hi": 0.04313766809909337,
+          "n": 200,
+          "sd": 0.0060117259005015525
+        },
+        "freeAgentSpend": {
+          "mean": 0.09511356654223548,
+          "lo": 0.09279207070835307,
+          "hi": 0.09743506237611788,
+          "n": 200,
+          "sd": 0.016648024863942446
+        },
+        "trades": {
+          "mean": 3.24609375,
+          "lo": 3.191322170195641,
+          "hi": 3.300865329804359,
+          "n": 200,
+          "sd": 0.3927806413054993
+        }
+      },
+      "series": [
+        {
+          "mean": 0.4955330882352936,
+          "lo": 0.4907306707287547,
+          "hi": 0.5003355057418324,
+          "n": 200,
+          "sd": 0.034439332127589393
+        },
+        {
+          "mean": 0.4935937499999997,
+          "lo": 0.4890603778996988,
+          "hi": 0.49812712210030063,
+          "n": 200,
+          "sd": 0.032509940505512834
+        }
+      ]
+    },
+    {
+      "name": "aggressive",
+      "label": "Aggressive (two standard deviations above typical)",
+      "metrics": {
+        "winShareYears1to1": {
+          "mean": 0.5044669117647064,
+          "lo": 0.4996644942581675,
+          "hi": 0.5092693292712452,
+          "n": 200,
+          "sd": 0.03443933212758939
+        },
+        "winShareYears2to2": {
+          "mean": 0.5064062500000003,
+          "lo": 0.5018728778996994,
+          "hi": 0.5109396221003012,
+          "n": 200,
+          "sd": 0.032509940505512834
+        },
+        "winShare": {
+          "mean": 0.5054365808823532,
+          "lo": 0.5014867976995919,
+          "hi": 0.5093863640651145,
+          "n": 200,
+          "sd": 0.028324879017259462
+        },
+        "titleShare": {
+          "mean": 0.0325,
+          "lo": 0.029294496911115,
+          "hi": 0.035705503088885,
+          "n": 200,
+          "sd": 0.02298746107846992
+        },
+        "playoffRate": {
+          "mean": 0.4478125,
+          "lo": 0.438033145064771,
+          "hi": 0.457591854935229,
+          "n": 200,
+          "sd": 0.07013019008642274
+        },
+        "winShareSpread": {
+          "mean": 0.11487235622676703,
+          "lo": 0.11188713396557941,
+          "hi": 0.11785757848795465,
+          "n": 200,
+          "sd": 0.021407772395409575
+        },
+        "bestThreeYears": {
+          "mean": 0.5054365808823532,
+          "lo": 0.5014867976995919,
+          "hi": 0.5093863640651145,
+          "n": 200,
+          "sd": 0.028324879017259462
+        },
+        "worstThreeYears": {
+          "mean": 0.5054365808823532,
+          "lo": 0.5014867976995919,
+          "hi": 0.5093863640651145,
+          "n": 200,
+          "sd": 0.028324879017259462
+        },
+        "deadMoneyShare": {
+          "mean": 0.04068194064360336,
+          "lo": 0.039836771550086164,
+          "hi": 0.04152710973712055,
+          "n": 200,
+          "sd": 0.006060918084689835
+        },
+        "freeAgentSpend": {
+          "mean": 0.09454294363752719,
+          "lo": 0.09238559616582945,
+          "hi": 0.09670029110922493,
+          "n": 200,
+          "sd": 0.01547087607257224
+        },
+        "trades": {
+          "mean": 3.22953125,
+          "lo": 3.1832165288483534,
+          "hi": 3.2758459711516466,
+          "n": 200,
+          "sd": 0.3321344014689432
+        }
+      },
+      "series": [
+        {
+          "mean": 0.5044669117647064,
+          "lo": 0.4996644942581675,
+          "hi": 0.5092693292712452,
+          "n": 200,
+          "sd": 0.03443933212758939
+        },
+        {
+          "mean": 0.5064062500000003,
+          "lo": 0.5018728778996994,
+          "hi": 0.5109396221003012,
+          "n": 200,
+          "sd": 0.032509940505512834
+        }
+      ]
+    }
+  ],
+  "differences": [
+    {
+      "group": "aggressive",
+      "versus": "conservative",
+      "metrics": {
+        "winShareYears1to1": {
+          "mean": 0.008933823529411767,
+          "lo": -0.0006710114836659242,
+          "hi": 0.018538658542489456,
+          "n": 200,
+          "sd": 0.06887866425517879
+        },
+        "winShareYears2to2": {
+          "mean": 0.01281249999999999,
+          "lo": 0.0037457557993981344,
+          "hi": 0.021879244200601847,
+          "n": 200,
+          "sd": 0.06501988101102567
+        },
+        "winShare": {
+          "mean": 0.010873161764705885,
+          "lo": 0.002973595399183397,
+          "hi": 0.018772728130228372,
+          "n": 200,
+          "sd": 0.0566497580345189
+        },
+        "titleShare": {
+          "mean": 0.0025,
+          "lo": -0.003911006177770002,
+          "hi": 0.008911006177770003,
+          "n": 200,
+          "sd": 0.04597492215693984
+        },
+        "playoffRate": {
+          "mean": 0.020625,
+          "lo": 0.0010662901295419094,
+          "hi": 0.04018370987045809,
+          "n": 200,
+          "sd": 0.14026038017284548
+        },
+        "winShareSpread": {
+          "mean": -0.001221838923373811,
+          "lo": -0.005103797170271451,
+          "hi": 0.002660119323523829,
+          "n": 200,
+          "sd": 0.027838489508317615
+        },
+        "bestThreeYears": {
+          "mean": 0.010873161764705885,
+          "lo": 0.002973595399183397,
+          "hi": 0.018772728130228372,
+          "n": 200,
+          "sd": 0.0566497580345189
+        },
+        "worstThreeYears": {
+          "mean": 0.010873161764705885,
+          "lo": 0.002973595399183397,
+          "hi": 0.018772728130228372,
+          "n": 200,
+          "sd": 0.0566497580345189
+        },
+        "deadMoneyShare": {
+          "mean": -0.0016174180015748607,
+          "lo": -0.002893664593543156,
+          "hi": -0.0003411714096065656,
+          "n": 200,
+          "sd": 0.009152282199049712
+        },
+        "freeAgentSpend": {
+          "mean": -0.0005706229047083457,
+          "lo": -0.0041370359758142366,
+          "hi": 0.002995790166397545,
+          "n": 200,
+          "sd": 0.02557563645658811
+        },
+        "trades": {
+          "mean": -0.0165625,
+          "lo": -0.08149178901769696,
+          "hi": 0.048366789017696955,
+          "n": 200,
+          "sd": 0.4656241041608864
+        }
+      },
+      "series": [
+        {
+          "mean": 0.008933823529411767,
+          "lo": -0.0006710114836659242,
+          "hi": 0.018538658542489456,
+          "n": 200,
+          "sd": 0.06887866425517879
+        },
+        {
+          "mean": 0.01281249999999999,
+          "lo": 0.0037457557993981344,
+          "hi": 0.021879244200601847,
+          "n": 200,
+          "sd": 0.06501988101102567
+        }
+      ]
+    }
+  ],
+  "spec": {
+    "id": "fourth-down-coaches",
+    "title": "Aggressive vs conservative fourth-down coaches",
+    "question": "Does a head coach who goes for it on fourth down win more games than one who punts?",
+    "kind": "team-groups",
+    "start": {
+      "type": "generated"
+    },
+    "runs": {
+      "count": 200,
+      "firstSeed": 3000
+    },
+    "seasons": 2,
+    "baseline": [
+      {
+        "type": "owner",
+        "style": {}
+      },
+      {
+        "type": "gm",
+        "knobs": {},
+        "skill": 55
+      }
+    ],
+    "groups": [
+      {
+        "name": "conservative",
+        "label": "Conservative (two standard deviations below typical)",
+        "levers": [
+          {
+            "type": "coach",
+            "roles": [
+              "HC"
+            ],
+            "ratings": {},
+            "style": {
+              "fourthDown": -0.0744
+            }
+          }
+        ]
+      },
+      {
+        "name": "aggressive",
+        "label": "Aggressive (two standard deviations above typical)",
+        "levers": [
+          {
+            "type": "coach",
+            "roles": [
+              "HC"
+            ],
+            "ratings": {},
+            "style": {
+              "fourthDown": 0.0744
+            }
+          }
+        ]
+      }
+    ],
+    "hold": true,
+    "params": {
+      "bands": [
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          2
+        ]
+      ]
+    },
+    "visibility": "public",
+    "conclusion": "Going for it more often is worth a little, not a lot. Teams with a head coach two standard deviations more aggressive than typical won 1.1 points more of their games than teams with one two deviations more conservative (95% interval 0.3 to 1.9), about 0.2 wins a season. They made the playoffs 2.1 points more often (0.1 to 4.0). Their edge in titles (0.2 points) is within noise.\nThat is the gap between two extremes, wider than most real pairs of coaches, so the difference between ordinary coaches is smaller still. The simulated coaches decide from a win-probability model tilted by their style, so this says the model's close calls favor going for it slightly, which agrees with the analytics view, but that agreement was built into the model when it was calibrated."
+  }
+}

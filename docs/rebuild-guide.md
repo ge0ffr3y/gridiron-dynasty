@@ -83,5 +83,5 @@ It passes when every team is inside its tolerance, or each miss is explained in 
 ## Known gaps in what the guide can't automate
 
 - The Madden ratings file, the coaching staffs and the general managers are collected by hand.
-- Franchise record books come from public pages that exist for only some clubs; check
-  `pipeline/private/history/raw/wiki_team_missing.json` to see which ones couldn't be found.
+- Franchise single-game records come from public pages that exist for only some clubs; check
+  `pipeline/private/history/raw/wiki_team_missing.json` to see which ones couldn't be found. Career and season books come from each club's own leader pages for every club; the newest archived copy can be years old, and the seasons since are added from the stats files, so the stats files for every season since 2019 must be present.

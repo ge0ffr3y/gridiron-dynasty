@@ -18,6 +18,21 @@ const INDEX = join(PAGES, "index.json");
 const SITE = "www.pro-football-reference.com";
 /** After the 2025 regular season, before the 2026 season; the closest to March 1 wins. */
 const WINDOW = ["20260106", "20260831"] as const;
+/**
+ * Franchise leader pages are archived less often, so the newest usable copy will do, however old:
+ * the seasons since are added from the stats files (`teamLeaders.ts`). Usable means taken between
+ * the season's end and the next one's start, so it holds only whole seasons.
+ */
+const TEAM_FROM = "20200101";
+
+/** The last season a copy taken on this date (YYYYMMDD...) holds whole, or null if it was taken mid-season. */
+export function lastFullSeason(stamp: string): number | null {
+  const year = Number(stamp.slice(0, 4));
+  const md = stamp.slice(4, 8);
+  if (md > "0831") return null;
+  // The regular season ends in the first days of January.
+  return md < "0106" ? year - 2 : year - 1;
+}
 const TARGET = 20260301;
 const AGENT = "FootballGMSimPipeline/0.1 (personal research project)";
 const PAUSE_MS = 6000;
@@ -83,6 +98,23 @@ export const AWARD_PAGES = [
   "ap-coach-of-the-year",
 ] as const;
 
+/**
+ * A franchise's own leader pages: every player's career totals with the club and every single
+ * season, one page per statistic group (single-season pages exist for passing, rushing, receiving
+ * and kicking only).
+ */
+export const TEAM_LEADER_PAGES = [
+  "career-passing",
+  "career-rushing",
+  "career-receiving",
+  "career-defense",
+  "career-kicking",
+  "single-season-passing",
+  "single-season-rushing",
+  "single-season-receiving",
+  "single-season-kicking",
+] as const;
+
 export const FIRST_SEASON = 1966;
 export const LAST_SEASON = 2025;
 
@@ -98,7 +130,15 @@ export function historyPaths(): string[] {
   for (const s of LEADER_STATS)
     for (const kind of ["career", "single_season", "single_game"])
       out.push(`leaders/${s}_${kind}.htm`);
+  for (const code of FRANCHISE_CODES)
+    for (const p of TEAM_LEADER_PAGES) out.push(`teams/${code}/${p}.htm`);
   return out;
+}
+
+/** When the archived copy of a page was taken (YYYYMMDDhhmmss), or null. */
+export function pageStamp(path: string): string | null {
+  if (!existsSync(INDEX)) return null;
+  return (JSON.parse(readFileSync(INDEX, "utf8")) as PageIndex)[path]?.timestamp ?? null;
 }
 
 export function pageFile(path: string): string {
@@ -115,7 +155,8 @@ async function patient(url: string): Promise<Response | null> {
     try {
       const res = await fetch(url, { headers: { "User-Agent": AGENT } });
       if (res.ok) return res;
-      if (res.status === 404) return null;
+      // Not there, or a capture the archive won't serve: nothing to wait for.
+      if (res.status === 404 || res.status === 403) return null;
     } catch {
       // Refused or dropped: the archive is asking us to slow down.
     }
@@ -150,29 +191,35 @@ export async function fetchHistoryPages(): Promise<number> {
     }
     // The archive redirects a dated request to its nearest copy: one request when that copy is in
     // the window; otherwise list the copies in the window and take the closest.
+    const isTeam = path.startsWith("teams/");
     let html: string | null = null;
     let best: string | null = null;
-    const direct = await patient(
-      `https://web.archive.org/web/${TARGET}id_/https://${SITE}/${path}`,
-    );
+    const direct = isTeam
+      ? null
+      : await patient(`https://web.archive.org/web/${TARGET}id_/https://${SITE}/${path}`);
     const stamp = direct?.url.match(/\/web\/(\d{14})/)?.[1] ?? null;
     if (direct && stamp && stamp >= WINDOW[0] && stamp.slice(0, 8) <= WINDOW[1]) {
       html = await direct.text();
       best = stamp;
     } else {
       await sleep(PAUSE_MS);
-      const cdx = `https://web.archive.org/cdx/search/cdx?url=${SITE}/${path}&from=${WINDOW[0]}&to=${WINDOW[1]}&output=json&filter=statuscode:200`;
+      const cdx = `https://web.archive.org/cdx/search/cdx?url=${SITE}/${path}&from=${isTeam ? TEAM_FROM : WINDOW[0]}&to=${WINDOW[1]}&output=json&filter=statuscode:200`;
       const list = (await json(cdx)) as string[][];
-      const stamps = list.slice(1).map((r) => r[1]!);
+      const stamps = list
+        .slice(1)
+        .map((r) => r[1]!)
+        .filter((st) => !isTeam || lastFullSeason(st) !== null);
       await sleep(PAUSE_MS);
       if (stamps.length === 0) {
         index[path] = { timestamp: null, file: null };
         writeFileSync(INDEX, JSON.stringify(index, null, 2));
-        console.log(`No archived copy of ${path} in the window.`);
+        console.log(`No usable archived copy of ${path}.`);
         continue;
       }
       const distance = (s: string) => Math.abs(Number(s.slice(0, 8)) - TARGET);
-      best = stamps.sort((a, b) => distance(a) - distance(b) || a.localeCompare(b))[0]!;
+      best = isTeam
+        ? stamps.sort().at(-1)!
+        : stamps.sort((a, b) => distance(a) - distance(b) || a.localeCompare(b))[0]!;
       // "id_" asks for the page as it was, without the archive's own toolbar.
       const res = await patient(`https://web.archive.org/web/${best}id_/https://${SITE}/${path}`);
       html = res ? await res.text() : null;

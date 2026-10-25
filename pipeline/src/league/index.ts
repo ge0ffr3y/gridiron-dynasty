@@ -59,6 +59,7 @@ import { buildRoster, experienceAfter, mapPosition } from "./roster";
 import { sanitySheet } from "./sanity";
 import { seasonGames } from "./season";
 import { realPickTrades, realSchedule } from "./schedule";
+import { loadRecentStats } from "../history/teamLeaders";
 import { validateDayOne, type DayOneReport } from "./dayOne";
 
 /** The base league's seed. Each new real league in the app gets its own seed on top. */
@@ -282,6 +283,7 @@ export async function buildLeague(): Promise<{
   );
 
   // The real league's past (Phase 15): seasons, awards, the Hall of Fame, retired numbers, records.
+  await loadRecentStats();
   const history = buildRealHistory({
     renamer,
     currentByPfr: new Map(people.filter((p) => p.pfr).map((p) => [p.pfr, p.gsis])),

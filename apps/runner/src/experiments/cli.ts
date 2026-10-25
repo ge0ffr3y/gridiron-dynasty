@@ -3,6 +3,7 @@ import { readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { ROOT } from "./kinds/common";
 import { runExperiment } from "./pool";
+import { publishExperiments } from "./publish";
 import { loadSpec } from "./spec";
 
 export function listExperiments(): void {
@@ -24,4 +25,9 @@ export async function experimentCli(
   cwd = process.cwd(),
 ): Promise<void> {
   await runExperiment(resolve(cwd, file), { workers, ...(runs !== undefined ? { runs } : {}) });
+}
+
+export function publishCli(): void {
+  const n = publishExperiments();
+  console.log(`Published ${n.public} public and ${n.private} private results to the web app.`);
 }

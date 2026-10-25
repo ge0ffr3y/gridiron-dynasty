@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { fork, type ChildProcess } from "node:child_process";
 import { ROOT, prepareBase } from "./kinds/common";
 import { KINDS } from "./registry";
+import { publishExperiments } from "./publish";
 import { loadSpec, type Spec } from "./spec";
 
 export interface RunOptions {
@@ -18,6 +19,8 @@ export interface RunOptions {
   /** Plays only this many seeds (the first ones), for a pilot. */
   runs?: number;
   log?: (line: string) => void;
+  /** Copy results to the web app's folders afterwards (default yes; tests say no). */
+  publish?: boolean;
 }
 
 export function outputFolder(spec: Spec): string {
@@ -146,5 +149,6 @@ export async function runExperiment(
   const resultFile = join(folder, `${spec.id}.json`);
   writeFileSync(resultFile, JSON.stringify({ ...(summary as object), spec }, null, 2) + "\n");
   log(`${spec.id}: wrote ${resultFile}`);
+  if (options.publish !== false) publishExperiments();
   return { resultFile, rows: rows.length };
 }

@@ -123,6 +123,12 @@ if (args.includes("--experiments")) {
   process.exit(0);
 }
 
+if (args.includes("--publish-experiments")) {
+  const { publishCli } = await import("./experiments/cli");
+  publishCli();
+  process.exit(0);
+}
+
 const experimentArg = option(args, "--experiment");
 if (experimentArg !== undefined) {
   const { experimentCli } = await import("./experiments/cli");

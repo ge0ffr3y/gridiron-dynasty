@@ -149,16 +149,16 @@ describe("the runner", () => {
     const quiet = () => {};
     try {
       clean();
-      await runExperiment(file, { workers: 0, log: quiet });
+      await runExperiment(file, { workers: 0, log: quiet, publish: false });
       const inline = readFileSync(results, "utf8");
       clean();
-      await runExperiment(file, { workers: 2, log: quiet });
+      await runExperiment(file, { workers: 2, log: quiet, publish: false });
       expect(readFileSync(results, "utf8")).toBe(inline);
       // Interrupted after one run, then resumed.
       clean();
-      await runExperiment(file, { workers: 0, runs: 1, log: quiet });
+      await runExperiment(file, { workers: 0, runs: 1, log: quiet, publish: false });
       expect(readFileSync(runs, "utf8").trim().split("\n")).toHaveLength(1);
-      await runExperiment(file, { workers: 1, log: quiet });
+      await runExperiment(file, { workers: 1, log: quiet, publish: false });
       expect(readFileSync(runs, "utf8").trim().split("\n")).toHaveLength(2);
       expect(readFileSync(results, "utf8")).toBe(inline);
     } finally {

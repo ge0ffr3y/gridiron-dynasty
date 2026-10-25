@@ -5,6 +5,7 @@ import {
   BookOpen,
   CalendarClock,
   Dumbbell,
+  FlaskConical,
   HeartPulse,
   TrendingUp,
   BriefcaseBusiness,
@@ -56,6 +57,7 @@ import { ExecutivePage } from "@/pages/ExecutivePage";
 import { TransactionsPage } from "@/pages/TransactionsPage";
 import { GamePage } from "@/pages/GamePage";
 import { DayOnePage } from "@/pages/DayOnePage";
+import { ExperimentPage, ExperimentsPage } from "@/pages/ExperimentsPage";
 import { HistoryPage } from "@/pages/HistoryPage";
 import { HomePage } from "@/pages/HomePage";
 import { LeaguePage } from "@/pages/LeaguePage";
@@ -80,6 +82,7 @@ type NavItem = {
 // Screens arrive phase by phase (see docs/roadmap.md); until then they show which phase builds them.
 const NAV: NavItem[] = [
   { label: "Leagues", icon: FolderOpen, href: "/" },
+  { label: "Experiments", icon: FlaskConical, href: "/experiments" },
   { label: "League", icon: Home, href: "/league", needsLeague: true },
   { label: "Inbox", icon: Inbox, href: "/inbox", needsLeague: true },
   { label: "Career", icon: UserRound, href: "/career", needsLeague: true },
@@ -241,6 +244,10 @@ function Shell() {
                 <DevelopmentPage />
               </NeedsLeague>
             </Route>
+            <Route path="/experiments">
+              <ExperimentsPage />
+            </Route>
+            <Route path="/experiments/:id">{(params) => <ExperimentPage id={params.id} />}</Route>
             <Route path="/start">
               <NeedsLeague>
                 <DayOnePage />

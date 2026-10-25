@@ -17,7 +17,7 @@
     "visibility": "public",
     "runs": 200,
     "seasons": 2,
-    "conclusion": "Going for it more often is worth a little, not a lot. Teams with a head coach two standard deviations more aggressive than typical won 1.1 points more of their games than teams with one two deviations more conservative (95% interval 0.3 to 1.9), about 0.2 wins a season. They made the playoffs 2.1 points more often (0.1 to 4.0). Their edge in titles (0.2 points) is within noise.\nThat is the gap between two extremes, wider than most real pairs of coaches, so the difference between ordinary coaches is smaller still. The simulated coaches decide from a win-probability model tilted by their style, so this says the model's close calls favor going for it slightly, which agrees with the analytics view, but that agreement was built into the model when it was calibrated."
+    "conclusion": "Going for it more often is worth a little, not a lot. Teams with a head coach two standard deviations more aggressive than typical won 1.1 points more of their games than teams with one two deviations more conservative (95% interval 0.3 to 1.9), about 0.2 wins a season. They made the playoffs 2.1 points more often (0.1 to 4.0). Their edge in titles (0.3 points) is within noise.\nThat is the gap between two extremes, wider than most real pairs of coaches, so the difference between ordinary coaches is smaller still. The simulated coaches decide from a win-probability model tilted by their style, so this says the model's close calls favor going for it slightly, which agrees with the analytics view, but that agreement was built into the model when it was calibrated."
   },
   {
     "id": "playoff-randomness",

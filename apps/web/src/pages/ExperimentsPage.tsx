@@ -130,12 +130,22 @@ export function ExperimentPage({ id }: { id: string }) {
           {result.spec.start.type === "real" ? "real-league" : "generated"} start. Each run has its
           own seed, so the same file gives the same answer. Intervals are 95%: if you ran the
           experiment again, about 19 times in 20 the true figure would fall inside them.
-          {result.spec.hold
+          {result.spec.hold && result.spec.groups.length > 0
             ? " Managers and coaches who were fired and replaced were given the group's profile again, so it held all the way."
             : ""}
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/** An estimate over its interval, stacked so a narrow table doesn't run off the page. */
+function Gain({ i, f }: { i: Interval; f: (v: number) => string }) {
+  return (
+    <>
+      <div className={clear(i) ? "font-medium" : ""}>{f(i.mean)}</div>
+      <div className="text-xs text-muted-foreground">{range(i, f)}</div>
+    </>
   );
 }
 
@@ -218,7 +228,12 @@ const metricFormat = (name: string) => (name === "trades" ? plain : (v: number) 
 function TeamGroupsView({ r }: { r: TeamGroupsResult }) {
   const first = r.groups[0]!;
   const bandNames = r.bands.map(([a, b]) => `winShareYears${a}to${b}`);
-  const winRows = ["winShare", ...bandNames, "bestThreeYears", "worstThreeYears", "winShareSpread"];
+  // Stretches and swings need at least three seasons to mean anything.
+  const winRows = [
+    "winShare",
+    ...bandNames,
+    ...(r.seasons >= 3 ? ["bestThreeYears", "worstThreeYears", "winShareSpread"] : []),
+  ];
   const rateRows = ["playoffRate", "titleShare"];
   const moneyRows = ["deadMoneyShare", "freeAgentSpend", "trades"];
   return (
@@ -337,13 +352,7 @@ function TeamGroupsView({ r }: { r: TeamGroupsResult }) {
                   ))}
                   {r.differences.map((d) => (
                     <TableCell key={d.group} className="text-right tabular-nums">
-                      {d.metrics[m] ? (
-                        <span className={clear(d.metrics[m]!) ? "font-medium" : ""}>
-                          {df(d.metrics[m]!.mean)} ({range(d.metrics[m]!, df)})
-                        </span>
-                      ) : (
-                        ""
-                      )}
+                      {d.metrics[m] ? <Gain i={d.metrics[m]!} f={df} /> : ""}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -429,11 +438,15 @@ function PlayoffView({ r }: { r: PlayoffResult }) {
           format={(v) => pct(v, 0)}
           rows={[
             { label: "Strongest team", interval: r.strongestWinsTitle, color: SERIES_COLORS[0]! },
-            {
-              label: "Strongest playoff team",
-              interval: r.strongestInPlayoffsWinsTitle,
-              color: SERIES_COLORS[0]!,
-            },
+            ...(r.strongestMadePlayoffs.mean < 1
+              ? [
+                  {
+                    label: "Strongest playoff team",
+                    interval: r.strongestInPlayoffsWinsTitle,
+                    color: SERIES_COLORS[0]!,
+                  },
+                ]
+              : []),
             {
               label: "Best regular-season record",
               interval: r.bestRecordWinsTitle,
@@ -443,6 +456,12 @@ function PlayoffView({ r }: { r: PlayoffResult }) {
               label: "A one seed (either)",
               interval: r.topSeedsWinTitle,
               color: SERIES_COLORS[1]!,
+            },
+            {
+              label: "A one seed, coin-flip games",
+              interval: flat(0.25),
+              color: SERIES_COLORS[2]!,
+              note: "Two one seeds, each needing three wins: 1 in 8 apiece.",
             },
             {
               label: "Strongest team, coin-flip games",
@@ -573,13 +592,13 @@ function SwapView({ r }: { r: SwapResult }) {
               <TableRow key={`d-${d.name}`}>
                 <TableCell className="text-muted-foreground">Gain: {labelOf(d.name)}</TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {points(d.winShare.mean)} ({range(d.winShare, points)})
+                  <Gain i={d.winShare} f={points} />
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {signed(d.pointDiff.mean)} ({range(d.pointDiff, signed)})
+                  <Gain i={d.pointDiff} f={signed} />
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {d.season ? `${points(d.season.mean)} (${range(d.season, points)})` : "-"}
+                  {d.season ? <Gain i={d.season} f={points} /> : "-"}
                 </TableCell>
               </TableRow>
             ))}

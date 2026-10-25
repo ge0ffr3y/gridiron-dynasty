@@ -35,7 +35,7 @@
     },
     {
       "name": "coach",
-      "label": "Best staff (head coach, both coordinators)",
+      "label": "Best coaching staff",
       "winShare": {
         "mean": 0.554191333333333,
         "lo": 0.526179492449582,
@@ -169,13 +169,11 @@
       },
       {
         "name": "coach",
-        "label": "Best staff (head coach, both coordinators)",
+        "label": "Best coaching staff",
         "levers": [
           {
             "type": "coach",
-            "roles": [
-              "HC"
-            ],
+            "roles": ["HC"],
             "ratings": {
               "leadership": 99,
               "gameManagement": 99
@@ -186,9 +184,7 @@
           },
           {
             "type": "coach",
-            "roles": [
-              "OC"
-            ],
+            "roles": ["OC"],
             "ratings": {
               "offense": 99
             },
@@ -196,9 +192,7 @@
           },
           {
             "type": "coach",
-            "roles": [
-              "DC"
-            ],
+            "roles": ["DC"],
             "ratings": {
               "defense": 99
             },

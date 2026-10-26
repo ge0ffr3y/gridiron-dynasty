@@ -1,0 +1,80 @@
+{
+  "id": "coach-vs-quarterback",
+  "title": "A great head coach vs a great quarterback",
+  "question": "Which does more for a team's wins: the best coaching staff in the league, or the best quarterback?",
+  "kind": "swap-study",
+  "start": {
+    "type": "generated"
+  },
+  "runs": {
+    "count": 150,
+    "firstSeed": 4000
+  },
+  "seasons": 1,
+  "hold": true,
+  "baseline": [
+    {
+      "type": "owner",
+      "style": {}
+    },
+    {
+      "type": "gm",
+      "knobs": {},
+      "skill": 55
+    }
+  ],
+  "groups": [
+    {
+      "name": "baseline",
+      "label": "As built",
+      "levers": []
+    },
+    {
+      "name": "coach",
+      "label": "Best coaching staff",
+      "levers": [
+        {
+          "type": "coach",
+          "roles": ["HC"],
+          "ratings": {
+            "leadership": 99,
+            "gameManagement": 99
+          },
+          "style": {
+            "adaptability": 1
+          }
+        },
+        {
+          "type": "coach",
+          "roles": ["OC"],
+          "ratings": {
+            "offense": 99
+          }
+        },
+        {
+          "type": "coach",
+          "roles": ["DC"],
+          "ratings": {
+            "defense": 99
+          }
+        }
+      ]
+    },
+    {
+      "name": "quarterback",
+      "label": "Best quarterback",
+      "levers": [
+        {
+          "type": "quarterback",
+          "level": 96
+        }
+      ]
+    }
+  ],
+  "params": {
+    "gamesPerOpponent": 40,
+    "season": true
+  },
+  "visibility": "public",
+  "conclusion": "The best quarterback in the league is worth about three times as much as the best coaching staff. Moving one team from its own quarterback to the best one adds 11.8 points of win share on neutral fields (95% interval 10.5 to 13.1), about 4.2 points a game, and 11.3 points over a real season (8.6 to 14.0), nearly two wins. The best staff (head coach and both coordinators at the top of the scale) adds 3.7 points (3.4 to 4.0), 1.4 points a game, and 3.5 points over a season (1.2 to 5.9), about half a win.\nThese sizes come from how the engine treats each. A quarterback's attributes decide every pass; coaches work through a small play-calling edge, penalties and in-game adjustments. The study held one season, so it leaves out what a coach does over years (developing players, hiring). It is the answer inside this model, not evidence about the real league. The gain from the quarterback also depends on whom he replaces: the starters here average well below the best."
+}

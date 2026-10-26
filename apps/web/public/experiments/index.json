@@ -1,0 +1,52 @@
+[
+  {
+    "id": "cap-aggressive-gms",
+    "title": "Cap-aggressive vs conservative general managers",
+    "question": "Do general managers who run the cap hard win more titles, or do they rise sooner and collapse harder than conservative ones?",
+    "kind": "team-groups",
+    "visibility": "public",
+    "runs": 60,
+    "seasons": 20,
+    "conclusion": "Running the cap hard buys an early edge and a slightly worse twenty years. Teams with the aggressive cap manager won 0.8 points more of their games in years 1 to 5 (95% interval 0.1 to 1.5), then fell behind: 0.8 points fewer in years 6 to 10 (-1.6 to 0.0) and 1.1 points fewer in years 11 to 20 (-1.8 to -0.4). Over the whole twenty years they won 0.6 points fewer games (-1.1 to 0.0) and 0.6 points fewer of the titles available to a team in a season (2.8% against 3.4%; interval -1.2 to -0.1).\nThere is no sign of a harder collapse: their worst three-season stretch is no worse (-0.3 points, interval -0.9 to 0.5) and their season-to-season swings are no bigger. What they lose is the top end: their best three-season stretch is 0.8 points lower (-1.5 to -0.2). They carry 2.8 more points of the cap as dead money (7.9% against 5.1%), spend 6 more points of the cap on free agents each year, and make fewer trades.\nThe effects are small: a point of win share is about a sixth of a win a season. The groups play each other, so one group's gain is the other's loss. Only the cap knob differs between them (every other manager trait, skill and owner trait is the same, held for all twenty years), which is cleaner than real managers, whose habits come in bundles."
+  },
+  {
+    "id": "coach-vs-quarterback",
+    "title": "A great head coach vs a great quarterback",
+    "question": "Which does more for a team's wins: the best coaching staff in the league, or the best quarterback?",
+    "kind": "swap-study",
+    "visibility": "public",
+    "runs": 150,
+    "seasons": 1,
+    "conclusion": "The best quarterback in the league is worth about three times as much as the best coaching staff. Moving one team from its own quarterback to the best one adds 11.8 points of win share on neutral fields (95% interval 10.5 to 13.1), about 4.2 points a game, and 11.3 points over a real season (8.6 to 14.0), nearly two wins. The best staff (head coach and both coordinators at the top of the scale) adds 3.7 points (3.4 to 4.0), 1.4 points a game, and 3.5 points over a season (1.2 to 5.9), about half a win.\nThese sizes come from how the engine treats each. A quarterback's attributes decide every pass; coaches work through a small play-calling edge, penalties and in-game adjustments. The study held one season, so it leaves out what a coach does over years (developing players, hiring). It is the answer inside this model, not evidence about the real league. The gain from the quarterback also depends on whom he replaces: the starters here average well below the best."
+  },
+  {
+    "id": "draft-vs-free-agency",
+    "title": "Draft and develop vs free-agency spending",
+    "question": "Over twenty years, does building through the draft beat buying in free agency?",
+    "kind": "team-groups",
+    "visibility": "public",
+    "runs": 60,
+    "seasons": 20,
+    "conclusion": "Over twenty years, building through the draft beat buying in free agency. Free-agency teams started faster (+4.0 points of win share in season 1 and +7.3 in season 2, the only seasons with a clear edge) but were behind from season 4 on and stayed there: 2.5 points lower in years 6 to 10 (95% interval -3.2 to -1.8) and 2.1 points lower in years 11 to 20 (-2.7 to -1.5). Over all twenty seasons they won 1.5 points fewer games (-2.0 to -1.0), made the playoffs 2.2 points less often (-3.4 to -1.0) and won 1.1 points fewer of the titles available to a team in a season: 2.6% against 3.7%, so draft-and-develop teams won about 44% more titles.\nThey were worse at both ends: their best three-season stretch was 1.9 points lower (-2.6 to -1.2) and their worst 1.2 points lower (-1.8 to -0.6). They also carried 2.9 more points of the cap as dead money (8.0% against 5.1%) and spent 8 more points of the cap on free agents a year.\nCaveats. The free-agency group differs from the draft group in several ways at once (how it discounts the future, cap aggression, and a generous owner), so this compares two strategies, not one knob. The groups play each other, so one's gain is the other's loss, and a lone team among teams that all do the same might fare differently. A point of win share is about a sixth of a win a season."
+  },
+  {
+    "id": "fourth-down-coaches",
+    "title": "Aggressive vs conservative fourth-down coaches",
+    "question": "Does a head coach who goes for it on fourth down win more games than one who punts?",
+    "kind": "team-groups",
+    "visibility": "public",
+    "runs": 200,
+    "seasons": 2,
+    "conclusion": "Going for it more often is worth a little, not a lot. Teams with a head coach two standard deviations more aggressive than typical won 1.1 points more of their games than teams with one two deviations more conservative (95% interval 0.3 to 1.9), about 0.2 wins a season. They made the playoffs 2.1 points more often (0.1 to 4.0). Their edge in titles (0.3 points) is within noise.\nThat is the gap between two extremes, wider than most real pairs of coaches, so the difference between ordinary coaches is smaller still. The simulated coaches decide from a win-probability model tilted by their style, so this says the model's close calls favor going for it slightly, which agrees with the analytics view, but that agreement was built into the model when it was calibrated."
+  },
+  {
+    "id": "playoff-randomness",
+    "title": "How random is a single-elimination playoff?",
+    "question": "How often does the strongest team win the title, and how does that compare with a coin flip in every game?",
+    "kind": "playoff-randomness",
+    "visibility": "public",
+    "runs": 40,
+    "seasons": 1,
+    "conclusion": "In this simulated league the strongest team, the one that beats every other team most often on a neutral field, wins the title 30% of the time (25% to 35%) and reaches the final 45% of the time (39% to 51%). It always makes the playoffs. If every game were a coin flip it would win 9%. So talent matters a great deal, and the playoff is still a lottery: even the best team fails to win the title seven times in ten, the best regular-season record wins it only 26% of the time, and replaying one bracket 200 times crowns about 11 different champions out of 14 playoff teams.\nA caution: this league is lopsided. The best team beats an average one about 85% of the time and the worst about 15%. I haven't measured whether the real league's spread is that wide; if it is narrower, real playoffs are more random than these."
+  }
+]

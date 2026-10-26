@@ -1,0 +1,73 @@
+{
+  "id": "draft-vs-free-agency",
+  "title": "Draft and develop vs free-agency spending",
+  "question": "Over twenty years, does building through the draft beat buying in free agency?",
+  "kind": "team-groups",
+  "start": {
+    "type": "generated"
+  },
+  "runs": {
+    "count": 60,
+    "firstSeed": 2000
+  },
+  "seasons": 20,
+  "hold": true,
+  "baseline": [
+    {
+      "type": "owner",
+      "style": {}
+    },
+    {
+      "type": "gm",
+      "knobs": {},
+      "skill": 55
+    }
+  ],
+  "groups": [
+    {
+      "name": "draft",
+      "label": "Draft and develop",
+      "levers": [
+        {
+          "type": "gm",
+          "knobs": {
+            "futureDiscount": -1,
+            "capAggression": -0.5,
+            "loyalty": 0.5,
+            "risk": -0.2
+          },
+          "skill": 55
+        }
+      ]
+    },
+    {
+      "name": "free-agency",
+      "label": "Free-agency spending",
+      "levers": [
+        {
+          "type": "gm",
+          "knobs": {
+            "futureDiscount": 1,
+            "capAggression": 1
+          },
+          "skill": 55
+        },
+        {
+          "type": "owner",
+          "style": {
+            "budget": 1
+          }
+        }
+      ]
+    }
+  ],
+  "params": {
+    "bands": [
+      [1, 5],
+      [6, 10],
+      [11, 20]
+    ]
+  },
+  "visibility": "public",
+  "conclusion": "Over twenty years, building through the draft beat buying in free agency. Free-agency teams started faster (+4.0 points of win share in season 1 and +7.3 in season 2, the only seasons with a clear edge) but were behind from season 4 on and stayed there: 2.5 points lower in years 6 to 10 (95% interval -3.2 to -1.8) and 2.1 points lower in years 11 to 20 (-2.7 to -1.5). Over all twenty seasons they won 1.5 points fewer games (-2.0 to -1.0), made the playoffs 2.2 points less often (-3.4 to -1.0) and won 1.1 points fewer of the titles available to a team in a season: 2.6% against 3.7%, so draft-and-develop teams won about 44% more titles.\nThey were worse at both ends: their best three-season stretch was 1.9 points lower (-2.6 to -1.2) and their worst 1.2 points lower (-1.8 to -0.6). They also carried 2.9 more points of the cap as dead money (8.0% against 5.1%) and spent 8 more points of the cap on free agents a year.\nCaveats. The free-agency group differs from the draft group in several ways at once (how it discounts the future, cap aggression, and a generous owner), so this compares two strategies, not one knob. The groups play each other, so one's gain is the other's loss, and a lone team among teams that all do the same might fare differently. A point of win share is about a sixth of a win a season."
+}

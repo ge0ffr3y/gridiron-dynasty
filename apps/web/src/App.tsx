@@ -229,9 +229,9 @@ function Shell() {
           </div>
         </header>
         {league && (
-          <div className="border-b px-4 py-2 md:px-6">
+          <section aria-label="Simulation controls" className="border-b px-4 py-2 md:px-6">
             <SimControls />
-          </div>
+          </section>
         )}
 
         <nav

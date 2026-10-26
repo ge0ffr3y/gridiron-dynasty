@@ -20,7 +20,7 @@ const STANCE_WORDS: Record<string, string> = {
 function Knob({ low, high, value }: { low: string; high: string; value: number }) {
   const width = Math.abs(value) * 50;
   return (
-    <div className="grid grid-cols-[8rem_1fr_8rem] items-center gap-2 text-xs">
+    <div className="grid grid-cols-[5.5rem_1fr_5.5rem] sm:grid-cols-[8rem_1fr_8rem] items-center gap-2 text-xs">
       <span className="text-right text-muted-foreground">{low}</span>
       <div className="relative h-2 rounded bg-muted">
         <div className="absolute inset-y-0 left-1/2 w-px bg-border" />

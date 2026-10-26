@@ -221,7 +221,7 @@ function ClassTable({ rows }: { rows: ProspectRow[] }) {
           {filtered.length} prospects · "…" = not yet measured
         </span>
       </div>
-      <Table>
+      <Table caption="Draft prospects">
         <TableHeader>
           {table.getHeaderGroups().map((group) => (
             <TableRow key={group.id}>
@@ -230,7 +230,13 @@ function ClassTable({ rows }: { rows: ProspectRow[] }) {
                 const numeric = (header.column.columnDef.meta as { numeric?: boolean } | undefined)
                   ?.numeric;
                 return (
-                  <TableHead key={header.id} className={numeric ? "text-right" : undefined}>
+                  <TableHead
+                    key={header.id}
+                    className={numeric ? "text-right" : undefined}
+                    aria-sort={
+                      sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : "none"
+                    }
+                  >
                     <button
                       type="button"
                       onClick={header.column.getToggleSortingHandler()}

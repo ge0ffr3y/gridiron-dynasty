@@ -65,7 +65,7 @@ export function DepthChartEditor({ teamId }: { teamId: string }) {
       {error && <ErrorNote message={error} />}
       {SIDES.map((side) => (
         <div key={side.id} className="flex flex-col gap-2">
-          <h3 className="text-sm font-semibold">{side.title}</h3>
+          <h2 className="text-sm font-semibold">{side.title}</h2>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {data.slots
               .filter((s) => s.side === side.id)

@@ -14,17 +14,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useChartWidth } from "@/lib/useChartWidth";
 
 type Point = PlayerView["ratingHistory"][number];
 
 const LINE = "var(--chart-1)";
-const W = 720;
 const H = 220;
 const PAD = { left: 40, right: 16, top: 16, bottom: 28 };
 
 export function RatingHistoryChart({ points }: { points: Point[] }) {
   const [active, setActive] = useState<number | null>(null);
   const svg = useRef<SVGSVGElement>(null);
+  const [setBox, W] = useChartWidth();
   if (points.length === 0) return null;
 
   // A y range that leaves room around the arc, on whole tens/fives.
@@ -69,7 +70,7 @@ export function RatingHistoryChart({ points }: { points: Point[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="relative">
+      <div ref={setBox} className="relative">
         <svg
           ref={svg}
           viewBox={`0 0 ${W} ${H}`}

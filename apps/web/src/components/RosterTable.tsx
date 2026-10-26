@@ -17,6 +17,7 @@ import {
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "wouter";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import {
@@ -33,6 +34,22 @@ import { DisputeTag, InjuryTag, FitTag, ListTag, MoodTag, OverallBadge } from ".
 const POSITION_ORDER = new Map<Position, number>(POSITIONS.map((p, i) => [p, i]));
 
 type SideFilter = "all" | "offense" | "defense" | "special";
+
+/** Column hints: numbers right-aligned; `low` columns drop out on a phone; the name stays in view. */
+interface ColumnMeta {
+  numeric?: boolean;
+  low?: boolean;
+  sticky?: boolean;
+}
+
+function columnClass(meta: ColumnMeta | undefined, header: boolean): string | undefined {
+  return cn(
+    meta?.low && "hidden md:table-cell",
+    meta?.sticky &&
+      "sticky left-0 z-10 bg-card shadow-[1px_0_0_var(--border)] md:static md:shadow-none",
+    meta?.sticky && header && "bg-card",
+  );
+}
 
 export function RosterTable({
   rows,
@@ -68,6 +85,7 @@ export function RosterTable({
       {
         accessorKey: "jersey",
         header: "#",
+        meta: { low: true },
         cell: (c) => (
           <span className="tabular-nums text-muted-foreground">{c.getValue<number>()}</span>
         ),
@@ -75,6 +93,7 @@ export function RosterTable({
       {
         accessorKey: "name",
         header: "Name",
+        meta: { sticky: true },
         cell: (c) => (
           <>
             <Link href={`/player/${c.row.original.id}`} className="font-medium hover:underline">
@@ -114,14 +133,14 @@ export function RosterTable({
         accessorKey: "heightIn",
         header: "Ht",
         cell: (c) => formatHeight(c.getValue<number>()),
-        meta: { numeric: true },
+        meta: { numeric: true, low: true },
       },
-      { accessorKey: "weightLb", header: "Wt", meta: { numeric: true } },
+      { accessorKey: "weightLb", header: "Wt", meta: { numeric: true, low: true } },
       {
         accessorKey: "experience",
         header: "Exp",
         cell: (c) => (c.getValue<number>() === 0 ? "R" : c.getValue<number>()),
-        meta: { numeric: true },
+        meta: { numeric: true, low: true },
       },
       {
         accessorKey: "overall",
@@ -136,6 +155,7 @@ export function RosterTable({
         header: "Fit",
         sortDescFirst: true,
         cell: (c) => <FitTag label={c.row.original.fit?.label ?? null} always />,
+        meta: { low: true },
       },
       {
         id: "mood",
@@ -143,6 +163,7 @@ export function RosterTable({
         header: "Mood",
         sortDescFirst: true,
         cell: (c) => <MoodTag mood={c.row.original.mood} always />,
+        meta: { low: true },
       },
     ],
     [showTeam],
@@ -199,16 +220,22 @@ export function RosterTable({
         <span className="text-xs text-muted-foreground">{filtered.length} players</span>
       </div>
 
-      <Table>
+      <Table caption="Players">
         <TableHeader>
           {table.getHeaderGroups().map((group) => (
             <TableRow key={group.id}>
               {group.headers.map((header) => {
                 const sorted = header.column.getIsSorted();
-                const numeric = (header.column.columnDef.meta as { numeric?: boolean } | undefined)
-                  ?.numeric;
+                const meta = header.column.columnDef.meta as ColumnMeta | undefined;
+                const numeric = meta?.numeric;
                 return (
-                  <TableHead key={header.id} className={numeric ? "text-right" : undefined}>
+                  <TableHead
+                    key={header.id}
+                    className={cn(numeric && "text-right", columnClass(meta, true))}
+                    aria-sort={
+                      sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : "none"
+                    }
+                  >
                     <button
                       type="button"
                       onClick={header.column.getToggleSortingHandler()}
@@ -229,12 +256,12 @@ export function RosterTable({
           {table.getRowModel().rows.map((row) => (
             <TableRow key={row.id}>
               {row.getVisibleCells().map((cell) => {
-                const numeric = (cell.column.columnDef.meta as { numeric?: boolean } | undefined)
-                  ?.numeric;
+                const meta = cell.column.columnDef.meta as ColumnMeta | undefined;
+                const numeric = meta?.numeric;
                 return (
                   <TableCell
                     key={cell.id}
-                    className={numeric ? "text-right tabular-nums" : undefined}
+                    className={cn(numeric && "text-right tabular-nums", columnClass(meta, false))}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>

@@ -30,7 +30,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { Link, Route, Router, Switch, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { SimControls } from "@/components/SimControls";
@@ -39,39 +39,99 @@ import { Button } from "@/components/ui/button";
 import { SessionProvider, useLeagueKey, useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
-import { CalendarPage } from "@/pages/CalendarPage";
-import { NewsPage, RecordsPage, SeasonPage } from "@/pages/HistoryPages";
-import { CareerPage, GlossaryPage, InboxPage, StartCareerPage } from "@/pages/CareerPages";
-import { CampPage } from "@/pages/CampPage";
-import { DraftPage } from "@/pages/DraftPage";
-import { FreeAgencyPage } from "@/pages/FreeAgencyPage";
-import { NegotiationPage } from "@/pages/NegotiationPage";
-import { ProspectPage } from "@/pages/ProspectPage";
 import { Select } from "@/components/ui/input";
-import { CoachingPage } from "@/pages/CoachingPage";
-import { DevelopmentPage } from "@/pages/DevelopmentPage";
-import { InjuriesPage } from "@/pages/InjuriesPage";
-import { CoachPage } from "@/pages/CoachPage";
-import { TradePage } from "@/pages/TradePage";
-import { SimulationPage } from "@/pages/SimulationPage";
-import { ExecutivePage } from "@/pages/ExecutivePage";
-import { TransactionsPage } from "@/pages/TransactionsPage";
-import { GamePage } from "@/pages/GamePage";
-import { DayOnePage } from "@/pages/DayOnePage";
-import { AboutPage } from "@/pages/AboutPage";
-import { ExperimentPage, ExperimentsPage } from "@/pages/ExperimentsPage";
-import { HistoryPage } from "@/pages/HistoryPage";
 import { HomePage } from "@/pages/HomePage";
-import { LeaguePage } from "@/pages/LeaguePage";
-import { LeadersPage } from "@/pages/LeadersPage";
-import { PlayerPage } from "@/pages/PlayerPage";
-import { PlayersPage } from "@/pages/PlayersPage";
-import { PlayoffsPage } from "@/pages/PlayoffsPage";
-import { SchedulePage } from "@/pages/SchedulePage";
-import { StandingsPage } from "@/pages/StandingsPage";
-import { TeamPage } from "@/pages/TeamPage";
-import { TeamsPage } from "@/pages/TeamsPage";
 import { call, useSim } from "@/sim/client";
+
+// Pages load when first visited, so the first screen's download stays small.
+const CalendarPage = lazy(() =>
+  import("@/pages/CalendarPage").then((m) => ({ default: m.CalendarPage })),
+);
+const NewsPage = lazy(() => import("@/pages/HistoryPages").then((m) => ({ default: m.NewsPage })));
+const RecordsPage = lazy(() =>
+  import("@/pages/HistoryPages").then((m) => ({ default: m.RecordsPage })),
+);
+const SeasonPage = lazy(() =>
+  import("@/pages/HistoryPages").then((m) => ({ default: m.SeasonPage })),
+);
+const CareerPage = lazy(() =>
+  import("@/pages/CareerPages").then((m) => ({ default: m.CareerPage })),
+);
+const GlossaryPage = lazy(() =>
+  import("@/pages/CareerPages").then((m) => ({ default: m.GlossaryPage })),
+);
+const InboxPage = lazy(() => import("@/pages/CareerPages").then((m) => ({ default: m.InboxPage })));
+const StartCareerPage = lazy(() =>
+  import("@/pages/CareerPages").then((m) => ({ default: m.StartCareerPage })),
+);
+const CampPage = lazy(() => import("@/pages/CampPage").then((m) => ({ default: m.CampPage })));
+const DraftPage = lazy(() => import("@/pages/DraftPage").then((m) => ({ default: m.DraftPage })));
+const FreeAgencyPage = lazy(() =>
+  import("@/pages/FreeAgencyPage").then((m) => ({ default: m.FreeAgencyPage })),
+);
+const NegotiationPage = lazy(() =>
+  import("@/pages/NegotiationPage").then((m) => ({ default: m.NegotiationPage })),
+);
+const ProspectPage = lazy(() =>
+  import("@/pages/ProspectPage").then((m) => ({ default: m.ProspectPage })),
+);
+const CoachingPage = lazy(() =>
+  import("@/pages/CoachingPage").then((m) => ({ default: m.CoachingPage })),
+);
+const DevelopmentPage = lazy(() =>
+  import("@/pages/DevelopmentPage").then((m) => ({ default: m.DevelopmentPage })),
+);
+const InjuriesPage = lazy(() =>
+  import("@/pages/InjuriesPage").then((m) => ({ default: m.InjuriesPage })),
+);
+const CoachPage = lazy(() => import("@/pages/CoachPage").then((m) => ({ default: m.CoachPage })));
+const TradePage = lazy(() => import("@/pages/TradePage").then((m) => ({ default: m.TradePage })));
+const SimulationPage = lazy(() =>
+  import("@/pages/SimulationPage").then((m) => ({ default: m.SimulationPage })),
+);
+const ExecutivePage = lazy(() =>
+  import("@/pages/ExecutivePage").then((m) => ({ default: m.ExecutivePage })),
+);
+const TransactionsPage = lazy(() =>
+  import("@/pages/TransactionsPage").then((m) => ({ default: m.TransactionsPage })),
+);
+const GamePage = lazy(() => import("@/pages/GamePage").then((m) => ({ default: m.GamePage })));
+const DayOnePage = lazy(() =>
+  import("@/pages/DayOnePage").then((m) => ({ default: m.DayOnePage })),
+);
+const AboutPage = lazy(() => import("@/pages/AboutPage").then((m) => ({ default: m.AboutPage })));
+const ExperimentPage = lazy(() =>
+  import("@/pages/ExperimentsPage").then((m) => ({ default: m.ExperimentPage })),
+);
+const ExperimentsPage = lazy(() =>
+  import("@/pages/ExperimentsPage").then((m) => ({ default: m.ExperimentsPage })),
+);
+const HistoryPage = lazy(() =>
+  import("@/pages/HistoryPage").then((m) => ({ default: m.HistoryPage })),
+);
+const LeaguePage = lazy(() =>
+  import("@/pages/LeaguePage").then((m) => ({ default: m.LeaguePage })),
+);
+const LeadersPage = lazy(() =>
+  import("@/pages/LeadersPage").then((m) => ({ default: m.LeadersPage })),
+);
+const PlayerPage = lazy(() =>
+  import("@/pages/PlayerPage").then((m) => ({ default: m.PlayerPage })),
+);
+const PlayersPage = lazy(() =>
+  import("@/pages/PlayersPage").then((m) => ({ default: m.PlayersPage })),
+);
+const PlayoffsPage = lazy(() =>
+  import("@/pages/PlayoffsPage").then((m) => ({ default: m.PlayoffsPage })),
+);
+const SchedulePage = lazy(() =>
+  import("@/pages/SchedulePage").then((m) => ({ default: m.SchedulePage })),
+);
+const StandingsPage = lazy(() =>
+  import("@/pages/StandingsPage").then((m) => ({ default: m.StandingsPage })),
+);
+const TeamPage = lazy(() => import("@/pages/TeamPage").then((m) => ({ default: m.TeamPage })));
+const TeamsPage = lazy(() => import("@/pages/TeamsPage").then((m) => ({ default: m.TeamsPage })));
 
 type NavItem = {
   label: string;
@@ -171,214 +231,216 @@ function Shell() {
         </nav>
 
         <main className="mx-auto w-full max-w-6xl p-4 md:p-6">
-          <Switch>
-            <Route path="/" component={HomePage} />
-            <Route path="/league">
-              <NeedsLeague>
-                <LeaguePage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/teams">
-              <NeedsLeague>
-                <TeamsPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/team/:id">
-              {(params) => (
+          <Suspense fallback={<Loading />}>
+            <Switch>
+              <Route path="/" component={HomePage} />
+              <Route path="/league">
                 <NeedsLeague>
-                  <TeamPage teamId={params.id} />
+                  <LeaguePage />
                 </NeedsLeague>
-              )}
-            </Route>
-            <Route path="/schedule">
-              <NeedsLeague>
-                <SchedulePage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/standings">
-              <NeedsLeague>
-                <StandingsPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/leaders">
-              <NeedsLeague>
-                <LeadersPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/playoffs">
-              <NeedsLeague>
-                <PlayoffsPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/calendar">
-              <NeedsLeague>
-                <CalendarPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/transactions">
-              <NeedsLeague>
-                <TransactionsPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/trade">
-              <NeedsLeague>
-                <TradePage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/camp">
-              <NeedsLeague>
-                <CampPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/injuries">
-              <NeedsLeague>
-                <InjuriesPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/coaching">
-              <NeedsLeague>
-                <CoachingPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/development">
-              <NeedsLeague>
-                <DevelopmentPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/about">
-              <AboutPage />
-            </Route>
-            <Route path="/experiments">
-              <ExperimentsPage />
-            </Route>
-            <Route path="/experiments/:id">{(params) => <ExperimentPage id={params.id} />}</Route>
-            <Route path="/start">
-              <NeedsLeague>
-                <DayOnePage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/history">
-              <NeedsLeague>
-                <HistoryPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/game/:id/watch">
-              {(params) => (
+              </Route>
+              <Route path="/teams">
                 <NeedsLeague>
-                  <GamePage gameId={Number(params.id)} watch />
+                  <TeamsPage />
                 </NeedsLeague>
-              )}
-            </Route>
-            <Route path="/game/:id">
-              {(params) => (
+              </Route>
+              <Route path="/team/:id">
+                {(params) => (
+                  <NeedsLeague>
+                    <TeamPage teamId={params.id} />
+                  </NeedsLeague>
+                )}
+              </Route>
+              <Route path="/schedule">
                 <NeedsLeague>
-                  <GamePage gameId={Number(params.id)} />
+                  <SchedulePage />
                 </NeedsLeague>
-              )}
-            </Route>
-            <Route path="/free-agency">
-              <NeedsLeague>
-                <FreeAgencyPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/negotiate/:id">
-              {(params) => (
+              </Route>
+              <Route path="/standings">
                 <NeedsLeague>
-                  <NegotiationPage playerId={Number(params.id)} />
+                  <StandingsPage />
                 </NeedsLeague>
-              )}
-            </Route>
-            <Route path="/draft">
-              <NeedsLeague>
-                <DraftPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/prospect/:id">
-              {(params) => (
+              </Route>
+              <Route path="/leaders">
                 <NeedsLeague>
-                  <ProspectPage prospectId={Number(params.id)} />
+                  <LeadersPage />
                 </NeedsLeague>
-              )}
-            </Route>
-            <Route path="/players">
-              <NeedsLeague>
-                <PlayersPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/player/:id">
-              {(params) => (
+              </Route>
+              <Route path="/playoffs">
                 <NeedsLeague>
-                  <PlayerPage playerId={Number(params.id)} />
+                  <PlayoffsPage />
                 </NeedsLeague>
-              )}
-            </Route>
-            <Route path="/simulation">
-              <NeedsLeague>
-                <SimulationPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/executive/:id">
-              {(params) => (
+              </Route>
+              <Route path="/calendar">
                 <NeedsLeague>
-                  <ExecutivePage id={Number(params.id)} />
+                  <CalendarPage />
                 </NeedsLeague>
-              )}
-            </Route>
-            <Route path="/inbox">
-              <NeedsLeague>
-                <InboxPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/season/:year">
-              {(params) => (
+              </Route>
+              <Route path="/transactions">
                 <NeedsLeague>
-                  <SeasonPage season={Number(params.year)} />
+                  <TransactionsPage />
                 </NeedsLeague>
-              )}
-            </Route>
-            <Route path="/records/:scope?">
-              {(params) => (
+              </Route>
+              <Route path="/trade">
                 <NeedsLeague>
-                  <RecordsPage scope={params.scope} />
+                  <TradePage />
                 </NeedsLeague>
-              )}
-            </Route>
-            <Route path="/news">
-              <NeedsLeague>
-                <NewsPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/career">
-              <NeedsLeague>
-                <CareerPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/glossary">
-              <NeedsLeague>
-                <GlossaryPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/career/start">
-              <NeedsLeague>
-                <StartCareerPage />
-              </NeedsLeague>
-            </Route>
-            <Route path="/coach/:id">
-              {(params) => (
+              </Route>
+              <Route path="/camp">
                 <NeedsLeague>
-                  <CoachPage coachId={Number(params.id)} />
+                  <CampPage />
                 </NeedsLeague>
-              )}
-            </Route>
-            <Route>
-              <p className="text-sm text-muted-foreground">
-                Page not found.{" "}
-                <Link href="/" className="underline">
-                  Back to leagues
-                </Link>
-              </p>
-            </Route>
-          </Switch>
+              </Route>
+              <Route path="/injuries">
+                <NeedsLeague>
+                  <InjuriesPage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/coaching">
+                <NeedsLeague>
+                  <CoachingPage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/development">
+                <NeedsLeague>
+                  <DevelopmentPage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/about">
+                <AboutPage />
+              </Route>
+              <Route path="/experiments">
+                <ExperimentsPage />
+              </Route>
+              <Route path="/experiments/:id">{(params) => <ExperimentPage id={params.id} />}</Route>
+              <Route path="/start">
+                <NeedsLeague>
+                  <DayOnePage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/history">
+                <NeedsLeague>
+                  <HistoryPage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/game/:id/watch">
+                {(params) => (
+                  <NeedsLeague>
+                    <GamePage gameId={Number(params.id)} watch />
+                  </NeedsLeague>
+                )}
+              </Route>
+              <Route path="/game/:id">
+                {(params) => (
+                  <NeedsLeague>
+                    <GamePage gameId={Number(params.id)} />
+                  </NeedsLeague>
+                )}
+              </Route>
+              <Route path="/free-agency">
+                <NeedsLeague>
+                  <FreeAgencyPage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/negotiate/:id">
+                {(params) => (
+                  <NeedsLeague>
+                    <NegotiationPage playerId={Number(params.id)} />
+                  </NeedsLeague>
+                )}
+              </Route>
+              <Route path="/draft">
+                <NeedsLeague>
+                  <DraftPage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/prospect/:id">
+                {(params) => (
+                  <NeedsLeague>
+                    <ProspectPage prospectId={Number(params.id)} />
+                  </NeedsLeague>
+                )}
+              </Route>
+              <Route path="/players">
+                <NeedsLeague>
+                  <PlayersPage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/player/:id">
+                {(params) => (
+                  <NeedsLeague>
+                    <PlayerPage playerId={Number(params.id)} />
+                  </NeedsLeague>
+                )}
+              </Route>
+              <Route path="/simulation">
+                <NeedsLeague>
+                  <SimulationPage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/executive/:id">
+                {(params) => (
+                  <NeedsLeague>
+                    <ExecutivePage id={Number(params.id)} />
+                  </NeedsLeague>
+                )}
+              </Route>
+              <Route path="/inbox">
+                <NeedsLeague>
+                  <InboxPage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/season/:year">
+                {(params) => (
+                  <NeedsLeague>
+                    <SeasonPage season={Number(params.year)} />
+                  </NeedsLeague>
+                )}
+              </Route>
+              <Route path="/records/:scope?">
+                {(params) => (
+                  <NeedsLeague>
+                    <RecordsPage scope={params.scope} />
+                  </NeedsLeague>
+                )}
+              </Route>
+              <Route path="/news">
+                <NeedsLeague>
+                  <NewsPage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/career">
+                <NeedsLeague>
+                  <CareerPage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/glossary">
+                <NeedsLeague>
+                  <GlossaryPage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/career/start">
+                <NeedsLeague>
+                  <StartCareerPage />
+                </NeedsLeague>
+              </Route>
+              <Route path="/coach/:id">
+                {(params) => (
+                  <NeedsLeague>
+                    <CoachPage coachId={Number(params.id)} />
+                  </NeedsLeague>
+                )}
+              </Route>
+              <Route>
+                <p className="text-sm text-muted-foreground">
+                  Page not found.{" "}
+                  <Link href="/" className="underline">
+                    Back to leagues
+                  </Link>
+                </p>
+              </Route>
+            </Switch>
+          </Suspense>
         </main>
       </div>
     </div>

@@ -240,7 +240,7 @@ Decisions that block a phase. Record the answer here when made.
 - [ ] **Advanced stats:** expected points model built from nflverse data; EPA, success rate, pressure rate, yards after contact *(4b: EP table, EPA, success rate and pressure rate done, EPA in range; success rate 1.5 points low (situational runs, Phase 5); yards after contact not yet)*
 - [ ] **Calibration v2:** position-level distributions (passing / rushing / receiving / sack leaders, passer rating spread, team point-differential spread) *(4b: player-level scorecard added, 32-40 of 48 lines in range; passing leaders too bunched until play-calling styles (Phase 10) and QB benchings (Phase 13))*
 - [x] **UI:** depth chart editor, league leaders, team and player advanced stats
-- [ ] **🚀 Release v0.1:** deploy, README with screenshots, tag *(deferred: happens when the repo goes public, per the owner)*
+- [ ] **🚀 Release v0.1:** deploy, README with screenshots, tag *(tagged v0.1 and the README is done in Phase 18; the deploy waits for Pages, so this stays open)*
 
 ### Done when
 - [x] Swapping an elite QB onto a bad team noticeably raises its scoring (in a test sim) *(+4.1 points a game over 300 games)*
@@ -273,7 +273,7 @@ Decisions that block a phase. Record the answer here when made.
 - [x] **Situational calibration:** pass rate by down and distance, 4th-down go rates by field zone, 2-point rates, kickoff touchback and return rates, FG % by distance, end-of-half scoring *(5b: kickoff touchbacks, onside attempts and recoveries, punt gross and net added, all in range on three seed sets; return rates follow from the real kickoff mix)*
 - [x] **Performance pass:** profile and optimize; a full season in a few seconds *(5b: 1.5 s in the browser including saving, 1.4 s headless; a speed guard runs in the tests)*
 - [x] **UI:** drive chart, win-probability chart, scoring summary, "watch live" text ticker with speed control *(5b: live ticker with pause, 1x, 4x and skip; "Play and watch" plays one of this week's games early with an identical result)*
-- [ ] **🚀 Release v0.2** *(deferred with v0.1 until the repo goes public)*
+- [x] **🚀 Release v0.2** *(tagged v0.2 in Phase 18; the hosted demo waits for Pages)*
 
 ### Done when
 - [ ] Scorecard green, including the situational targets *(5b: 62, 62, 60 of 63 on three seed sets, every special-teams line in range; misses: success rate a few tenths low on two, EPA high on seed set 42, one interception and one 4th-down line just outside on seed set 2000)*
@@ -527,7 +527,7 @@ Decisions that block a phase. Record the answer here when made.
 - [x] **Balance check:** no philosophy dominates absurdly; cap-aggressive teams sometimes land in cap hell *(13b: `--frontoffices`; win share by type 0.45-0.57 across seeds; cap hell 7-10% for cap-aggressive and win-now)*
 - [x] **Simulation Mode UI:** hands-off start, sim N seasons, league overview, power rankings, GM and owner pages *(13b: `/simulation` and `/executive/:id`; checked in the browser over 8 seasons; every team is AI-run by default)*
 - [x] **100-season stability run** in the headless runner *(13b: seed 7, every roster legal after every move; it found a cap bug and a name-pool hang, both fixed; history cards made it 3.5x faster)*
-- [ ] **🚀 Release v0.3** (Simulation Mode)
+- [x] **🚀 Release v0.3** (Simulation Mode)
 
 ### Done when
 - [x] 100 seasons run with no crashes, every team cap- and roster-legal throughout *(38 minutes headless, 0 rule breaks, 0 schedule problems)*
@@ -557,7 +557,7 @@ Decisions that block a phase. Record the answer here when made.
 - [x] Decide on more than one human team (Decisions log); if yes, multiple human deciders *(one for now; multiplayer recorded as a stretch goal)*
 - [x] Save slots, autosave, league export *(14b: "Save a copy", a backup the first time each season is saved with restore as a copy; autosave after every action and export as before)*
 - [x] **Onboarding:** first-season guided tips, glossary of cap and roster terms in plain English *(14b: eight tips at the year's big moments; 28 glossary terms with numbers from the rules file)*
-- [ ] **🚀 Release v0.4** (GM Mode) *(deferred until the repo goes public, like v0.1-v0.3)*
+- [x] **🚀 Release v0.4** (GM Mode) *(tagged v0.4 in Phase 18; the hosted demo waits for Pages)*
 
 ### Done when
 - [x] You can play three full seasons as one team without needing a spreadsheet *(scripted: `career.test.ts` plays three seasons through the screens' functions with the legality audit on; by hand: a season and the next re-signing window in the browser)*
@@ -667,7 +667,7 @@ Decisions that block a phase. Record the answer here when made.
 - [x] **README:** screenshots / GIFs, architecture diagram, how to play, how to rebuild the data *(stills only, no GIFs)*
 - [x] Portfolio page and the findings write-up from Phase 17
 - [x] Tidy the devlog into a series *(index and previous/next links)*
-- [ ] **🚀 Release v1.0** *(merge, the v0.1 to v0.5 tags, the repo rename, going public, Pages and the v1.0.0 release each wait for the owner's go-ahead)*
+- [x] **🚀 Release v1.0** *(merged to main and tagged v0.1 to v0.5 and v1.0.0 with release notes on GitHub; the repo is still private under its old name and Pages is off, so the "go public" steps of v0.1 (hosted demo) are still to do)*
 
 ---
 

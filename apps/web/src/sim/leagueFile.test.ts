@@ -14,7 +14,7 @@ describe("league files", () => {
 
   it("rejects files that aren't gzip", async () => {
     await expect(decodeLeagueFile(new TextEncoder().encode("hello"))).rejects.toThrow(
-      /isn't a FootballGM Sim league file/,
+      /isn't a Gridiron Dynasty league file/,
     );
   });
 

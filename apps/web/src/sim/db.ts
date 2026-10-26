@@ -34,6 +34,7 @@ class LeagueDatabase extends Dexie {
   backups!: Table<Backup, [string, number]>;
 
   constructor() {
+    // The database keeps its first name so saves made before the rename still open.
     super("footballgm-sim");
     this.version(1).stores({ leagues: "id, lastOpenedAt", leagueData: "id" });
     this.version(2).stores({

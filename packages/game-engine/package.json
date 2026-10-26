@@ -10,5 +10,6 @@
   },
   "dependencies": {
     "@fgm/foundation": "*"
-  }
+  },
+  "license": "MIT"
 }

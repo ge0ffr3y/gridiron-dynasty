@@ -6,6 +6,7 @@ import {
   CalendarClock,
   Dumbbell,
   FlaskConical,
+  Info,
   HeartPulse,
   TrendingUp,
   BriefcaseBusiness,
@@ -57,6 +58,7 @@ import { ExecutivePage } from "@/pages/ExecutivePage";
 import { TransactionsPage } from "@/pages/TransactionsPage";
 import { GamePage } from "@/pages/GamePage";
 import { DayOnePage } from "@/pages/DayOnePage";
+import { AboutPage } from "@/pages/AboutPage";
 import { ExperimentPage, ExperimentsPage } from "@/pages/ExperimentsPage";
 import { HistoryPage } from "@/pages/HistoryPage";
 import { HomePage } from "@/pages/HomePage";
@@ -106,6 +108,7 @@ const NAV: NavItem[] = [
   { label: "Draft", icon: ClipboardList, href: "/draft", needsLeague: true },
   { label: "Free agency", icon: Handshake, href: "/free-agency", needsLeague: true },
   { label: "Glossary", icon: BookA, href: "/glossary", needsLeague: true },
+  { label: "About", icon: Info, href: "/about" },
 ];
 
 export function App() {
@@ -125,7 +128,7 @@ function Shell() {
   return (
     <div className="flex min-h-svh">
       <aside className="hidden w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
-        <div className="px-5 py-4 text-sm font-semibold tracking-tight">FootballGM Sim</div>
+        <div className="px-5 py-4 text-sm font-semibold tracking-tight">Gridiron Dynasty</div>
         <nav className="flex flex-col gap-0.5 px-2">
           {NAV.map((item) => (
             <NavButton key={item.label} item={item} leagueOpen={league !== null} />
@@ -142,7 +145,7 @@ function Shell() {
                 {league.name}
               </Link>
             ) : (
-              "FootballGM Sim"
+              "Gridiron Dynasty"
             )}
           </h1>
           <div className="flex items-center gap-2">
@@ -243,6 +246,9 @@ function Shell() {
               <NeedsLeague>
                 <DevelopmentPage />
               </NeedsLeague>
+            </Route>
+            <Route path="/about">
+              <AboutPage />
             </Route>
             <Route path="/experiments">
               <ExperimentsPage />

@@ -34,7 +34,7 @@ export function lastFullSeason(stamp: string): number | null {
   return md < "0106" ? year - 2 : year - 1;
 }
 const TARGET = 20260301;
-const AGENT = "FootballGMSimPipeline/0.1 (personal research project)";
+const AGENT = "GridironDynastyPipeline/0.1 (personal research project)";
 const PAUSE_MS = 6000;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

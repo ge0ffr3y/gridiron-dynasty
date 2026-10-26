@@ -12,5 +12,6 @@
     "@fgm/sim-core": "*",
     "csv-parse": "^7.0.3",
     "hyparquet": "1.31.5"
-  }
+  },
+  "license": "MIT"
 }

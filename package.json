@@ -1,5 +1,5 @@
 {
-  "name": "footballgm-sim",
+  "name": "gridiron-dynasty",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -21,7 +21,8 @@
     "build": "npm run build -w apps/web",
     "dev": "npm run dev -w apps/web",
     "sim": "npm run start -w apps/runner --",
-    "pipeline": "npm run start -w pipeline --"
+    "pipeline": "npm run start -w pipeline --",
+    "licenses": "node scripts/licenses.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
@@ -30,5 +31,10 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.5"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ge0ffr3y/footballgm-sim.git"
   }
 }

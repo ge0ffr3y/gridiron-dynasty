@@ -1,4 +1,4 @@
-# FootballGM Sim: rules for the AI coding agent
+# Gridiron Dynasty: GM Simulator: rules for the AI coding agent
 
 A pro football league simulator and GM game. It starts from the real league as it stood after the 2025 season, with every name made fictional. Two modes share one engine: **GM Mode** (one team's decisions come from the user) and **Simulation Mode** (all 32 teams run by AI). Every game is simulated snap by snap.
 

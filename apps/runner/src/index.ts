@@ -98,7 +98,7 @@ function percentile(sorted: number[], p: number): number {
 
 const args = process.argv.slice(2);
 console.log(
-  `FootballGM Sim runner (sim-core ${SIM_CORE_VERSION}, game-engine ${GAME_ENGINE_VERSION})`,
+  `Gridiron Dynasty runner (sim-core ${SIM_CORE_VERSION}, game-engine ${GAME_ENGINE_VERSION})`,
 );
 
 if (args.includes("--calibrate")) {

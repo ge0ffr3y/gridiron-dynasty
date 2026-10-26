@@ -39,7 +39,7 @@ describe("generated league: determinism and saving", () => {
   it("refuses files that aren't valid leagues", () => {
     expect(() => parseLeague("not json")).toThrow(/isn't a league file/);
     expect(() => parseLeague(JSON.stringify({ hello: 1 }))).toThrow(
-      /isn't a FootballGM Sim league file/,
+      /isn't a Gridiron Dynasty league file/,
     );
     const damaged = JSON.parse(serializeLeague(league));
     damaged.players[3].ratings.speed = 140;

@@ -17,7 +17,7 @@ const INDEX = join(TEAM_PAGES, "index.json");
 const TARGET = "20260209";
 /** Look for snapshots in this window; the closest to the target day wins (before the new League Year). */
 const WINDOW = ["20260201", "20260310"] as const;
-const AGENT = "FootballGMSimPipeline/0.1 (personal research project)";
+const AGENT = "GridironDynastyPipeline/0.1 (personal research project)";
 const PAUSE_MS = 3000;
 /** The veteran salary benefit charges a minimum deal as if he had this many credited seasons (CBA Art. 26). */
 const VSB_CHARGED_AS = rulesFor(2026).cap.veteranSalaryBenefit.chargedAsCreditedSeasons;

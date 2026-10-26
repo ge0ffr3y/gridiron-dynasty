@@ -12,5 +12,6 @@
     "zod": "^4.6.7",
     "@fgm/foundation": "*",
     "@fgm/game-engine": "*"
-  }
+  },
+  "license": "MIT"
 }

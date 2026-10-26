@@ -33,7 +33,7 @@ import {
   practiceSquadDeal,
   practiceSquadWeekly,
   promote,
-  protectedPracticeSquad,
+  protectedAmong,
   reserveReturnsLeft,
   signFromPracticeSquad,
   signFreeAgent,
@@ -308,10 +308,19 @@ function fillFiftyThree(league: League, teamId: string): void {
     const fromSquad = best(onTeam(league, teamId, "practice-squad"), want);
     const fromMarket = best(freeAgents(league), want);
     // Another team's unprotected practice-squad player, if clearly better than anything closer.
-    const others = league.teams.filter((t) => t.id !== teamId);
-    const poachable = others.flatMap((t) => {
-      const kept = protectedPracticeSquad(league, t.id);
-      return onTeam(league, t.id, "practice-squad").filter((p) => !kept.has(p.id));
+    // (Every other team's squad is grouped in one pass over the players, not one scan per team.)
+    const squads = new Map<string, Player[]>();
+    for (const p of league.players)
+      if (p.roster === "practice-squad" && p.teamId !== null && p.teamId !== teamId) {
+        const list = squads.get(p.teamId);
+        if (list) list.push(p);
+        else squads.set(p.teamId, [p]);
+      }
+    const poachable = league.teams.flatMap((t) => {
+      if (t.id === teamId) return [];
+      const squad = squads.get(t.id) ?? [];
+      const kept = protectedAmong(league, squad);
+      return squad.filter((p) => !kept.has(p.id));
     });
     const fromOthers = best(poachable, want);
     const closest = Math.max(

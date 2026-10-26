@@ -43,16 +43,27 @@ export function baseProfile(position: Position): Ratings {
   return ratings;
 }
 
+/**
+ * For each position, only the attributes that count (in the order of ATTRIBUTE_KEYS, so every sum
+ * is added in the same order as before: adding a zero-weight term changes nothing), and their
+ * total weight. Overalls are asked for millions of times, so this skips the zeros.
+ */
+const WEIGHT_TERMS = Object.fromEntries(
+  POSITIONS.map((position) => {
+    const keys = ATTRIBUTE_KEYS.filter((k) => (OVERALL_WEIGHTS[position][k] ?? 0) !== 0);
+    const weights = keys.map((k) => OVERALL_WEIGHTS[position][k] as number);
+    let total = 0;
+    for (const k of ATTRIBUTE_KEYS) total += OVERALL_WEIGHTS[position][k] ?? 0;
+    return [position, { keys, weights, total }];
+  }),
+) as Record<Position, { keys: AttributeKey[]; weights: number[]; total: number }>;
+
 /** Weighted average of the attributes that count for a position (0-100). */
 export function rawScore(ratings: Ratings, position: Position): number {
+  const { keys, weights, total } = WEIGHT_TERMS[position];
   let sum = 0;
-  let weightSum = 0;
-  for (const key of ATTRIBUTE_KEYS) {
-    const w = OVERALL_WEIGHTS[position][key] ?? 0;
-    sum += w * ratings[key];
-    weightSum += w;
-  }
-  return sum / weightSum;
+  for (let i = 0; i < keys.length; i++) sum += weights[i]! * ratings[keys[i]!];
+  return sum / total;
 }
 
 /**

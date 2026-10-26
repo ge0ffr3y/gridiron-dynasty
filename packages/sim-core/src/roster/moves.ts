@@ -388,7 +388,12 @@ export function elevationsLeft(league: League, p: Player): number {
  * other teams can't sign them away.
  */
 export function protectedPracticeSquad(league: League, teamId: string): Set<number> {
-  const squad = onTeam(league, teamId, "practice-squad")
+  return protectedAmong(league, onTeam(league, teamId, "practice-squad"));
+}
+
+/** The same, for a practice squad already in hand (so a caller can group every squad in one pass). */
+export function protectedAmong(league: League, practiceSquad: Player[]): Set<number> {
+  const squad = practiceSquad
     .map((p) => ({ p, v: playerValue(league, p) }))
     .sort((a, b) => b.v - a.v || a.p.id - b.p.id);
   return new Set(

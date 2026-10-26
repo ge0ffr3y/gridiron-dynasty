@@ -129,3 +129,7 @@ Final scorecard (four leagues, two seasons each):
 - Trades (players and future picks) with both teams' cap impact before confirming.
 - The roster screens: transactions log, roster management (cut, injured reserve, practice squad, elevations), trade builder, calendar, camp report.
 - Some players signed after cuts share a jersey number with a teammate; numbers get cleaned up with the roster screens.
+
+---
+
+[← 7b: Real contracts and the cap screens](0007b-real-contracts.md) · [Index](README.md) · [8b: Trades and the roster screens →](0008b-trades-and-roster-screens.md)

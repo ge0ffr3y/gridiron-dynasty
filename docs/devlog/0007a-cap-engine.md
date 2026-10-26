@@ -83,3 +83,7 @@ Final scorecard, three seed sets on generated leagues and two on the real roster
 - The real rookie scale from 2026 rookie contracts.
 - The contract page, team cap sheet and "what if" panel.
 - Offer sheets and matching for tags and restricted free agents, and the exclusive franchise tag, come with free agency (Phase 12).
+
+---
+
+[← 6b: Real ratings](0006b-real-ratings.md) · [Index](README.md) · [7b: Real contracts and the cap screens →](0007b-real-contracts.md)

@@ -100,3 +100,7 @@ The rules come from the CBA text, recorded in `rules/2026.json` `freeAgency`:
 - **12b:** moods, the locker room, holdouts, hold-ins and trade requests.
 - **Real league market:** a bit thin in its first years (about half the real number of well-paid moves).
 - **AI general managers** (Phase 13) will make the bidding smarter: cap planning across years, and trading for players instead of signing them.
+
+---
+
+[← 11b: Draft day](0011b-draft-day.md) · [Index](README.md) · [12b: Moods, the locker room and holdouts →](0012b-morale.md)

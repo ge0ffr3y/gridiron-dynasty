@@ -81,3 +81,7 @@ Player level: 37, 36 and 32 of 48, the same picture as 4b (passing leaders too b
 - Success rate is still a few tenths of a point low on two seed sets.
 - The sim reaches 3rd & 1 about two-thirds as often as real teams.
 - Special teams, stadiums and weather, the live ticker and the performance pass are Phase 5b.
+
+---
+
+[← 4b: The people around it](0004b-people.md) · [Index](README.md) · [5b: Special teams and the elements →](0005b-special-teams-weather.md)

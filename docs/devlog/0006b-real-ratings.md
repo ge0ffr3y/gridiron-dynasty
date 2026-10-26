@@ -4,7 +4,7 @@ _Phase 6b, October 2026_
 
 The real league now plays like the real league. Ratings start from Madden's start-of-2025 numbers and then move toward how each player actually played in 2025. Each team's regulars also move with how the team actually did. Every player carries his real career stats back to 1999, injury-prone players are injury-prone, and young high draft picks have more room to grow. Simulated seasons on the real rosters match the real NFL as well as our generated leagues do.
 
-![A real quarterback's career, renamed](img/0006b-career-stats.png)
+![A quarterback's career stats, from a generated league](img/0006b-career-stats.jpg)
 
 ## What was built
 
@@ -70,3 +70,7 @@ The first run on real rosters scored 57–58 of 63. Three causes, each fixed at 
 - **Success rate** is still a few tenths low, in real and generated leagues alike.
 - **Hosts for 88 of the 2026 games** are swapped compared with the real schedule (the opponents all match).
 - **Contracts** (Phase 7), **real traded draft picks** (draft phase), and **team names** (naming session) come later.
+
+---
+
+[← 6a: Real rosters](0006a-real-rosters.md) · [Index](README.md) · [7a: The cap and contract engine →](0007a-cap-engine.md)

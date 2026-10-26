@@ -325,7 +325,7 @@ function NewLeagueDialog({
                     <div className="text-xs text-muted-foreground">
                       {realAvailable
                         ? "The real league as it stood after the 2025 season, every name fictional."
-                        : "Not built on this computer yet. Build it with: npm run pipeline -- league"}
+                        : "Not available in this copy: it is built from data that can't be published (see the README). Fictional leagues play the same way."}
                     </div>
                   </>
                 ),

@@ -74,3 +74,7 @@ Penalties by type (accepted per team-game, one simulated season vs. real) are cl
 - Phase 4b: depth chart, fatigue and rotations, in-game injuries, expanded and advanced stats (EPA), league leaders, player-level calibration, and release v0.1.
 - Time to throw, play-action and drop rates are drawn straight from the real data, so they aren't scorecard lines (they'd match by construction).
 - Special-teams penalties are limited to return holding and illegal blocks; no special-teams personal fouls yet.
+
+---
+
+[← 3: Real football](0003-game-engine.md) · [Index](README.md) · [4b: The people around it →](0004b-people.md)

@@ -95,3 +95,7 @@ You can make the pick yourself (as the league office, until GM Mode), let the AI
 - **Honors** don't count toward compensatory points until the league names All-Pros (Phase 15), and punters score per punt only (no inside-the-20 stat yet).
 - **Trades are picks only.** Players don't move on draft day yet, and the AI doesn't trade future picks for current ones on its own (Phase 13).
 - **Late rounds still start a little often:** rounds 4–7 start 2–9 points more often than real ones.
+
+---
+
+[← 11a: Scouting and draft classes](0011a-scouting-and-classes.md) · [Index](README.md) · [12a: Free agency and negotiation →](0012a-free-agency.md)

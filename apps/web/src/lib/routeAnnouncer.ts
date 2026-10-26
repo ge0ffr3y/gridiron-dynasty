@@ -19,18 +19,19 @@ export function useRouteAnnouncer(main: RefObject<HTMLElement | null>): void {
       window.scrollTo(0, 0);
     }
     first.current = false;
+    // A page being replaced can stay in the document, hidden, while the next one loads, and a page
+    // draws its heading before its data arrives: so look only at visible headings, and keep
+    // watching for a few seconds rather than stopping at the first one.
     const setTitle = () => {
-      const heading = area.querySelector("h1")?.textContent?.trim();
+      const heading = [...area.querySelectorAll("h1")]
+        .find((h) => h.checkVisibility())
+        ?.textContent?.trim();
       document.title = heading ? `${heading} - ${NAME}` : NAME;
-      return Boolean(heading);
     };
-    if (setTitle()) return;
-    // Pages load on first visit: wait for the heading to appear.
-    const watch = new MutationObserver(() => {
-      if (setTitle()) watch.disconnect();
-    });
-    watch.observe(area, { childList: true, subtree: true });
-    const stop = setTimeout(() => watch.disconnect(), 5000);
+    setTitle();
+    const watch = new MutationObserver(setTitle);
+    watch.observe(area, { childList: true, subtree: true, characterData: true });
+    const stop = setTimeout(() => watch.disconnect(), 3000);
     return () => {
       watch.disconnect();
       clearTimeout(stop);

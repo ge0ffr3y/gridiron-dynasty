@@ -110,3 +110,7 @@ Every team has a front office now: a general manager with a philosophy, and an o
 - **Balance check:** parity against real, and which philosophies win.
 - **Simulation Mode screens:** sim many seasons, power rankings, GM and owner pages.
 - **The 100-season run.**
+
+---
+
+[← 12b: Moods, the locker room and holdouts](0012b-morale.md) · [Index](README.md) · [13b: Owners, the balance check and Simulation Mode →](0013b-owners-and-simulation.md)

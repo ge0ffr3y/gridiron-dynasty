@@ -107,3 +107,7 @@ Four leagues, two seasons each, with the carousel running:
 - **Coordinator turnover** isn't calibrated (nflverse doesn't record coordinators). About 10–20 coordinators leave each year, which looks right but isn't measured.
 - **Owners** don't drive firings yet (Phase 13), and the user's own staff decisions wait for GM Mode (Phase 14).
 - **Scouts'** accuracy and specialties come into play with Phase 11's draft.
+
+---
+
+[← 10a: Coaches call the plays](0010a-coaches-call-the-plays.md) · [Index](README.md) · [11a: Scouting and draft classes →](0011a-scouting-and-classes.md)

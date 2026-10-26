@@ -107,3 +107,7 @@ Four leagues, two seasons each:
 
 - The coaching carousel: firings, interviews and hiring, staffs following head coaches, coaching trees, coach careers and reputations.
 - Scouts are on staff with a scouting skill; the draft uses them in Phase 11.
+
+---
+
+[← 9b: Injuries, the injury report, and seeing careers](0009b-injuries-and-screens.md) · [Index](README.md) · [10b: The coaching carousel →](0010b-coaching-carousel.md)

@@ -332,7 +332,7 @@ function ScoutingPanel({ teamId }: { teamId: string }) {
         <CardDescription>
           Each week from September to April, scouts study prospects in their region and position
           group the most, everyone else a little. A bigger budget sharpens every read. The AI
-          reassigns its scouts after each draft; until GM Mode the league office can set them.
+          reassigns its scouts after each draft; in Simulation Mode the league office can set them.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3 text-sm">

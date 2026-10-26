@@ -139,8 +139,9 @@ export function RosterManager({ teamId }: { teamId: string }) {
             ]}
           />
           <p className="mt-3 text-sm text-muted-foreground">
-            Until GM Mode the league office can make these moves for any team. Hover a button to see
-            what it does or why it isn't allowed; every move is recorded with its reason.
+            In Simulation Mode the league office can make these moves for any team (in GM Mode, only
+            your own). Hover a button to see what it does or why it isn't allowed; every move is
+            recorded with its reason.
           </p>
         </CardContent>
       </Card>

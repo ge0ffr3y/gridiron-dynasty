@@ -37,6 +37,9 @@ export function GamePage({ gameId, watch = false }: { gameId: number; watch?: bo
   const quarterName = (q: number) => (q <= 4 ? `Quarter ${q}` : "Overtime");
   const header = (
     <div className="flex flex-col gap-0.5 text-sm text-muted-foreground">
+      <h1 className="sr-only">
+        {g.away.city} {g.away.nickname} at {g.home.city} {g.home.nickname}
+      </h1>
       <div>
         {g.season} · {when} · {formatLeagueDate(g.date)} ·{" "}
         {g.neutral ? "Neutral site" : `at ${g.home.city}`}

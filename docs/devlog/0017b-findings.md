@@ -31,3 +31,7 @@ Six questions, answered by running the league many times. Each has a written fin
 ## What's next
 
 - **Phase 18:** ship it: the data licensing review, the trademark sweep, save size and performance, phone and accessibility passes, the README, and v1.0.
+
+---
+
+[← 17a: Experiments you can rerun](0017a-experiments-tooling.md) · [Index](README.md) · [18a: Names, licenses and the sweep →](0018a-legal-and-names.md)

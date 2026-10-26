@@ -58,3 +58,7 @@ Until GM Mode (Phase 14), the league office can make these moves for any team. A
 - AI teams don't trade with each other or judge offers (Phase 13, with the anti-exploit tests).
 - The CBA's three-week pay guarantee for a player signed off another team's practice squad isn't modeled.
 - The non-football injury list waits for non-football injuries (Phase 9).
+
+---
+
+[← 8a: The League Year and the roster rules](0008a-league-year.md) · [Index](README.md) · [9a: Players grow, age and retire →](0009a-development-aging-retirement.md)

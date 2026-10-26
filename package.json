@@ -1,7 +1,7 @@
 {
   "name": "gridiron-dynasty",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "A pro football GM game and league simulator that starts from the real post-2025 league, with every name fictional.",
   "workspaces": [
@@ -22,7 +22,8 @@
     "dev": "npm run dev -w apps/web",
     "sim": "npm run start -w apps/runner --",
     "pipeline": "npm run start -w pipeline --",
-    "licenses": "node scripts/licenses.mjs"
+    "licenses": "node scripts/licenses.mjs",
+    "sync-docs": "node scripts/sync-docs.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

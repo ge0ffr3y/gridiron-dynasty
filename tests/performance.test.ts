@@ -6,7 +6,7 @@
  * slower, so the guard still allows more and only catches a big slowdown.
  * The time is printed.
  */
-import { advanceUntil, createLeague } from "@fgm/sim-core";
+import { advance, advanceUntil, createLeague, serializeLeague } from "@fgm/sim-core";
 import { describe, expect, it } from "vitest";
 
 const GUARD_SECONDS = 15;
@@ -22,4 +22,21 @@ describe("performance", () => {
     expect(league.games.filter((g) => g.result).length).toBe(285);
     expect(seconds).toBeLessThan(GUARD_SECONDS);
   }, 60_000);
+
+  // Save size budget (docs/performance.md): old logs are pruned, so a long league stops growing
+  // fast. Measured with this seed: about 17 MB after 5 seasons and 21 MB after 10, against 21 and
+  // 32 MB before pruning. The ceilings leave room for normal change and catch a log that stops
+  // being pruned.
+  it("a save stays inside its size budget after six seasons", () => {
+    const league = createLeague({ seed: 18, name: "Size" });
+    for (let i = 0; i < 6; i++) {
+      advanceUntil(league, (l) => l.calendar.stage === "complete");
+      advance(league);
+    }
+    const rawMB = serializeLeague(league).length / 1e6;
+    const logsMB = JSON.stringify(league.transactions).length / 1e6;
+    console.info(`six seasons: save ${rawMB.toFixed(1)} MB, transactions ${logsMB.toFixed(1)} MB`);
+    expect(rawMB).toBeLessThan(23);
+    expect(logsMB).toBeLessThan(4.5);
+  }, 300_000);
 });

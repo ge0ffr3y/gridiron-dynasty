@@ -1,26 +1,14 @@
----
-tags:
-  - project
-  - football-sim
-  - simulation
-  - sports-management
-status: planning
-created: 2026-10-19
-updated: 2026-10-19
-working_title: TBD
----
+# Gridiron Dynasty: GM Simulator — Overview
 
-# FootballGM Sim — Overview
-
-> [!abstract] Elevator pitch
+> [!NOTE]
+> **Elevator pitch**
 > A pro football league that mirrors the real NFL down to the fine print, **starting from the real league as it stood after the 2025 season**, with every name made fictional. Two ways to experience it:
 > - **GM Mode:** take over one franchise for the 2026 offseason. Hire coaches whose personalities and philosophies shape how your team plays, then build the roster through contracts, the cap, free agency, trades, and the draft. Survive long enough to build a dynasty, or get fired.
 > - **Simulation Mode:** hand all 32 teams to computer GMs and fast-forward a week, a season, or a century, watching history diverge from reality.
 >
 > Every game is simulated **snap by snap** by a real play-by-play engine.
 
-Next: [[02 - Roadmap]]
-Sibling projects: [[Projects/Evolution Sim Project/01 - Overview|Evolution Sim]] · [[Projects/CivSim/01 - Overview|CivSim]]
+Next: [Roadmap](roadmap.md)
 
 ---
 
@@ -49,7 +37,7 @@ The simulation begins **the day after the 2025 championship game** (Feb 8, 2026)
 What carries over from reality, all renamed:
 
 - **Every team's roster** as of the end of the 2025 season, including practice squads and injured players
-- **Player skill levels** reflecting the real players, the way Madden does (see [[#Data sourcing & the real-league import|data sourcing]])
+- **Player skill levels** reflecting the real players, the way Madden does (see [data sourcing](#data-sourcing--the-real-league-import))
 - **Every contract** as it stood: salaries, bonuses, guarantees, void years, and existing dead money, so every team starts with its real cap situation
 - **Pending free agents:** players whose contracts expire after 2025 form the real 2026 free-agent class
 - **The 2026 draft order,** including traded picks and compensatory picks
@@ -176,7 +164,8 @@ The heart of the project. Every snap:
 
 ## Contracts & the salary cap
 
-> [!important] Goal: as exploitable as the real thing
+> [!IMPORTANT]
+> **Goal: as exploitable as the real thing**
 > Follow the real rules as closely as reasonable, so the creative cap accounting real teams use works here too, with real consequences.
 
 - **Contract components:** base salary, signing bonus (prorated over up to five years), roster bonuses, option bonuses, workout bonuses, incentives (likely vs. not-likely-to-be-earned), per-game roster bonuses
@@ -257,12 +246,13 @@ A **data pipeline** (scripts in the repo) builds the starting league file from p
 4. **Generate hidden traits:** potential, work ethic, injury proneness, etc., informed by age, draft pedigree, and injury history
 5. **Sanity-check** the top players at each position by hand
 
-> [!warning] Data licensing (to resolve before publishing)
-> Madden ratings are EA's proprietary work, and many stats sites restrict scraping in their terms. Facts (scores, stats, contract figures, records) are generally fine to use. The safer approach:
-> - Use Madden ratings only as a private **input** to the pipeline, not as a dataset republished in the public repo
-> - Publish the pipeline code; decide separately whether the generated league file is committed publicly
-> - Prefer sources with clear open licenses (nflverse) wherever possible, and credit them
-> - Not legal advice: worth a closer look before the public release
+> [!WARNING]
+> **Data licensing (resolved in Phase 18)**
+> Madden ratings are EA's proprietary work, and many stats sites restrict scraping in their terms. Facts (scores, stats, contract figures, records) are generally fine to use. What shipped:
+> - Ratings and contract data are private **inputs** to the pipeline, never published; only numbers derived from open sources are committed (`calibration/`)
+> - The pipeline code is published; the real-league file built from the private inputs is not
+> - nflverse data (CC-BY-4.0) and FTN charting (CC-BY-SA-4.0) are credited in `NOTICE.md`, `docs/data-sources.md` and the app's About page
+> - Not legal advice: the reasoning is on record in `docs/data-sources.md`
 
 ---
 
@@ -283,34 +273,39 @@ Football GM (by ZenGM) is the obvious reference: a browser-based fictional footb
 
 ## Tech stack
 
-> [!info] Decision: same core stack as the other sims, plus a real UI framework
+> [!NOTE]
+> **Decision: same core stack as the other sims, plus a real UI framework**
 > This project is far more UI-heavy (tables, forms, negotiations), so it adds React and a component library on top of the familiar TypeScript foundation.
 
 | Layer | Choice |
 |---|---|
-| Language | TypeScript |
-| Simulation core | Pure TS package: league, rules, game engine, AI. No browser code. Seeded RNG. |
-| Data pipeline | Node scripts that download public data and build the starting league file |
-| UI | React + Tailwind + shadcn/ui components |
+| Language | TypeScript (strict), npm workspaces |
+| Simulation core | Pure TS packages: foundation (RNG, exact math, money, ratings), game-engine (play-by-play), sim-core (league, rules, AI). No browser code. Seeded, named RNG streams. |
+| Data pipeline | Node scripts that download public data and build the calibration numbers and the starting league file |
+| UI | React + Tailwind v4 + shadcn/ui-style components (Radix), wouter for routing |
 | Big tables | TanStack Table (sorting, filtering, thousands of rows) |
-| Charts | Observable Plot / uPlot |
-| Saved leagues | IndexedDB in the browser (via Dexie), with export/import of league files |
+| Charts | Hand-drawn SVG components (no charting library) |
+| Saved leagues | IndexedDB in the browser (via Dexie), with export/import of league files and gzipped season backups |
 | Simulation runtime | Web Worker, so the UI never freezes during a season sim |
-| Headless runner | Node CLI for calibration runs and 100-season experiments |
-| Testing | Vitest: cap math, contract accounting, tiebreakers, schedule formula, determinism, calibration checks |
-| Hosting | GitHub Pages or Vercel. No backend, no server costs. |
+| Headless runner | Node CLI for calibration runs and experiments (forked workers) |
+| Testing | Vitest: cap math, contract accounting, tiebreakers, schedule formula, determinism, calibration checks, the name sweep |
+| Hosting | GitHub Pages workflow (off until switched on). No backend, no server costs. |
 
-### Repo layout (planned)
+### Repo layout
 ```
-football-sim/
+gridiron-dynasty/
 ├── packages/
-│   ├── sim-core/      # league, rules config, contracts, cap, AI GMs
-│   └── game-engine/   # play-by-play engine (separately testable + calibratable)
+│   ├── foundation/    # seeded RNG, exact math, money, dates, rating model
+│   ├── game-engine/   # play-by-play engine (separately testable + calibratable)
+│   └── sim-core/      # league, rules, contracts, seasons, coaches, front offices, AI
 ├── apps/
 │   ├── web/           # the game: GM Mode + Simulation Mode UI
 │   └── runner/        # headless calibration + experiments
 ├── pipeline/          # real-league import: download, rate, rename, build league file
+├── calibration/       # numbers derived from real data (targets, curves)
 ├── rules/             # versioned rules configs (cap, roster, OT, kickoff…)
+├── experiments/       # experiment files and their results
+├── tests/             # repo-wide guardrails, calibration, sweep
 ├── docs/
 ├── CLAUDE.md
 └── README.md
@@ -342,9 +337,14 @@ football-sim/
 
 ## Open questions
 
-- League name, championship name, and team names/mascots (to be decided during the build)
-- How far back the imported history goes: full history since 1920, or the championship era plus all-time record books?
+Answered during the build:
+
+- League name, championship name, and team names: the game is *Gridiron Dynasty: GM Simulator*; every club, conference and person is fictional (Phase 18).
+- How far back the imported history goes: the annals run from 1966, with every club's record book (Phases 15 and 15c).
+- Should the game also offer a fully fictional generated league? Yes, it is the default start (Phase 1).
+- How long a league can run: a 50-season save is about 34 MB raw after old logs are pruned (Phase 18, `docs/performance.md`).
+
+Still open:
+
 - Can more than one team be human-controlled (e.g., for friends)?
-- Should the game also offer a fully fictional generated league as an alternative start?
-- How long a league should run before performance or save size becomes an issue
 - Stretch: a simple 2D "watch the play" viewer for individual snaps

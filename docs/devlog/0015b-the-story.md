@@ -47,3 +47,7 @@ The feed keeps two seasons. A twenty-season run makes about 190 stories a year, 
 ## What's next
 
 - **Phase 16:** the exact real start: the 2025-26 coaching carousel, the real schedule, picks owned, a validation report and the "where things stand" screen.
+
+---
+
+[← 15a: The past, awards, records and the Hall of Fame](0015a-the-past.md) · [Index](README.md) · [15c: Every club's record book →](0015c-franchise-books.md)

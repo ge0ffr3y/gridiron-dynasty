@@ -65,7 +65,7 @@ export function CoachPage({ coachId }: { coachId: number }) {
             variant="outline"
             size="sm"
             onClick={fire}
-            title="League office decision: until GM Mode, the league office can act for any team. The job then opens on the coaching page."
+            title="League office decision: in Simulation Mode the league office can act for any team. The job then opens on the coaching page."
           >
             Fire (league office)
           </Button>

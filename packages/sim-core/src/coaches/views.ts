@@ -182,7 +182,7 @@ export function jobEffects(league: League, coach: Coach): string[] {
       );
       break;
     case "SCOUT":
-      out.push(`Scouting (used from Phase 11's draft).`);
+      out.push(`Scouting (used in the draft).`);
       break;
     default: {
       const positions = Object.entries(POSITION_COACH)

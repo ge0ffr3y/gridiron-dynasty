@@ -46,3 +46,7 @@ A 20-season run takes about 20 minutes on one core and about 300 MB of memory.
 ## What's next
 
 - **17b:** what the six experiments found.
+
+---
+
+[← 16: Day One](0016-day-one.md) · [Index](README.md) · [17b: What the experiments found →](0017b-findings.md)

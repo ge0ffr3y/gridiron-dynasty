@@ -1,5 +1,5 @@
 # Rules config
 
-League rules live here as versioned data (one file per season, e.g. `2026.json`), never in code: salary cap, contract rules, roster limits, overtime, kickoffs, playoff format, tiebreakers. When the real league changes a rule, update the config.
+League rules live here as versioned data (one file per season, `2026.json` today), never in code: salary cap, contract rules, roster limits, overtime, kickoffs, playoff format, tiebreakers, free agency, the draft, the calendar. When the real league changes a rule, update the config.
 
-The first rules file and its schema arrive in roadmap Phase 1. Each value gets checked against the current CBA or rulebook in the phase that first uses it.
+`packages/sim-core/src/rules.ts` loads and validates the file. Every block carries a `source` note saying which CBA article, rulebook section or public page its numbers came from. Exact league values are checked against those sources when a phase first uses them, never typed from memory.

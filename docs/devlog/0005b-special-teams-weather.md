@@ -99,3 +99,7 @@ The misses are old acquaintances: seed set 42's quarterback-rich leagues run hot
 - Success rate is still a few tenths low on two seed sets.
 - Return touchdowns and return yardage aren't on the scorecard yet; they look right in the box scores but aren't checked against real ranges.
 - Real-league stadium names and the Phase 6 naming session come later; for now stadiums are described, not named.
+
+---
+
+[← 5a: Game management](0005a-game-management.md) · [Index](README.md) · [6a: Real rosters →](0006a-real-rosters.md)

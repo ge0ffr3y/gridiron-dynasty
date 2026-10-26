@@ -125,3 +125,7 @@ Four leagues, two seasons each:
 - **Injury reports by position:** body parts don't depend on position (a quarterback's throwing shoulder isn't special yet).
 - **The medical staff** affects nothing until Phase 10.
 - **Career lengths** for edge rushers, safeties, kickers and punters still run long (Phase 13's roster AI).
+
+---
+
+[← 9a: Players grow, age and retire](0009a-development-aging-retirement.md) · [Index](README.md) · [10a: Coaches call the plays →](0010a-coaches-call-the-plays.md)

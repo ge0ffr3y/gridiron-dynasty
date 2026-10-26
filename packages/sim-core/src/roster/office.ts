@@ -36,7 +36,7 @@ import {
   waivePlayer,
 } from "./moves";
 
-const OFFICE = "League office move (any team, until GM Mode in Phase 14).";
+const OFFICE = "League office move (any team, Simulation Mode).";
 
 export type RosterMoveKind =
   "waive" | "injured-reserve" | "activate" | "promote" | "elevate" | "sign" | "sign-practice-squad";

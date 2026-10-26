@@ -51,3 +51,7 @@ GM Mode now has stakes. Your owner judges you exactly like the AI GMs, by the sa
 - **Owner-mood sizes are judgment.** No data measures an owner's mood. The firing odds themselves are the ones tuned to the real 4.5 GM changes a year in Phase 13.
 - **One person-run team for now.** Your long-range multiplayer idea is in the roadmap's stretch goals. Decisions, delegation and the inbox are all keyed by team. A league's career is one person today, so a list of careers would be the main change.
 - **Release v0.4 stays deferred** until the repo goes public, like v0.1 to v0.3.
+
+---
+
+[← 14a: GM Mode: your team, your decisions](0014a-gm-mode.md) · [Index](README.md) · [15a: The past, awards, records and the Hall of Fame →](0015a-the-past.md)

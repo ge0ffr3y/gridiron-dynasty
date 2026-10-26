@@ -1,7 +1,7 @@
 /**
- * Placeholder team identities, keyed by the team ids in the rules file.
- * Real cities are fine; the nicknames are deliberately not any league's real
- * nicknames, and the whole set gets replaced in the Phase 6 naming session.
+ * Team identities, keyed by the team ids in the rules file.
+ * Real cities are fine; the nicknames are fictional and were checked against the
+ * nicknames of other professional clubs (soccer, hockey, basketball, baseball, football).
  */
 export const PLACEHOLDER_TEAMS: Record<
   string,
@@ -19,7 +19,7 @@ export const PLACEHOLDER_TEAMS: Record<
   IND: { city: "Indianapolis", nickname: "Crossroads", colors: ["#1e40af", "#f8fafc"] },
   JAX: { city: "Jacksonville", nickname: "Riptide", colors: ["#0f766e", "#ca8a04"] },
   TEN: { city: "Tennessee", nickname: "Ridgebacks", colors: ["#0c4a6e", "#38bdf8"] },
-  DEN: { city: "Denver", nickname: "Summit", colors: ["#ea580c", "#1e3a8a"] },
+  DEN: { city: "Denver", nickname: "Frontiersmen", colors: ["#ea580c", "#1e3a8a"] },
   KC: { city: "Kansas City", nickname: "Stockyards", colors: ["#b91c1c", "#fbbf24"] },
   LV: { city: "Las Vegas", nickname: "High Rollers", colors: ["#18181b", "#a1a1aa"] },
   LAA: { city: "Los Angeles", nickname: "Surf", colors: ["#0284c7", "#fde047"] },
@@ -30,7 +30,7 @@ export const PLACEHOLDER_TEAMS: Record<
   CHI: { city: "Chicago", nickname: "Gales", colors: ["#1e293b", "#f97316"] },
   DET: { city: "Detroit", nickname: "Assembly", colors: ["#0369a1", "#cbd5e1"] },
   GB: { city: "Green Bay", nickname: "Lumberjacks", colors: ["#166534", "#facc15"] },
-  MIN: { city: "Minnesota", nickname: "Loons", colors: ["#581c87", "#fbbf24"] },
+  MIN: { city: "Minnesota", nickname: "Voyageurs", colors: ["#581c87", "#fbbf24"] },
   ATL: { city: "Atlanta", nickname: "Firebirds", colors: ["#b91c1c", "#111827"] },
   CAR: { city: "Carolina", nickname: "Pines", colors: ["#0ea5e9", "#0f172a"] },
   NO: { city: "New Orleans", nickname: "Krewe", colors: ["#a16207", "#111827"] },

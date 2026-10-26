@@ -61,6 +61,7 @@ import { careerSeasonEnd, inSeasonReview, ownerWatch } from "../career/job";
 import { seasonAwards } from "../history/awards";
 import { hallOfFameVote } from "../history/hallOfFame";
 import { pruneNews } from "../history/news";
+import { pruneLogs } from "../lifecycle/prune";
 import { gameRecords, seasonAndCareerRecords } from "../history/records";
 import { newsFromLogs, weeklyNews } from "../history/storylines";
 import { personTeam, staffDecides } from "../career/delegation";
@@ -601,7 +602,10 @@ function advanceOnce(league: League, hooks: SimHooks): string {
       // The owner's reactions to the person's moves fade with the new year (Phase 14b).
       careerSeasonEnd(league);
       startNextSeason(league, { agePlayers: true });
-      if (!hooks.historyOnly) pruneNews(league);
+      if (!hooks.historyOnly) {
+        pruneNews(league);
+        pruneLogs(league);
+      }
       retirePlayers(league, ended);
       // Players long gone become short history cards (Phase 13), so the list stays lean.
       if (!hooks.historyOnly) archivePlayers(league, ended);
@@ -705,6 +709,16 @@ function completeSeason(league: League): void {
         awayScore: g.result!.awayScore,
         overtime: g.result!.overtime,
       })),
+    results: league.games
+      .filter((g) => g.round === "regular" && g.result)
+      .map((g) => [
+        g.week,
+        g.homeId,
+        g.awayId,
+        g.result!.homeScore,
+        g.result!.awayScore,
+        g.result!.overtime ? 1 : 0,
+      ]),
     draftOrder: order.firstRound,
     tiebreakNotes: standings.notes,
   };

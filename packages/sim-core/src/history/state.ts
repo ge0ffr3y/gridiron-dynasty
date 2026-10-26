@@ -6,7 +6,14 @@ import type { League } from "../league/schema";
 
 export type HistoryState = Pick<
   League,
-  "annals" | "awards" | "records" | "hallOfFame" | "retiredNumbers" | "news" | "newsCursor"
+  | "annals"
+  | "awards"
+  | "records"
+  | "hallOfFame"
+  | "retiredNumbers"
+  | "news"
+  | "newsCursor"
+  | "draftsHeld"
 >;
 
 export function emptyHistory(): HistoryState {
@@ -17,6 +24,7 @@ export function emptyHistory(): HistoryState {
     hallOfFame: [],
     retiredNumbers: [],
     news: [],
+    draftsHeld: [],
     newsCursor: { transaction: 0, coachingMove: 0, executiveMove: 0 },
   };
 }

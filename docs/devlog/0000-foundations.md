@@ -18,3 +18,7 @@ The project exists. Nothing football happens yet; this phase builds the scaffold
 ## What's not done
 
 - **Hosting.** The repo is private and GitHub Pages needs a public repo on the free plan. Decision pending: Vercel, or make the repo public.
+
+---
+
+[Index](README.md) · [1: A league to browse →](0001-league-skeleton.md)

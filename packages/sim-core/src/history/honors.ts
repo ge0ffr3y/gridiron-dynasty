@@ -16,7 +16,7 @@ const ORDER: [AwardKind, string][] = [
   ["comeback", "Comeback Player of the Year"],
   ["all-pro-1", "First-team All-Pro"],
   ["all-pro-2", "Second-team All-Pro"],
-  ["pro-bowl", "Pro Bowl"],
+  ["pro-bowl", "All-Star Game"],
 ];
 
 export function honorsOf(league: League, playerId: number): Honors {

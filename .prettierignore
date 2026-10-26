@@ -7,3 +7,4 @@ pipeline/cache/
 # Snapshots of the Obsidian notes; keep them exactly as written there.
 docs/overview.md
 docs/roadmap.md
+tests/fixtures/banned.json

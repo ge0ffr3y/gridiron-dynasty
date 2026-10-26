@@ -112,3 +112,7 @@ Player level: 32, 36 and 40 of 48 lines inside the real range (seed sets 42, 100
 - Yards after contact (the run game doesn't yet split a run into before and after first contact).
 - Situational run game (Phase 5), quarterback benchings and play-calling styles (Phases 10 and 13), the full injury model (Phase 9).
 - Release v0.1 (README with screenshots, GitHub Pages and the tag) waits until the repo goes public, as decided.
+
+---
+
+[← 4a: Matchups](0004a-matchup-engine.md) · [Index](README.md) · [5a: Game management →](0005a-game-management.md)

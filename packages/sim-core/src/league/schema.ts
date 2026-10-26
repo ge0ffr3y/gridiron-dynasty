@@ -9,7 +9,7 @@ import { DEPTH_SLOTS, STAT_KEYS, type BoxScore, type StatLine } from "@fgm/game-
 import { RulesSchema } from "../rules";
 
 export const LEAGUE_FORMAT = "fgm-league";
-export const LEAGUE_FORMAT_VERSION = 21;
+export const LEAGUE_FORMAT_VERSION = 22;
 
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Score = z.number().int().min(0).max(100);
@@ -847,7 +847,7 @@ export const AWARD_KINDS = [
   "pro-bowl",
 ] as const;
 
-/** One award line: a winner (place 1) or a runner-up in the vote; All-Pro and Pro Bowl spots. */
+/** One award line: a winner (place 1) or a runner-up in the vote; All-Pro and All-Star Game spots. */
 export const AwardSchema = z.object({
   season: z.number().int(),
   award: z.enum(AWARD_KINDS),
@@ -1024,6 +1024,20 @@ export const SeasonHistorySchema = z.object({
       awayScore: z.number().int(),
       overtime: z.boolean(),
     }),
+  ),
+  /**
+   * Every regular-season game's score (Phase 18), kept compact so past seasons can still be read:
+   * week, home team, away team, home score, away score, 1 if it went to overtime.
+   */
+  results: z.array(
+    z.tuple([
+      z.number().int(),
+      z.string(),
+      z.string(),
+      z.number().int(),
+      z.number().int(),
+      z.number().int(),
+    ]),
   ),
   /** First-round order of the next draft (1st pick first). */
   draftOrder: z.array(z.string()),
@@ -1368,6 +1382,11 @@ export const LeagueSchema = z.object({
    * drops this. Null everywhere else.
    */
   priorSeason: z.object({ season: z.number().int(), games: z.array(GameSchema) }).nullable(),
+  /**
+   * The seasons whose drafts this league held (Phase 18), kept when older transactions are pruned
+   * so the draft history still knows which drafts were real events here.
+   */
+  draftsHeld: z.array(z.number().int()),
   rng: z.partialRecord(z.string(), RngStateSchema),
   nextIds: z.object({
     player: z.number().int(),

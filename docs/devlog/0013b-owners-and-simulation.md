@@ -96,3 +96,7 @@ Owners now hire and fire. Each judges his GM and head coach every season and wri
 
 - **Dynasties are still rarer than real:** five-year playoff runs happen about half as often, and seasons carry over less.
 - **Release v0.3:** waits until the repo goes public, like v0.1 and v0.2.
+
+---
+
+[← 13a: Front offices and the trade market](0013a-front-offices.md) · [Index](README.md) · [14a: GM Mode: your team, your decisions →](0014a-gm-mode.md)

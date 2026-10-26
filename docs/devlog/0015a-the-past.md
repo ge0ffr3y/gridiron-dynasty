@@ -74,3 +74,7 @@ The Hall of Fame, after 16 classes: 75-77 members, classes of three in the thin 
 - **Franchise records:** 10 of 32 clubs. The rest start with no book.
 - **Calibration of voters** is judgment fitted to counts, not measured votes (the AP's vote shares aren't in what we fetched).
 - **The vote strength of Hall candidates** (the bar and the first-ballot discount) is judgment tuned so classes look like real ones.
+
+---
+
+[← 14b: The job](0014b-the-job.md) · [Index](README.md) · [15b: The story told →](0015b-the-story.md)

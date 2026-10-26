@@ -17,6 +17,7 @@ import {
   PageHeader,
   readableTextOn,
 } from "@/components/shared";
+import { TabPanel, Tabs, type TabItem } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -43,6 +44,20 @@ type Tab =
   | "locker"
   | "office"
   | "history";
+
+const TEAM_TABS: TabItem<Tab>[] = [
+  { id: "roster", label: "Roster" },
+  { id: "manage", label: "Manage roster" },
+  { id: "depth", label: "Depth chart" },
+  { id: "cap", label: "Salary cap" },
+  { id: "moves", label: "Transactions" },
+  { id: "office", label: "Front office" },
+  { id: "staff", label: "Staff" },
+  { id: "locker", label: "Locker room" },
+  { id: "picks", label: "Draft picks" },
+  { id: "history", label: "History" },
+  { id: "stats", label: "Stats" },
+];
 
 export function TeamPage({ teamId }: { teamId: string }) {
   const view = useSim("teamView", { teamId }, useLeagueKey(String(teamId)));
@@ -78,176 +93,147 @@ export function TeamPage({ teamId }: { teamId: string }) {
         </CardContent>
       </Card>
 
-      <div className="flex gap-1 border-b">
-        {(
-          [
-            ["roster", "Roster"],
-            ["manage", "Manage roster"],
-            ["depth", "Depth chart"],
-            ["cap", "Salary cap"],
-            ["moves", "Transactions"],
-            ["office", "Front office"],
-            ["staff", "Staff"],
-            ["locker", "Locker room"],
-            ["picks", "Draft picks"],
-            ["history", "History"],
-            ["stats", "Stats"],
-          ] as [Tab, string][]
-        ).map(([id, label]) => (
-          <Button
-            key={id}
-            variant="ghost"
-            size="sm"
-            onClick={() => setTab(id)}
-            className={
-              tab === id
-                ? "rounded-b-none border-b-2 border-primary"
-                : "rounded-b-none text-muted-foreground"
-            }
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
+      <Tabs tabs={TEAM_TABS} value={tab} onChange={setTab} label="Team sections" idPrefix="team" />
+      <TabPanel idPrefix="team" id={tab} className="flex flex-col gap-6">
+        {tab === "roster" && <RosterTable rows={roster} />}
 
-      {tab === "roster" && <RosterTable rows={roster} />}
+        {tab === "depth" && <DepthChartEditor teamId={teamId} />}
 
-      {tab === "depth" && <DepthChartEditor teamId={teamId} />}
+        {tab === "locker" && <LockerRoom teamId={teamId} />}
 
-      {tab === "locker" && <LockerRoom teamId={teamId} />}
+        {tab === "office" && <FrontOffice teamId={teamId} />}
 
-      {tab === "office" && <FrontOffice teamId={teamId} />}
+        {tab === "cap" && <CapSheet teamId={teamId} />}
 
-      {tab === "cap" && <CapSheet teamId={teamId} />}
+        {tab === "manage" && <RosterManager teamId={teamId} />}
 
-      {tab === "manage" && <RosterManager teamId={teamId} />}
+        {tab === "moves" && <TransactionsPage teamId={teamId} />}
+        {tab === "history" && <TeamHistory teamId={teamId} />}
 
-      {tab === "moves" && <TransactionsPage teamId={teamId} />}
-      {tab === "history" && <TeamHistory teamId={teamId} />}
-
-      {tab === "stats" && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardContent>
-              <div className="mb-3 font-medium">{view.data.season.year} season so far</div>
-              {view.data.season.games === 0 ? (
-                <p className="text-sm text-muted-foreground">No games played yet this season.</p>
-              ) : (
-                <Facts
-                  items={[
-                    ["Games", view.data.season.games],
-                    [
-                      "Points for",
-                      `${view.data.season.pointsFor} (${(view.data.season.pointsFor / view.data.season.games).toFixed(1)} a game)`,
-                    ],
-                    [
-                      "Points against",
-                      `${view.data.season.pointsAgainst} (${(view.data.season.pointsAgainst / view.data.season.games).toFixed(1)} a game)`,
-                    ],
-                    [
-                      "Yards for",
-                      `${(view.data.season.yardsFor / view.data.season.games).toFixed(1)} a game`,
-                    ],
-                    [
-                      "Yards against",
-                      `${(view.data.season.yardsAgainst / view.data.season.games).toFixed(1)} a game`,
-                    ],
-                    [
-                      "Passing / rushing",
-                      `${view.data.season.passYards} / ${view.data.season.rushYards}`,
-                    ],
-                    ["Turnovers", view.data.season.turnovers],
-                    ["Takeaways", view.data.season.takeaways],
-                    ...advancedFacts(view.data.season.advanced),
-                  ]}
-                />
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent>
-              <div className="mb-3 font-medium">Team leaders</div>
-              <dl className="grid grid-cols-[auto_1fr_auto] gap-x-4 gap-y-2 text-sm">
-                {view.data.season.leaders.map((l) => (
-                  <Fragment key={l.label}>
-                    <dt className="text-muted-foreground">{l.label}</dt>
-                    <dd>
-                      {l.player ? (
-                        <Link href={`/player/${l.player.id}`} className="hover:underline">
-                          {l.player.name}
-                        </Link>
-                      ) : (
-                        "-"
-                      )}
-                    </dd>
-                    <dd className="text-right tabular-nums">{l.player ? l.value : ""}</dd>
-                  </Fragment>
-                ))}
-              </dl>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {tab === "staff" && (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Job</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead className="text-right">Age</TableHead>
-              <TableHead className="text-right">Main skill</TableHead>
-              <TableHead>Scheme</TableHead>
-              <TableHead>Style, or what he does</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {staff.map((c) => (
-              <TableRow key={c.id}>
-                <TableCell className="text-muted-foreground">{c.roleName}</TableCell>
-                <TableCell>
-                  <Link href={`/coach/${c.id}`} className="font-medium hover:underline">
-                    {c.name}
-                  </Link>
-                </TableCell>
-                <TableCell className="text-right tabular-nums">{c.age}</TableCell>
-                <TableCell className="text-right tabular-nums" title={c.mainSkill.label}>
-                  {c.mainSkill.value}
-                </TableCell>
-                <TableCell>{c.scheme ?? "—"}</TableCell>
-                <TableCell className="text-muted-foreground">{c.summary}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-
-      {tab === "picks" && (
-        <div className="grid gap-3 sm:grid-cols-3">
-          {[...new Set(picks.map((p) => p.season))].map((season) => (
-            <Card key={season} className="gap-2 py-4">
-              <CardContent className="px-4">
-                <div className="mb-2 font-medium">{season} draft</div>
-                <ul className="flex flex-col gap-1 text-sm">
-                  {picks
-                    .filter((p) => p.season === season)
-                    .map((p) => (
-                      <li key={p.id}>
-                        {ordinal(p.round)} round
-                        {p.overall !== null && (
-                          <span className="text-muted-foreground"> · pick #{p.overall}</span>
-                        )}
-                        {p.from !== team.id && (
-                          <span className="text-muted-foreground"> (from {p.from})</span>
-                        )}
-                      </li>
-                    ))}
-                </ul>
+        {tab === "stats" && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardContent>
+                <div className="mb-3 font-medium">{view.data.season.year} season so far</div>
+                {view.data.season.games === 0 ? (
+                  <p className="text-sm text-muted-foreground">No games played yet this season.</p>
+                ) : (
+                  <Facts
+                    items={[
+                      ["Games", view.data.season.games],
+                      [
+                        "Points for",
+                        `${view.data.season.pointsFor} (${(view.data.season.pointsFor / view.data.season.games).toFixed(1)} a game)`,
+                      ],
+                      [
+                        "Points against",
+                        `${view.data.season.pointsAgainst} (${(view.data.season.pointsAgainst / view.data.season.games).toFixed(1)} a game)`,
+                      ],
+                      [
+                        "Yards for",
+                        `${(view.data.season.yardsFor / view.data.season.games).toFixed(1)} a game`,
+                      ],
+                      [
+                        "Yards against",
+                        `${(view.data.season.yardsAgainst / view.data.season.games).toFixed(1)} a game`,
+                      ],
+                      [
+                        "Passing / rushing",
+                        `${view.data.season.passYards} / ${view.data.season.rushYards}`,
+                      ],
+                      ["Turnovers", view.data.season.turnovers],
+                      ["Takeaways", view.data.season.takeaways],
+                      ...advancedFacts(view.data.season.advanced),
+                    ]}
+                  />
+                )}
               </CardContent>
             </Card>
-          ))}
-        </div>
-      )}
+            <Card>
+              <CardContent>
+                <div className="mb-3 font-medium">Team leaders</div>
+                <dl className="grid grid-cols-[auto_1fr_auto] gap-x-4 gap-y-2 text-sm">
+                  {view.data.season.leaders.map((l) => (
+                    <Fragment key={l.label}>
+                      <dt className="text-muted-foreground">{l.label}</dt>
+                      <dd>
+                        {l.player ? (
+                          <Link href={`/player/${l.player.id}`} className="hover:underline">
+                            {l.player.name}
+                          </Link>
+                        ) : (
+                          "-"
+                        )}
+                      </dd>
+                      <dd className="text-right tabular-nums">{l.player ? l.value : ""}</dd>
+                    </Fragment>
+                  ))}
+                </dl>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {tab === "staff" && (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Job</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead className="text-right">Age</TableHead>
+                <TableHead className="text-right">Main skill</TableHead>
+                <TableHead>Scheme</TableHead>
+                <TableHead>Style, or what he does</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {staff.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell className="text-muted-foreground">{c.roleName}</TableCell>
+                  <TableCell>
+                    <Link href={`/coach/${c.id}`} className="font-medium hover:underline">
+                      {c.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{c.age}</TableCell>
+                  <TableCell className="text-right tabular-nums" title={c.mainSkill.label}>
+                    {c.mainSkill.value}
+                  </TableCell>
+                  <TableCell>{c.scheme ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{c.summary}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+
+        {tab === "picks" && (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[...new Set(picks.map((p) => p.season))].map((season) => (
+              <Card key={season} className="gap-2 py-4">
+                <CardContent className="px-4">
+                  <div className="mb-2 font-medium">{season} draft</div>
+                  <ul className="flex flex-col gap-1 text-sm">
+                    {picks
+                      .filter((p) => p.season === season)
+                      .map((p) => (
+                        <li key={p.id}>
+                          {ordinal(p.round)} round
+                          {p.overall !== null && (
+                            <span className="text-muted-foreground"> · pick #{p.overall}</span>
+                          )}
+                          {p.from !== team.id && (
+                            <span className="text-muted-foreground"> (from {p.from})</span>
+                          )}
+                        </li>
+                      ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </TabPanel>
     </div>
   );
 }

@@ -98,7 +98,7 @@ function percentile(sorted: number[], p: number): number {
 
 const args = process.argv.slice(2);
 console.log(
-  `FootballGM Sim runner (sim-core ${SIM_CORE_VERSION}, game-engine ${GAME_ENGINE_VERSION})`,
+  `Gridiron Dynasty runner (sim-core ${SIM_CORE_VERSION}, game-engine ${GAME_ENGINE_VERSION})`,
 );
 
 if (args.includes("--calibrate")) {
@@ -138,6 +138,19 @@ if (experimentArg !== undefined) {
     Number(option(args, "--workers") ?? 6),
     runs === undefined ? undefined : Number(runs),
     process.env["INIT_CWD"] ?? process.cwd(),
+  );
+  process.exit(0);
+}
+
+const savesArg = option(args, "--saves");
+if (savesArg !== undefined) {
+  const { runSaves } = await import("./saves");
+  const out = option(args, "--out");
+  runSaves(
+    readSeed(args),
+    Number(savesArg),
+    Number(option(args, "--every") ?? 5),
+    out ? fromCaller(out) : undefined,
   );
   process.exit(0);
 }
@@ -213,6 +226,9 @@ if (!args.includes("--new-league")) {
   console.log("  npm run sim -- --seasons N [--seed N]");
   console.log("  npm run sim -- --experiment experiments/<file>.json [--workers N] [--runs N]");
   console.log("  npm run sim -- --experiments   (list the experiment files)");
+  console.log(
+    "  npm run sim -- --saves N [--seed N] [--every N] [--out file.json]   save size and speed over N seasons",
+  );
   process.exit(0);
 }
 

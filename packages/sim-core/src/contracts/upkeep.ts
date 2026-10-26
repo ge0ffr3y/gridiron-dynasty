@@ -301,7 +301,7 @@ export function fillRoster(league: League, teamId: string): number {
       teamIds: [teamId],
       playerIds: [pick.id],
       text: `${teamId} signed free agent ${pick.firstName} ${pick.lastName} (${pick.position}) to a one-year minimum deal${vsb ? " (veteran salary benefit)" : ""}.`,
-      reason: `Roster down to ${roster.length}; ${pick.position} was the thinnest spot. (Placeholder until Phase 8's roster upkeep.)`,
+      reason: `Roster down to ${roster.length}; ${pick.position} was the thinnest spot.`,
     });
   }
   return signed;

@@ -1,7 +1,7 @@
 {
-  "name": "footballgm-sim",
+  "name": "gridiron-dynasty",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "A pro football GM game and league simulator that starts from the real post-2025 league, with every name fictional.",
   "workspaces": [
@@ -21,7 +21,9 @@
     "build": "npm run build -w apps/web",
     "dev": "npm run dev -w apps/web",
     "sim": "npm run start -w apps/runner --",
-    "pipeline": "npm run start -w pipeline --"
+    "pipeline": "npm run start -w pipeline --",
+    "licenses": "node scripts/licenses.mjs",
+    "sync-docs": "node scripts/sync-docs.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
@@ -30,5 +32,10 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.4",
     "vitest": "^5.0.5"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ge0ffr3y/footballgm-sim.git"
   }
 }

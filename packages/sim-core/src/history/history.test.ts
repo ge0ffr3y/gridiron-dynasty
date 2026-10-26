@@ -1,6 +1,6 @@
 /**
  * League history (Phase 15): the record book (a record breaks, news says so, the old holder is
- * kept), awards after a season, the Hall of Fame's rules, retired numbers, Pro Bowls in the fifth-
+ * kept), awards after a season, the Hall of Fame's rules, retired numbers, All-Star Game selections in the fifth-
  * year option, and the 19-to-20 save upgrade.
  */
 import { describe, expect, it } from "vitest";
@@ -108,7 +108,7 @@ describe("awards", () => {
     expect(shares[0]).toBeGreaterThanOrEqual(shares[1] ?? 0);
     expect(shares.reduce((x, y) => x + y, 0)).toBeLessThanOrEqual(1.05);
     expect(["QB", "RB", "WR", "TE"]).toContain(mvp.position);
-    // Teams: first and second All-Pro and a Pro Bowl, and the rookies really were rookies.
+    // Teams: first and second All-Pro and an All-Star Game selection, and the rookies really were rookies.
     expect(season.filter((a) => a.award === "all-pro-1").length).toBeGreaterThan(20);
     expect(season.filter((a) => a.award === "pro-bowl").length).toBeGreaterThan(40);
     const roy = l.players.find(
@@ -123,7 +123,7 @@ describe("awards", () => {
     expect(honorsOf(l, mvp.playerId!).awards.some((a) => a.label === "MVP")).toBe(true);
   });
 
-  it("Pro Bowls set the fifth-year option: one at the transition tender, two at the franchise tender", () => {
+  it("All-Star Game selections set the fifth-year option: one at the transition tender, two at the franchise tender", () => {
     const l = afterOne();
     const shares = [0.3, 0.4, 0.2];
     const basic = fifthYearOptionSalary(l, "WR", 2030, shares, 0);
@@ -131,7 +131,7 @@ describe("awards", () => {
     const two = fifthYearOptionSalary(l, "WR", 2030, shares, 2);
     expect(one).toBeGreaterThan(basic);
     expect(two).toBeGreaterThanOrEqual(one);
-    // Many Pro Bowls can't push it past two's tier.
+    // Many All-Star Game selections can't push it past two's tier.
     expect(fifthYearOptionSalary(l, "WR", 2030, shares, 3)).toBe(two);
   });
 });

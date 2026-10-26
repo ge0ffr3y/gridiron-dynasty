@@ -147,7 +147,7 @@ export function glossaryView(league: League): GlossaryEntry[] {
     {
       term: "League Year",
       group: "The year",
-      text: "The NFL's business year, starting in March: contracts expire, free agency opens and the new cap applies.",
+      text: "The league's business year, starting in March: contracts expire, free agency opens and the new cap applies.",
     },
     {
       term: "Compensatory picks",

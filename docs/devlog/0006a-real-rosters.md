@@ -61,3 +61,7 @@ The real league is built on this computer by one command and never committed: it
 - The top-10 sanity sheet for your review.
 - The scorecard with real rosters on three seeds.
 - Contracts arrive in Phase 7, real traded draft picks with the draft, and team names with the naming session.
+
+---
+
+[← 5b: Special teams and the elements](0005b-special-teams-weather.md) · [Index](README.md) · [6b: Real ratings →](0006b-real-ratings.md)

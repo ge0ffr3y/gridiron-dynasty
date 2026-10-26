@@ -95,3 +95,7 @@ A team's **chemistry** is its players' moods, with leaders counting more and unh
 
 - **GM Mode** (Phase 14): until then, you can't answer a holdout yourself; the league office watches the AI do it.
 - **AI general managers** (Phase 13): will weigh trades of unhappy players against their whole plan.
+
+---
+
+[← 12a: Free agency and negotiation](0012a-free-agency.md) · [Index](README.md) · [13a: Front offices and the trade market →](0013a-front-offices.md)

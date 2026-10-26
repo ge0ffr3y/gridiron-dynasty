@@ -213,9 +213,9 @@ export function ContractPanel({ playerId }: { playerId: number }) {
           <CardHeader>
             <CardTitle>What if</CardTitle>
             <CardDescription>
-              What each move would do to the {c.team.name}' cap room, as of{" "}
-              {formatLeagueDate(c.date)}. Until GM Mode, the league office can make these moves for
-              any team; each is recorded with its reason.
+              What each move would do to the cap room of the {c.team.name}, as of{" "}
+              {formatLeagueDate(c.date)}. In Simulation Mode the league office can make these moves
+              for any team (in GM Mode, only your own); each is recorded with its reason.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">

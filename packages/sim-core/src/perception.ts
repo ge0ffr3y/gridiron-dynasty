@@ -200,6 +200,26 @@ const SKILL_SHARE = new Map<Position, number>(
   }),
 );
 
+// Each viewer's wobble on each attribute of a player is a fixed draw (a hash of the league, the
+// viewer, the player and the attribute), so it is computed once, not on every read.
+const WOBBLES = new WeakMap<League, Map<string, Float64Array>>();
+/** The most players' wobbles kept per league; the cache starts over past this (players come and go). */
+const WOBBLES_KEPT = 60_000;
+
+function wobblesFor(league: League, wobbleKey: string): Float64Array {
+  let all = WOBBLES.get(league);
+  if (!all) WOBBLES.set(league, (all = new Map()));
+  let draws = all.get(wobbleKey);
+  if (!draws) {
+    if (all.size >= WOBBLES_KEPT) all.clear();
+    draws = new Float64Array(ATTRIBUTES.length);
+    for (let i = 0; i < ATTRIBUTES.length; i++)
+      draws[i] = normalFrom(`${wobbleKey}:${ATTRIBUTES[i]!.key}`);
+    all.set(wobbleKey, draws);
+  }
+  return draws;
+}
+
 /**
  * The viewer's read of a subject. Its error has three parts:
  * - shared by the whole league: for a prospect, the league's expectation of his draft rank
@@ -208,7 +228,14 @@ const SKILL_SHARE = new Map<Position, number>(
  * - the viewer's own (none for the league office, which averages every department);
  * - each skill's own wobble.
  */
-function perceive(league: League, s: Subject, viewer: Viewer): PerceivedPlayer {
+function perceive(league: League, s: Subject, viewer: Viewer): PerceivedPlayer;
+function perceive(league: League, s: Subject, viewer: Viewer, overallOnly: true): number;
+function perceive(
+  league: League,
+  s: Subject,
+  viewer: Viewer,
+  overallOnly = false,
+): PerceivedPlayer | number {
   const S = SCOUTING;
   const C = S.consensus;
   const sd = uncertainty(league, viewer, s);
@@ -247,13 +274,17 @@ function perceive(league: League, s: Subject, viewer: Viewer): PerceivedPlayer {
   const skillShift = shift / (SKILL_SHARE.get(s.position) ?? 1);
   const wobbleKey = `${seed}:${team ?? "office"}:${s.id}`;
   const ratings = {} as Ratings;
-  for (const a of ATTRIBUTES) {
-    const wobble = normalFrom(`${wobbleKey}:${a.key}`);
+  const wobbles = wobblesFor(league, wobbleKey);
+  for (let i = 0; i < ATTRIBUTES.length; i++) {
+    const a = ATTRIBUTES[i]!;
+    const wobble = wobbles[i]!;
     const error = PHYSICAL.has(a.key)
       ? sd.physical * wobble
       : skillShift + sd.skills * S.ownShare * wobble;
     ratings[a.key] = Math.max(1, Math.min(99, Math.round(s.ratings[a.key] + error)));
   }
+  // Callers that only want the overall skip the rest (positions, ranges, potential).
+  if (overallOnly) return overallWithFamiliarity(ratings, s.position, 1);
   const positionOveralls = POSITIONS.flatMap((position) => {
     const familiarity = s.position === position ? 1 : s.familiarity[position];
     return familiarity === undefined
@@ -369,7 +400,7 @@ export function readOverall(league: League, player: Player, viewer: Viewer): num
   const id = `${viewer.kind === "team" ? viewer.teamId : "office"}:${player.id}:${player.teamId}`;
   let overall = cache.reads.get(id);
   if (overall === undefined) {
-    overall = perceivePlayer(league, player, viewer).overall;
+    overall = perceive(league, subjectOf(league, player), viewer, true);
     cache.reads.set(id, overall);
   }
   return overall;

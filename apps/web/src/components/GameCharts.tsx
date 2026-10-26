@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useChartWidth } from "@/lib/useChartWidth";
 
 type Charts = NonNullable<GameView["charts"]>;
 type Plays = NonNullable<GameView["plays"]>;
@@ -33,7 +34,6 @@ function LineKey({ color }: { color: string }) {
   );
 }
 
-const W = 720;
 const H = 220;
 const PAD = { left: 64, right: 12, top: 14, bottom: 26 };
 
@@ -51,6 +51,7 @@ export function WinProbabilityChart({
   const points = charts.winProbability;
   const [active, setActive] = useState<number | null>(null);
   const svg = useRef<SVGSVGElement>(null);
+  const [setBox, W] = useChartWidth();
   if (points.length < 2) return null;
   const x = (elapsed: number) =>
     PAD.left + (elapsed / charts.totalSeconds) * (W - PAD.left - PAD.right);
@@ -95,7 +96,7 @@ export function WinProbabilityChart({
   const playText = point && point.play >= 0 ? plays[point.play]?.text : "Final";
 
   return (
-    <div className="relative">
+    <div ref={setBox} className="relative">
       <svg
         ref={svg}
         viewBox={`0 0 ${W} ${H}`}

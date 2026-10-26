@@ -91,3 +91,7 @@ Draft classes are real objects now: prospects with combine results, scouted all 
 - **Draft day itself:** the pick clock, trades, compensatory picks, big boards with needs and philosophy, retro grades, mock drafts and draft history (11b).
 - **Other AI decisions** (cuts, trades, free agency) still use true ratings; veterans' reads are close to the truth anyway. Phase 13's GMs move them onto their own staff's view.
 - **Late picks still start a little more often** than real ones (151–224: about 6 points high).
+
+---
+
+[← 10b: The coaching carousel](0010b-coaching-carousel.md) · [Index](README.md) · [11b: Draft day →](0011b-draft-day.md)

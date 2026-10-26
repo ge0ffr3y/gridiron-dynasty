@@ -20,7 +20,9 @@ export async function decodeLeagueFile(bytes: Uint8Array): Promise<string> {
     const raw = await streamBytes(input.pipeThrough(new DecompressionStream("gzip")));
     return new TextDecoder().decode(raw);
   } catch {
-    throw new Error("This file isn't a FootballGM Sim league file (it couldn't be decompressed).");
+    throw new Error(
+      "This file isn't a Gridiron Dynasty league file (it couldn't be decompressed).",
+    );
   }
 }
 

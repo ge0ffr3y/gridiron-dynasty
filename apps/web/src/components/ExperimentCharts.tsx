@@ -6,6 +6,7 @@
  */
 import { useRef, useState, type PointerEvent } from "react";
 import type { Interval } from "@/lib/experiments";
+import { useChartWidth } from "@/lib/useChartWidth";
 
 export const SERIES_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"];
 
@@ -20,8 +21,6 @@ function ticksFor(lo: number, hi: number, count = 5): number[] {
     out.push(Math.round(v / step) * step);
   return out;
 }
-
-const W = 720;
 
 export interface PlotRow {
   label: string;
@@ -47,8 +46,14 @@ export function IntervalPlot({
   ariaLabel: string;
 }) {
   const [active, setActive] = useState<number | null>(null);
+  const [setBox, W] = useChartWidth();
   if (rows.length === 0) return null;
-  const labelW = 230;
+  const labelW = Math.min(230, Math.max(110, W * 0.4));
+  // Labels are cut to fit their column (the full text is in the tooltip and the table).
+  const fit = (text: string) =>
+    text.length * 6.4 > labelW - 14
+      ? `${text.slice(0, Math.max(6, Math.floor((labelW - 14) / 6.4) - 1))}…`
+      : text;
   const rowH = 30;
   const top = 8;
   const H = top + rows.length * rowH + 28;
@@ -65,7 +70,7 @@ export function IntervalPlot({
   const row = active === null ? null : rows[active]!;
 
   return (
-    <div className="relative">
+    <div ref={setBox} className="relative">
       <svg
         viewBox={`0 0 ${W} ${H}`}
         className="h-auto w-full select-none"
@@ -115,7 +120,7 @@ export function IntervalPlot({
                 textAnchor="end"
                 fill="var(--foreground)"
               >
-                {r.label}
+                {fit(r.label)}
               </text>
               {bars && (
                 <rect
@@ -204,10 +209,12 @@ export function TrajectoryChart({
 }) {
   const [active, setActive] = useState<number | null>(null);
   const svg = useRef<SVGSVGElement>(null);
+  const [setBox, W] = useChartWidth();
   const n = series[0]?.points.length ?? 0;
   if (n === 0) return null;
   const H = 260;
-  const PAD = { left: 66, right: 90, top: 14, bottom: 30 };
+  const narrow = W < 500;
+  const PAD = { left: narrow ? 54 : 66, right: narrow ? 56 : 90, top: 14, bottom: 30 };
   const all = series.flatMap((s) => s.points.flatMap((p) => [p.lo, p.hi]));
   let lo = Math.min(...all);
   let hi = Math.max(...all);
@@ -246,7 +253,7 @@ export function TrajectoryChart({
           </span>
         ))}
       </div>
-      <div className="relative">
+      <div ref={setBox} className="relative">
         <svg
           ref={svg}
           viewBox={`0 0 ${W} ${H}`}

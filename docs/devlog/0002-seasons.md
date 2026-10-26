@@ -30,3 +30,7 @@ Time moves now. A league plays real-format seasons: a 17-game schedule built fro
 - Rosters don't change between seasons except for experience; development and aging come in Phase 9.
 - Rotation years other than 2026 are derived from the cycles; Phase 16 re-checks them against the real schedules.
 - Leagues saved in Phase 1 can't be opened; create a new league.
+
+---
+
+[← 1: A league to browse](0001-league-skeleton.md) · [Index](README.md) · [3: Real football →](0003-game-engine.md)

@@ -38,7 +38,7 @@ export function CoachPage({ coachId }: { coachId: number }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">{c.name}</h2>
+        <h1 className="text-2xl font-semibold tracking-tight">{c.name}</h1>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           {c.team && <TeamChip team={c.team} />}
           <span>
@@ -65,7 +65,7 @@ export function CoachPage({ coachId }: { coachId: number }) {
             variant="outline"
             size="sm"
             onClick={fire}
-            title="League office decision: until GM Mode, the league office can act for any team. The job then opens on the coaching page."
+            title="League office decision: in Simulation Mode the league office can act for any team. The job then opens on the coaching page."
           >
             Fire (league office)
           </Button>

@@ -29,3 +29,7 @@ Games are played snap by snap now. Every game has a kickoff, drives, downs and d
 - No individual matchups, formations, coverages, penalties, injuries, or depth chart: Phase 4. No weather or detailed special teams: Phase 5.
 - Lineups are simply the best players by overall at each position.
 - Playoff stats aren't added to season totals yet (they stay in the box scores).
+
+---
+
+[← 2: The league plays seasons](0002-seasons.md) · [Index](README.md) · [4a: Matchups →](0004a-matchup-engine.md)

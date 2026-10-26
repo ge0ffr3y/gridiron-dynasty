@@ -73,6 +73,7 @@ describe("schedule", () => {
         league.history.push({
           ...league.history.at(-1)!,
           season: league.season - 1,
+          results: [],
           standings: league.history
             .at(-1)!
             .standings.map((s) => ({ ...s, divisionRank: finish.get(s.teamId)! })),

@@ -30,3 +30,7 @@ Press **New league** and a whole fictional league appears: 32 teams, 2,880 playe
 
 - Names can still match a real person by coincidence; the real-name blocklist arrives with the Phase 6 data pipeline.
 - Team names, conference names, and colleges are placeholders.
+
+---
+
+[← 0: Foundations](0000-foundations.md) · [Index](README.md) · [2: The league plays seasons →](0002-seasons.md)

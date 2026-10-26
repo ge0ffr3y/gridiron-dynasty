@@ -74,7 +74,7 @@ export function ProspectPage({ prospectId }: { prospectId: number }) {
       <div className="flex flex-wrap items-center gap-4">
         <OverallBadge value={p.overall} className="h-14 w-14 text-xl" />
         <div className="min-w-0">
-          <h2 className="text-2xl font-semibold tracking-tight">{p.name}</h2>
+          <h1 className="text-2xl font-semibold tracking-tight">{p.name}</h1>
           <div className="mt-1 text-sm text-muted-foreground">
             {p.positionName} · {p.college} ·{" "}
             <Link href="/draft" className="hover:underline">

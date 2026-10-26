@@ -3,6 +3,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { useLocation } from "wouter";
 import { ErrorNote, Loading, PageHeader } from "@/components/shared";
 import { Button } from "@/components/ui/button";
+import { RadioGroup } from "@/components/ui/radio-group";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -146,7 +147,8 @@ export function HomePage() {
             <CardTitle>No leagues yet</CardTitle>
             <CardDescription>
               Create a fictional league: 32 teams with full 90-man offseason rosters, coaching
-              staffs, and draft picks. The real-league start arrives in Phase 6.
+              staffs, and draft picks. If the real-league file has been built on this computer, you
+              can start from it instead.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -286,72 +288,86 @@ function NewLeagueDialog({
           <DialogHeader>
             <DialogTitle>New league</DialogTitle>
             <DialogDescription>
-              The same seed always plays out the same way. Team names are placeholders for now.
+              The same seed always plays out the same way. Every team and person in the game is
+              fictional.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-2" role="radiogroup" aria-label="Kind of league">
-            {(
-              [
-                {
-                  value: "fictional",
-                  title: "Fictional league",
-                  text: "32 generated teams, built from the seed.",
-                  disabled: false,
-                },
-                {
-                  value: "real",
-                  title: "Real league (2026)",
-                  text: realAvailable
-                    ? "The real league as it stood after the 2025 season, every name fictional."
-                    : "Not built on this computer yet. Build it with: npm run pipeline -- league",
-                  disabled: !realAvailable,
-                },
-              ] as const
-            ).map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                role="radio"
-                aria-checked={kind === option.value}
-                disabled={option.disabled}
-                onClick={() => setKind(option.value)}
-                className={cn(
-                  "rounded-lg border p-3 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-                  kind === option.value ? "border-primary bg-primary/10" : "hover:bg-accent",
-                )}
-              >
-                <div className="font-medium">{option.title}</div>
-                <div className="text-xs text-muted-foreground">{option.text}</div>
-              </button>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Mode">
-            {(
-              [
-                { value: "gm", title: "GM Mode", text: "Run one team. Your owner is watching." },
-                {
-                  value: "simulation",
-                  title: "Simulation Mode",
-                  text: "All 32 teams run themselves. Watch and tinker.",
-                },
-              ] as const
-            ).map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                role="radio"
-                aria-checked={mode === option.value}
-                onClick={() => setMode(option.value)}
-                className={cn(
-                  "rounded-lg border p-3 text-left text-sm transition-colors",
-                  mode === option.value ? "border-primary bg-primary/10" : "hover:bg-accent",
-                )}
-              >
-                <div className="font-medium">{option.title}</div>
-                <div className="text-xs text-muted-foreground">{option.text}</div>
-              </button>
-            ))}
-          </div>
+          <RadioGroup
+            label="Kind of league"
+            className="grid gap-2"
+            value={kind}
+            onChange={setKind}
+            optionClassName={(checked, disabled) =>
+              cn(
+                "rounded-lg border p-3 text-left text-sm transition-colors",
+                disabled && "cursor-not-allowed opacity-60",
+                checked ? "border-primary bg-primary/10" : !disabled && "hover:bg-accent",
+              )
+            }
+            options={[
+              {
+                value: "fictional",
+                content: (
+                  <>
+                    <div className="font-medium">Fictional league</div>
+                    <div className="text-xs text-muted-foreground">
+                      32 generated teams, built from the seed.
+                    </div>
+                  </>
+                ),
+              },
+              {
+                value: "real",
+                disabled: !realAvailable,
+                content: (
+                  <>
+                    <div className="font-medium">Real league (2026)</div>
+                    <div className="text-xs text-muted-foreground">
+                      {realAvailable
+                        ? "The real league as it stood after the 2025 season, every name fictional."
+                        : "Not available in this copy: it is built from data that can't be published (see the README). Fictional leagues play the same way."}
+                    </div>
+                  </>
+                ),
+              },
+            ]}
+          />
+          <RadioGroup
+            label="Mode"
+            className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+            value={mode}
+            onChange={setMode}
+            optionClassName={(checked) =>
+              cn(
+                "rounded-lg border p-3 text-left text-sm transition-colors",
+                checked ? "border-primary bg-primary/10" : "hover:bg-accent",
+              )
+            }
+            options={[
+              {
+                value: "gm",
+                content: (
+                  <>
+                    <div className="font-medium">GM Mode</div>
+                    <div className="text-xs text-muted-foreground">
+                      Run one team. Your owner is watching.
+                    </div>
+                  </>
+                ),
+              },
+              {
+                value: "simulation",
+                content: (
+                  <>
+                    <div className="font-medium">Simulation Mode</div>
+                    <div className="text-xs text-muted-foreground">
+                      All 32 teams run themselves. Watch and tinker.
+                    </div>
+                  </>
+                ),
+              },
+            ]}
+          />
           <div className="grid gap-2">
             <Label htmlFor="league-name">League name</Label>
             <Input

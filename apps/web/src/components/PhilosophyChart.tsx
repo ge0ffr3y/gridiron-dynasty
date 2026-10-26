@@ -13,7 +13,7 @@ export function PhilosophyChart({ lines }: { lines: CoachView["philosophy"] }) {
   const max = 2.5;
   return (
     <div className="flex flex-col gap-1.5" role="list" aria-label="Coaching philosophy">
-      <div className="grid grid-cols-[minmax(8rem,12rem)_1fr_4.5rem] items-center gap-3 text-xs text-muted-foreground">
+      <div className="grid grid-cols-[minmax(5.5rem,12rem)_1fr_3.5rem] sm:grid-cols-[minmax(8rem,12rem)_1fr_4.5rem] items-center gap-3 text-xs text-muted-foreground">
         <span />
         <div className="flex justify-between">
           <span>less than average</span>
@@ -29,7 +29,7 @@ export function PhilosophyChart({ lines }: { lines: CoachView["philosophy"] }) {
           <div
             key={l.key}
             role="listitem"
-            className="grid grid-cols-[minmax(8rem,12rem)_1fr_4.5rem] items-center gap-3 text-sm"
+            className="grid grid-cols-[minmax(5.5rem,12rem)_1fr_3.5rem] sm:grid-cols-[minmax(8rem,12rem)_1fr_4.5rem] items-center gap-3 text-sm"
             title={`${l.label}: ${l.points >= 0 ? "+" : ""}${l.points} points against the league average (${SIDE_NAMES[l.side].toLowerCase()})${l.active ? "" : "; not part of his current job"}`}
           >
             <span className={l.active ? "" : "text-muted-foreground"}>{l.label}</span>

@@ -4,7 +4,7 @@
  * five full seasons ago, 13 player finalists plus a coach and a contributor (a general manager),
  * each needing 80% approval, three to seven new members a year.
  *
- * A career's case: All-Pro teams (first teams most), Pro Bowls, MVPs and player-of-the-year
+ * A career's case: All-Pro teams (first teams most), All-Star Game selections, MVPs and player-of-the-year
  * awards, titles, records still held, peak and longevity. Approval rises with the case on a
  * logistic curve around a bar (judgment, tuned so classes look like real ones: `--history N`).
  * Inductees' primary teams retire their numbers. No random draws.
@@ -95,7 +95,7 @@ export function playerCase(league: League, card: FormerPlayer): { score: number;
   if (poy) parts.push(`${poy}x Player of the Year`);
   if (ap1) parts.push(`${ap1}x first-team All-Pro`);
   if (ap2) parts.push(`${ap2}x second-team All-Pro`);
-  if (pb) parts.push(`${pb} Pro Bowls`);
+  if (pb) parts.push(`${pb} All-Star Game selections`);
   if (card.titles) parts.push(`${card.titles} title${card.titles === 1 ? "" : "s"}`);
   if (records) parts.push(`holds ${records} league record${records === 1 ? "" : "s"}`);
   parts.push(`${card.seasonsStarted} seasons as a starter`);

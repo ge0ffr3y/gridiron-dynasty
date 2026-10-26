@@ -1,17 +1,9 @@
----
-tags:
-  - project
-  - football-sim
-  - roadmap
-status: planning
-created: 2026-10-19
----
-
 # FootballGM Sim — Roadmap
 
-Back to: [[01 - Overview]]
+Back to: [Overview](overview.md)
 
-> [!tip] How to use this roadmap
+> [!TIP]
+> **How to use this roadmap**
 > - Work **one phase at a time**, each on its own git branch. Merge, deploy, tag (when marked), then start the next.
 > - Every phase ends with **"Done when"** checks you can verify by using the game, reading its stats pages, or reading a calibration scorecard, not by reading code.
 > - Each phase has a **kickoff prompt** to paste into Claude Code. Always start by asking it to read `CLAUDE.md` and this phase's goals, then propose a plan *before* writing code.
@@ -48,7 +40,7 @@ Every phase adds its own screens, so there's always something to click through.
 | 13 | AI general managers & owners | Distinct AI front offices; exploit-resistant trade AI | XL | ✅ **v0.3** (Simulation Mode) |
 | 14 | GM Mode career layer | Owner, job security, inbox, autopilot, getting fired | M | ✅ **v0.4** (GM Mode) |
 | 15 | League history & storytelling | Real history, awards, records, Hall of Fame, newsfeed | L | — |
-| 16 | Day One: the real 2026 start | Exact post–championship game LX starting state, fully validated | M | ✅ **v0.5** |
+| 16 | Day One: the real 2026 start | Exact starting state the day after the 2025 championship game, fully validated | M | ✅ **v0.5** |
 | 17 | Experiments & analytics | 1,000 alternate 2026 seasons; strategy experiments | M | — |
 | 18 | Ship it | Licensing resolved, polish, performance, write-ups | M | ✅ **v1.0** |
 | ★ | Stretch goals | 2D play viewer, hot-seat multiplayer, rules editor… | — | — |
@@ -74,7 +66,7 @@ Decisions that block a phase. Record the answer here when made.
 | Fully fictional league as an alternative start? | Phase 1 | *Effectively yes: it's how we build Phases 1–5* (built in Phase 1) |
 | Release v0.1 timing | Phase 4 | When the repo goes public: README with screenshots, GitHub Pages deploy and the v0.1 tag together (decided after Phase 4b) |
 | Real contract data (OverTheCap, directly or via nflverse): how to use it | Phase 7 | Treated as private like the Madden file: archived cap pages and contract data stay in `pipeline/private/` and `pipeline/cache/`; only derived numbers reach the local league file, and only the fitted rookie scale (shares of the cap) is committed. Revisit with the public release (decided in Phase 7) |
-| Data licensing approach for the public release | Phase 18 (guardrails from Phase 6) | |
+| Data licensing approach for the public release | Phase 18 (guardrails from Phase 6) | MIT for the code; only numbers derived from open sources are committed (`calibration/`); the real-league file and its private inputs (ratings, contracts, archived pages) are never published; nflverse CC-BY-4.0 and FTN CC-BY-SA-4.0 credited in `NOTICE.md`, `docs/data-sources.md` and the About page; a CI sweep hashes real names and nicknames (decided in Phase 18; not legal advice) |
 
 ---
 
@@ -104,7 +96,7 @@ Decisions that block a phase. Record the answer here when made.
 - **Rules as data:** every league rule (cap, roster limits, overtime, kickoffs, playoff format, tiebreakers) lives in the versioned `rules/` config. Every tuning number lives in config. Nothing hard-coded.
 - **Money is integers** (whole dollars). Every cap or contract rule gets a unit test with a worked example.
 - **Everything has a reason:** every AI decision, contract demand, and play call records why.
-- **No real names or trademarks** in committed code or data: no real player/coach names, no NFL team names, logos, or "championship game". Restricted source data stays in `pipeline/private/` (gitignored).
+- **No real names or trademarks** in committed code or data: no real player/coach names, no NFL team names, logos, or the league's trademarked championship name. Restricted source data stays in `pipeline/private/` (gitignored).
 - The league must stay **legal** after every action (roster sizes, cap compliance); validators run in tests.
 - Run tests before every commit; never commit with failing tests.
 - Explain changes in plain English for a non-programmer. Prefer simple, readable code over clever code.
@@ -115,8 +107,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] CI is green on GitHub
 - [x] The RNG determinism test passes
 
-> [!example]- Kickoff prompt
-> "We're starting FootballGM Sim, a pro football GM game and league simulator in TypeScript. Read the attached overview and roadmap. Phase 0: set up the npm-workspaces monorepo from the roadmap (sim-core, game-engine, web, runner, pipeline, rules, docs), the React + Tailwind + shadcn app shell, Vitest, a seeded RNG with named streams and a determinism test, deterministic math helpers with a lint ban on Math.random/Date.now, an integer money type, a Web Worker hello-world, CI, and deployment. Write CLAUDE.md with the roadmap's rules. Propose a plan first, then build step by step, explaining each step in plain English."
+<details>
+<summary>Kickoff prompt</summary>
+
+"We're starting FootballGM Sim, a pro football GM game and league simulator in TypeScript. Read the attached overview and roadmap. Phase 0: set up the npm-workspaces monorepo from the roadmap (sim-core, game-engine, web, runner, pipeline, rules, docs), the React + Tailwind + shadcn app shell, Vitest, a seeded RNG with named streams and a determinism test, deterministic math helpers with a lint ban on Math.random/Date.now, an integer money type, a Web Worker hello-world, CI, and deployment. Write CLAUDE.md with the roadmap's rules. Propose a plan first, then build step by step, explaining each step in plain English."
+
+</details>
 
 ---
 
@@ -146,8 +142,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] Reloading the browser keeps the league; export → import gives the same league *(import checked through the worker with the same fingerprint; the browser download itself not clicked)*
 - [x] Same seed → byte-identical league file (test)
 
-> [!example]- Kickoff prompt
-> "Phase 1: build the league skeleton and a generated fictional league as described in the roadmap. Keep all league logic in sim-core. Ratings must be stored as truth and read through a perception layer. Add the rules config v1 with schema validation, the AI/Human decision-maker interface stub, IndexedDB save/load with export/import, and the browse screens. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 1: build the league skeleton and a generated fictional league as described in the roadmap. Keep all league logic in sim-core. Ratings must be stored as truth and read through a perception layer. Add the rules config v1 with schema validation, the AI/Human decision-maker interface stub, IndexedDB save/load with export/import, and the browse screens. Plan first."
+
+</details>
 
 ---
 
@@ -176,8 +176,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] The standings and bracket look right after a full season
 - [x] 100 seasons (placeholder scores) run headless in under a minute *(7.8 s)*
 
-> [!example]- Kickoff prompt
-> "Phase 2: implement the league calendar state machine, the NFL scheduling formula with a validator, standings, the full tiebreaker procedures with tests from the NFL's published examples, the 7-seed playoff, draft order, sim controls in the worker, season rollover, the schedule/standings/bracket screens, and headless runner v1. Game results are a placeholder strength-based score for now. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 2: implement the league calendar state machine, the NFL scheduling formula with a validator, standings, the full tiebreaker procedures with tests from the NFL's published examples, the 7-seed playoff, draft order, sim controls in the worker, season rollover, the schedule/standings/bracket screens, and headless runner v1. Game results are a placeholder strength-based score for now. Plan first."
+
+</details>
 
 ---
 
@@ -207,8 +211,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] A full 272-game season sims in under 10 seconds *(about 0.25 s headless; 0.6 s in the browser including saving)*
 - [x] Same seed → identical game, play for play
 
-> [!example]- Kickoff prompt
-> "Phase 3: build game-engine v1 as a separate package: game state, core play types, a tendency-table play caller, unit-strength resolution, clock and scoring rules from the rules config, player credit, box scores, play-by-play text, and stats. Add a pipeline script that computes real NFL calibration targets from nflverse play-by-play, and a runner scorecard comparing sim vs. real. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 3: build game-engine v1 as a separate package: game state, core play types, a tendency-table play caller, unit-strength resolution, clock and scoring rules from the rules config, player credit, box scores, play-by-play text, and stats. Add a pipeline script that computes real NFL calibration targets from nflverse play-by-play, and a runner scorecard comparing sim vs. real. Plan first."
+
+</details>
 
 ---
 
@@ -240,8 +248,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] A blitz-heavy defense produces more sacks *and* gives up more big plays *(test in CI)*
 - [ ] Scorecard green for core and position-level stats *(core and all Phase 3-4a league stats green on three seed sets; success rate and some player-level lines not yet)*
 
-> [!example]- Kickoff prompt
-> "Phase 4: deepen the game engine with personnel, formations, run and pass concepts, defensive fronts/coverages/blitzes, and individual matchup resolution (line play, separation, QB decisions, catch/YAC/tackling, turnovers, penalties, fatigue). Add the depth chart, expanded and advanced stats (EPA from an nflverse-based expected points model), and position-level calibration. Keep everything tunable from config. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 4: deepen the game engine with personnel, formations, run and pass concepts, defensive fronts/coverages/blitzes, and individual matchup resolution (line play, separation, QB decisions, catch/YAC/tackling, turnovers, penalties, fatigue). Add the depth chart, expanded and advanced stats (EPA from an nflverse-based expected points model), and position-level calibration. Keep everything tunable from config. Plan first."
+
+</details>
 
 ---
 
@@ -269,8 +281,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] Cold, windy outdoor games score less and miss more kicks than dome games *(same teams and seeds, 400 games: dome 23.2 points and 86.3% FGs, 22°F with 18 mph wind 21.1 points and 79.7%; test in CI)*
 - [x] A full season sims in under 5 seconds *(1.5 s in the browser)*
 
-> [!example]- Kickoff prompt
-> "Phase 5: add special teams under the current rules, a win-probability model, 4th-down and 2-point decision models, full clock management, stadiums and weather, home-field advantage, and in-game adjustments. Extend calibration to situational stats and hit the performance target. Add drive and win-probability charts and a live ticker. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 5: add special teams under the current rules, a win-probability model, 4th-down and 2-point decision models, full clock management, stadiums and weather, home-field advantage, and in-game adjustments. Extend calibration to situational stats and hit the performance target. Add drive and win-probability charts and a live ticker. Plan first."
+
+</details>
 
 ---
 
@@ -302,8 +318,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] Rebuilding from scratch produces an identical league file *(local test)*
 - [x] A sim'd season with the real rosters still passes the calibration scorecard *(62 of 63 on three seed sets, as good as generated leagues; the miss is the long-standing success-rate gap; core stats checked by a local test)*
 
-> [!example]- Kickoff prompt
-> "Phase 6: build the real-league data pipeline. Set up the licensing guardrails (private folder, data-sources doc) first. Import end-of-2025 rosters and bios from nflverse, build an ID crosswalk with an unmatched report, map Madden ratings (private input) into our rating model and adjust with real performance data, generate hidden traits, import career stats, generate fictional names with an automated real-name check, and build the starting league file. Plan first; flag any source licensing questions."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 6: build the real-league data pipeline. Set up the licensing guardrails (private folder, data-sources doc) first. Import end-of-2025 rosters and bios from nflverse, build an ID crosswalk with an unmatched report, map Madden ratings (private input) into our rating model and adjust with real performance data, generate hidden traits, import career stats, generate fictional names with an automated real-name check, and build the starting league file. Plan first; flag any source licensing questions."
+
+</details>
 
 ---
 
@@ -330,8 +350,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] You can create cap room with a restructure and see next year's bill grow *(checked in the browser: +$21.5M now, +$7.2M a year in 2027–29; also a test)*
 - [x] Cutting a player shows the correct pre- vs. post-June 1 dead money *(the "what if" panel; a test checks preview and result to the dollar)*
 
-> [!example]- Kickoff prompt
-> "Phase 7: build the contracts and salary cap engine with every rule in the rules config, verified against the CBA. Model contracts year by year, compute cap hits and dead money for every operation, add tags/tenders and rookie contracts, keep a cash vs. cap ledger with invariant tests, and write a worked-example test for every rule. Then import real contracts and produce a validation report against published team cap space. Money is integers. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 7: build the contracts and salary cap engine with every rule in the rules config, verified against the CBA. Model contracts year by year, compute cap hits and dead money for every operation, add tags/tenders and rookie contracts, keep a cash vs. cap ledger with invariant tests, and write a worked-example test for every rule. Then import real contracts and produce a validation report against published team cap space. Money is integers. Plan first."
+
+</details>
 
 ---
 
@@ -355,8 +379,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] Cutdown day happens, waiver claims go through in the right order, rookies get signed *(8a: tests, and seen in the browser: 53 + practice squads after cuts)*
 - [x] You can make a trade and see both teams' cap impact before confirming *(checked in the browser: illegal trades are refused with the reason; a test checks preview = result)*
 
-> [!example]- Kickoff prompt
-> "Phase 8: build the full league-year calendar with live deadlines, roster limits with a legality validator, practice squad, reserve lists, waivers, trades, preseason and cutdown, and simple AI roster upkeep, all driven by the rules config. Add the transactions, roster management, trade builder, and calendar screens. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 8: build the full league-year calendar with live deadlines, roster limits with a legality validator, practice squad, reserve lists, waivers, trades, preseason and cutdown, and simple AI roster upkeep, all driven by the rules config. Add the transactions, roster management, trade builder, and calendar screens. Plan first."
+
+</details>
 
 ---
 
@@ -380,8 +408,12 @@ Decisions that block a phase. Record the answer here when made.
 - [ ] Running backs decline earlier than quarterbacks; career lengths by position look real *(9a: running backs peak at 25 and decline first (test); careers close for most groups, but EDGE, OL and especially kickers and punters last too long until Phase 13's roster AI)*
 - [x] Stars have believable career arcs: rise, peak, decline, retire *(long careers peak in the player's prime (test); the career-arc chart shows each player's rise and fall; a 24-year-old's 14-point jump in one March led to capping a year's growth)*
 
-> [!example]- Kickoff prompt
-> "Phase 9: build player development, position aging curves fit from real data, training camp position battles, in-season rating updates, a full injury model calibrated to real injury data, and retirement. Add long-run calibration checks over 30 seasons and the player history / injury screens. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 9: build player development, position aging curves fit from real data, training camp position battles, in-season rating updates, a full injury model calibrated to real injury data, and retirement. Add long-run calibration checks over 30 seasons and the player history / injury screens. Plan first."
+
+</details>
 
 ---
 
@@ -407,8 +439,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] Each offseason's number of head-coach changes lands in a realistic range *(10b: 7.21 a year over 20 seasons vs. real 7.2, single seasons 4-11; in-season 1.58 vs. 1.65; a band check in the 10-season test)*
 - [x] Calibration scorecard still green with coaches calling plays *(10a: 61 of 63 on generated and real leagues, two seeds each; the misses are the long-standing success-rate gap and net punting a hair over its edge)*
 
-> [!example]- Kickoff prompt
-> "Phase 10: build the coach model, derive real coaches' tendencies from nflverse play-by-play, make coordinators' traits drive the engine's play calling, add scheme fit, staff effects on development and injuries, scouts, the staff market, the coaching carousel, and coaching trees. Add staff and hiring screens. Re-run calibration. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 10: build the coach model, derive real coaches' tendencies from nflverse play-by-play, make coordinators' traits drive the engine's play calling, add scheme fit, staff effects on development and injuries, scouts, the staff market, the coaching carousel, and coaching trees. Add staff and hiring screens. Re-run calibration. Plan first."
+
+</details>
 
 ---
 
@@ -435,8 +471,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] A better scout visibly tightens the confidence ranges *(11a: test in CI; switch "Viewing as" on the Draft and prospect pages to see it)*
 - [x] Draft-day trades happen at sensible prices *(11b: median 1.41-1.42 times career value, middle half 1.34-1.48, vs. real 1.42 and 1.30-1.56; a CI test keeps every trade in the band)*
 
-> [!example]- Kickoff prompt
-> "Phase 11: make the perception layer real (scouted ratings with noise driven by scouts, budget, and experience), import the real 2026 draft class, build a calibrated draft class generator, combine and pro days, scouting assignments, big boards, draft day with trades, compensatory picks, rookie and undrafted signings, and retro draft grades. Add the draft room and prospect screens. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 11: make the perception layer real (scouted ratings with noise driven by scouts, budget, and experience), import the real 2026 draft class, build a calibrated draft class generator, combine and pro days, scouting assignments, big boards, draft day with trades, compensatory picks, rookie and undrafted signings, and retro draft grades. Add the draft room and prospect screens. Plan first."
+
+</details>
 
 ---
 
@@ -463,8 +503,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] Overpaying always works, and the cap sheet shows the cost *(12a: test in CI across players and teams; the negotiation screen previews the room before and after)*
 - [x] A star in a contract dispute can hold out or request a trade *(12b: test with a constructed underpaid star (candidate, holdout and trade request each answered with a reason, fines per CBA); counts in `--market`; seen on the league page in the browser)*
 
-> [!example]- Kickoff prompt
-> "Phase 12: build the market value model from comparable contracts, player priorities, agents, a negotiation system with reasons, re-signing and extensions, holdouts and trade requests, multi-day free agency bidding, RFA offer sheets, and morale/chemistry. Add the negotiation, market, and locker-room screens. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 12: build the market value model from comparable contracts, player priorities, agents, a negotiation system with reasons, re-signing and extensions, holdouts and trade requests, multi-day free agency bidding, RFA offer sheets, and morale/chemistry. Add the negotiation, market, and locker-room screens. Plan first."
+
+</details>
 
 ---
 
@@ -491,8 +535,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] The anti-exploit suite finds no clearly lopsided trade that the AI accepts
 - [x] AI owners fire and hire people for reasons you can read *(front-office moves on `/simulation` and each GM's page)*
 
-> [!example]- Kickoff prompt
-> "Phase 13: build AI GMs with distinct philosophies, team evaluation, full offseason and in-season AI, a trade AI with value models and reasons, an anti-exploit test suite, AI owners who hire and fire, and the Simulation Mode screens. Run a 100-season stability check. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 13: build AI GMs with distinct philosophies, team evaluation, full offseason and in-season AI, a trade AI with value models and reasons, an anti-exploit test suite, AI owners who hire and fire, and the Simulation Mode screens. Run a 100-season stability check. Plan first."
+
+</details>
 
 ---
 
@@ -516,8 +564,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] Missing expectations gets you fired, and you can take another job *(`job.test.ts`; the offers and career screens checked in the browser, but not right after a real firing)*
 - [x] Delegated areas are handled sensibly by your staff *(a fully delegated team plays two seasons legally and is never asked anything; staff decisions at deadlines leave a log line)*
 
-> [!example]- Kickoff prompt
-> "Phase 14: build the GM Mode career layer: team selection, the inbox/decision queue with deadlines, delegation and autopilot, the owner relationship and job security with firing and new job offers, a GM career page, save slots, and onboarding with a plain-English glossary. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 14: build the GM Mode career layer: team selection, the inbox/decision queue with deadlines, delegation and autopilot, the owner relationship and job security with firing and new job offers, a GM career page, save slots, and onboarding with a plain-English glossary. Plan first."
+
+</details>
 
 ---
 
@@ -541,14 +593,18 @@ Decisions that block a phase. Record the answer here when made.
 - [x] Breaking a real-era record (renamed) shows up in the newsfeed *(`tests/realLeague.test.ts`: a quarterback passes the real single-season mark; the book keeps the old holder)*
 - [x] Hall of Fame classes look right: the best careers get in *(all twenty strongest careers in after 16 classes; classes 3-7; about 56% first ballot against about a third in the real Hall)*
 
-> [!example]- Kickoff prompt
-> "Phase 15: import real league history through the pipeline (renamed), build awards voting, the record book with record-broken events, Hall of Fame voting, franchise histories, the coaching tree viewer, and a newsfeed generated from sim events. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 15: import real league history through the pipeline (renamed), build awards voting, the record book with record-broken events, Hall of Fame voting, franchise histories, the coaching tree viewer, and a newsfeed generated from sim events. Plan first."
+
+</details>
 
 ---
 
 ## Phase 16 — Day One: the real 2026 start
 
-**Goal:** The real-league start is exactly right: the day after championship game LX, with everything as it actually stood.
+**Goal:** The real-league start is exactly right: the day after the 2025 championship game, with everything as it actually stood.
 
 ### Steps
 - [x] Start date is the day after the 2025 championship (Feb 9, 2026); Seattle champion, New England runner-up, playoff results stand *(the real file's 2025 season matches the real results, 29-13 in the final; tested against nflverse)*
@@ -562,8 +618,12 @@ Decisions that block a phase. Record the answer here when made.
 - [x] The validation report passes for all 32 teams (or lists explained exceptions) *(25 pass outright; 7 miss only on cap space, each with its reason: the cap page was archived on another day than the published figure)*
 - [x] The first screen of a new real-league save matches what a fan would expect on Feb 9, 2026 (renamed) *(checked in the browser on the private league: Seattle over New England, the real top of the draft with traded picks marked, the cap room extremes, the carousel's changes; no screenshot committed)*
 
-> [!example]- Kickoff prompt
-> "Phase 16: make the real-league start exact. Set the start date and staffs, the real 2026 free-agent class, draft order with traded and compensatory picks, opponents, and cap. Build an automated per-team validation report against the real figures, an intro screen, and a pipeline rebuild guide. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 16: make the real-league start exact. Set the start date and staffs, the real 2026 free-agent class, draft order with traded and compensatory picks, opponents, and cap. Build an automated per-team validation report against the real figures, an intro screen, and a pipeline rebuild guide. Plan first."
+
+</details>
 
 ---
 
@@ -586,8 +646,12 @@ Decisions that block a phase. Record the answer here when made.
 ### Done when
 - [x] Each headline experiment has a clear chart and a written conclusion *(`docs/findings/` and the Experiments pages; the alternate-histories conclusion is private. The answers are the simulation's, and each finding says what is set by the model)*
 
-> [!example]- Kickoff prompt
-> "Phase 17: build experiment files, a parallel headless runner, and analytics pages with confidence intervals. Then run the headline experiments from the roadmap and write up each with a chart and conclusion. Plan first."
+<details>
+<summary>Kickoff prompt</summary>
+
+"Phase 17: build experiment files, a parallel headless runner, and analytics pages with confidence intervals. Then run the headline experiments from the roadmap and write up each with a chart and conclusion. Plan first."
+
+</details>
 
 ---
 
@@ -596,14 +660,14 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** A polished, public, portfolio-grade v1.0.
 
 ### Steps
-- [ ] **Data licensing review resolved** and recorded: exactly what's published, what's built locally, and credits
-- [ ] **Trademark sweep:** automated check for NFL names, team names, "championship game", logos across code, data, and UI
-- [ ] **Performance & save size:** budget for a 50-season save; keep box-score summaries, prune old play-by-play; fast load times
-- [ ] Accessibility pass; usable layouts for the main screens on a phone
-- [ ] **README:** screenshots / GIFs, architecture diagram, how to play, how to rebuild the data
-- [ ] Portfolio page and the findings write-up from Phase 17
-- [ ] Tidy the devlog into a series
-- [ ] **🚀 Release v1.0**
+- [x] **Data licensing review resolved** and recorded: exactly what's published, what's built locally, and credits *(MIT; `NOTICE.md`, `docs/data-sources.md`, the About page; builds can't ship the private file; not legal advice)*
+- [x] **Trademark sweep:** automated check for NFL names, team names, the championship game's trademarked name, logos across code, data, and UI *(`tests/sweep.test.ts` runs in CI on hashed names; no logos exist in the project; "Pro Bowl" became "All-Star Game"; two nicknames and the conference names were replaced)*
+- [x] **Performance & save size:** budget for a 50-season save; keep box-score summaries, prune old play-by-play; fast load times *(50 seasons: 106 MB to 34 MB raw, 4.7 MB gzipped; budget 40 MB, the plan's 30 MB was missed; league year about 40% faster with identical results; first download 866 KB to about 300 KB; `docs/performance.md`)*
+- [x] Accessibility pass; usable layouts for the main screens on a phone *(axe-core: no violations over 28 routes, light and dark; 34 routes at 375 px without sideways scrolling; keyboard check partial: skip link, dialogs, tabs; no screen-reader pass, not a certified audit)*
+- [x] **README:** screenshots / GIFs, architecture diagram, how to play, how to rebuild the data *(stills only, no GIFs)*
+- [x] Portfolio page and the findings write-up from Phase 17
+- [x] Tidy the devlog into a series *(index and previous/next links)*
+- [ ] **🚀 Release v1.0** *(merge, the v0.1 to v0.5 tags, the repo rename, going public, Pages and the v1.0.0 release each wait for the owner's go-ahead)*
 
 ---
 

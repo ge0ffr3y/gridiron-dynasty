@@ -63,3 +63,7 @@ You can now run one team. Pick it, meet the owner, and the team's decisions come
 - **A career page.**
 - **Saves:** save slots and season backups.
 - **Help:** first-season tips and a glossary.
+
+---
+
+[← 13b: Owners, the balance check and Simulation Mode](0013b-owners-and-simulation.md) · [Index](README.md) · [14b: The job →](0014b-the-job.md)

@@ -199,7 +199,7 @@ export function TradePage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Trade builder"
-        subtitle="Players and draft picks between two teams. The league office proposes for the left team (until GM Mode); the right team's GM decides, with his reasons."
+        subtitle="Players and draft picks between two teams. In Simulation Mode the league office proposes for the left team; in GM Mode you do. The right team's GM decides, with his reasons."
       />
       {done && (
         <p className="rounded-md border border-primary/40 bg-accent p-3 text-sm">

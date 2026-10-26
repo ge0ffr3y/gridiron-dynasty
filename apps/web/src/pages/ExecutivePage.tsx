@@ -36,7 +36,7 @@ export function ExecutivePage({ id }: { id: number }) {
             {e.knobs.map((k) => (
               <div
                 key={k.key}
-                className="grid grid-cols-[8rem_1fr_8rem] items-center gap-2 text-xs"
+                className="grid grid-cols-[5.5rem_1fr_5.5rem] sm:grid-cols-[8rem_1fr_8rem] items-center gap-2 text-xs"
               >
                 <span className="text-right text-muted-foreground">{k.low}</span>
                 <div className="relative h-2 rounded bg-muted">

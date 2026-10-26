@@ -124,3 +124,7 @@ Seasons 1 and 2 (four leagues, two seasons each), and a league 30 seasons on:
 - **Careers that run long:** edge rushers (6.6 seasons vs. real 5.6), offensive linemen (6.0 vs. 4.8), and especially kickers and punters (12 vs. 6–7). Once a specialist has a job, nobody competes for it; that's AI roster judgment (Phase 13).
 - **The injury model, the injury report, the rating-history chart and the development report** are Phase 9b.
 - **Coaching** doesn't affect development yet (a hook for Phase 10).
+
+---
+
+[← 8b: Trades and the roster screens](0008b-trades-and-roster-screens.md) · [Index](README.md) · [9b: Injuries, the injury report, and seeing careers →](0009b-injuries-and-screens.md)

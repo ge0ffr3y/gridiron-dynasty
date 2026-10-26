@@ -39,7 +39,7 @@ import { capSheet, playersOn } from "./team";
 /** League Years a cap sheet looks ahead (this one and the next three). */
 export const CAP_SHEET_YEARS = 4;
 /** Why every league-office move is made, until GM Mode. */
-const OFFICE_REASON = "League office move (any team, until GM Mode in Phase 14).";
+const OFFICE_REASON = "League office move (any team, Simulation Mode).";
 
 export interface ContractYearRow {
   season: number;
@@ -242,7 +242,7 @@ function movePreviews(league: League, p: Player): CapMovePreview[] {
     kind: "trade",
     label: "Trade him away",
     available: false,
-    note: `Preview only (trades arrive in Phase 8). The new team would carry $${(trade.newTeamCapHit / 1_000_000).toFixed(2)}M this year: his salary, no bonus money.`,
+    note: `Preview only (make trades on the Trade page). The new team would carry $${(trade.newTeamCapHit / 1_000_000).toFixed(2)}M this year: his salary, no bonus money.`,
     deadThisYear: trade.deadThisYear,
     deadNextYear: trade.deadNextYear,
     ...measure(league, teamId, (copy) => tradePlayer(copy, p.id, other, "preview")),
@@ -421,7 +421,7 @@ export function makeCapMove(league: League, playerId: number, kind: CapMoveKind)
   else if (kind === "release-june-1")
     releasePlayer(league, playerId, OFFICE_REASON, { juneFirstDesignation: true });
   else if (kind === "restructure") restructureContract(league, playerId, OFFICE_REASON);
-  else throw new Error("Trades arrive in Phase 8; this one is a preview only.");
+  else throw new Error("Trades are made on the Trade page; this one is a preview only.");
   return league.transactions
     .slice(before)
     .map((t) => t.text)

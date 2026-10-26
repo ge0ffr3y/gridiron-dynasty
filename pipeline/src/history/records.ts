@@ -44,7 +44,7 @@ const KINDS: { kind: string; level: RecordLevel }[] = [
 /** League lists keep this many; a franchise's keep this many. */
 const KEEP = { league: 10, team: 3 };
 
-/** "[name removed]+ (37)" -> "[name removed]". */
+/** "Given Name+ (37)" -> "Given Name". */
 export const cleanName = (s: string) =>
   s
     .replace(/\(\d+\)/g, "")

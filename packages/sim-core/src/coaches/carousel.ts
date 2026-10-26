@@ -1010,7 +1010,7 @@ export function carouselView(league: League, season = league.season): CarouselVi
   };
 }
 
-const OFFICE = "League office decision (until GM Mode, the league office can act for any team).";
+const OFFICE = "League office decision (Simulation Mode: the league office can act for any team).";
 
 /** The league office fires a coach (in season, a head coach is replaced by an interim). */
 export function officeFire(league: League, coachId: number): string {

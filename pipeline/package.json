@@ -1,6 +1,6 @@
 {
   "name": "@fgm/pipeline",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,5 +12,6 @@
     "@fgm/sim-core": "*",
     "csv-parse": "^7.0.3",
     "hyparquet": "1.31.5"
-  }
+  },
+  "license": "MIT"
 }

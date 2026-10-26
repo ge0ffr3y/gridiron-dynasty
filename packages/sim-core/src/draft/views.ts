@@ -329,9 +329,12 @@ export function draftHistoryView(
   const R = DRAFT_DAY.retro;
   // Drafts held in this league (a generated league's back-story picks are made up), plus, for the
   // real league, the real drafts its players came from.
-  const held = new Set(
-    league.transactions.filter((t) => t.type === "drafted").map((t) => Number(t.date.slice(0, 4))),
-  );
+  const held = new Set([
+    ...league.draftsHeld,
+    ...league.transactions
+      .filter((t) => t.type === "drafted")
+      .map((t) => Number(t.date.slice(0, 4))),
+  ]);
   const drafted = [...league.players, ...league.formerPlayers];
   const seasons = [...new Set(drafted.flatMap((p) => (p.drafted ? [p.drafted.season] : [])))]
     .filter((s) => league.meta.kind === "real" || held.has(s))

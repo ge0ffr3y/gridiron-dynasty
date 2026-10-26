@@ -58,3 +58,7 @@ No engine settings changed. Contracts change who plays where in the real league,
 
 - **During the season, rosters stay at offseason size**, so most teams would be over the cap once every contract counts. Cutdowns to 53 come with Phase 8, along with trades (now previews only).
 - Offer sheets and matching for tags and restricted free agents, and the exclusive franchise tag, come with free agency (Phase 12).
+
+---
+
+[← 7a: The cap and contract engine](0007a-cap-engine.md) · [Index](README.md) · [8a: The League Year and the roster rules →](0008a-league-year.md)

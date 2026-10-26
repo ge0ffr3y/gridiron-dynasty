@@ -78,7 +78,7 @@ describe("the Madden file", () => {
   });
 
   it("normalizes names for matching", () => {
-    expect(normName("[name removed] Jr.")).toBe("dj moore");
+    expect(normName("A.B. Example Jr.")).toBe("ab example");
     expect(normName("José  Núñez III")).toBe("jose nunez");
   });
 

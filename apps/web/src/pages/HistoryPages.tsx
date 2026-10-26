@@ -168,6 +168,29 @@ export function SeasonPage({ season }: { season?: number }) {
               </CardContent>
             </Card>
           )}
+          {v.scores.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Scores</CardTitle>
+                <CardDescription>Every regular-season game, week by week.</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2 text-sm">
+                {v.scores.map((w) => (
+                  <details key={w.week}>
+                    <summary className="cursor-pointer">Week {w.week}</summary>
+                    <ul className="mt-1 flex flex-col gap-0.5 pl-4">
+                      {w.games.map((g, i) => (
+                        <li key={i}>
+                          {g.away} {g.awayScore}, {g.home} {g.homeScore}
+                          {g.overtime ? " (OT)" : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ))}
+              </CardContent>
+            </Card>
+          )}
           {v.allPro.length > 0 && (
             <Card>
               <CardHeader>

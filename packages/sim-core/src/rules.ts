@@ -124,7 +124,7 @@ export const CapRulesSchema = z.object({
     playingTimeShare: Share,
     playingTimeSeasons: z.number().int(),
     everySeasonShare: Share,
-    /** Pro Bowls on the original ballot in his first seasons (Phase 15): one sets the option at the
+    /** All-Star Game selections on the original ballot in his first seasons (Phase 15): one sets the option at the
      * transition tender, two or more at the franchise tender. */
     proBowlSeasons: z.number().int().positive(),
     proBowlSource: z.string(),

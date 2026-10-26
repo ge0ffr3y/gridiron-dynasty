@@ -71,11 +71,11 @@ export function NegotiationPage({ playerId }: { playerId: number }) {
       <div className="flex flex-wrap items-center gap-4">
         <OverallBadge value={v.player.overall} className="h-14 w-14 text-xl" />
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight">
             <Link href={`/player/${v.player.id}`} className="hover:underline">
               {v.player.name}
             </Link>
-          </h2>
+          </h1>
           <div className="text-sm text-muted-foreground">
             {v.player.position} · age {v.player.age} · {v.player.experience} seasons ·{" "}
             {v.player.team ?? "free agent"}

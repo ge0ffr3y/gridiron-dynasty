@@ -17,8 +17,13 @@ export function CardHeader({ className, ...props }: ComponentProps<"div">) {
   return <div className={cn("flex flex-col gap-1 px-5", className)} {...props} />;
 }
 
-export function CardTitle({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cn("font-semibold leading-none", className)} {...props} />;
+/** A card's heading: an h2 by default (the page title is the h1); `as="h3"` inside a titled section. */
+export function CardTitle({
+  className,
+  as: Tag = "h2",
+  ...props
+}: ComponentProps<"h2"> & { as?: "h2" | "h3" }) {
+  return <Tag className={cn("font-semibold leading-none", className)} {...props} />;
 }
 
 export function CardDescription({ className, ...props }: ComponentProps<"div">) {

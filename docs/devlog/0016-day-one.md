@@ -52,3 +52,7 @@ A start is busier than a typical year. My guess is that the real league's owners
 
 - **Phase 17:** experiments and analytics.
 - **Left over from Phase 15:** franchise record books for 17 more clubs, and five league leader pages the archive never saved.
+
+---
+
+[← 15c: Every club's record book](0015c-franchise-books.md) · [Index](README.md) · [17a: Experiments you can rerun →](0017a-experiments-tooling.md)

@@ -76,6 +76,10 @@ export function InjuryTag({
       className="ml-2 inline-flex items-center rounded border border-destructive/40 px-1.5 text-[11px] font-medium text-destructive"
     >
       Out {games}
+      <span className="sr-only">
+        . {injury.description}. Out {injury.gamesRemaining} more game
+        {injury.gamesRemaining === 1 ? "" : "s"}.
+      </span>
     </span>
   );
 }
@@ -96,7 +100,8 @@ export function ListTag({ list }: { list: string | null }) {
       title={tag.long}
       className="ml-2 inline-flex items-center rounded border px-1.5 text-[11px] font-medium text-muted-foreground"
     >
-      {tag.short}
+      <span aria-hidden>{tag.short}</span>
+      <span className="sr-only">{tag.long}</span>
     </span>
   );
 }
@@ -135,7 +140,7 @@ export function PageHeader({
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         {subtitle && <div className="mt-1 text-sm text-muted-foreground">{subtitle}</div>}
       </div>
       {children}
@@ -144,12 +149,19 @@ export function PageHeader({
 }
 
 export function Loading({ what = "Loading" }: { what?: string }) {
-  return <p className="text-sm text-muted-foreground">{what}…</p>;
+  return (
+    <p role="status" className="text-sm text-muted-foreground">
+      {what}…
+    </p>
+  );
 }
 
 export function ErrorNote({ message }: { message: string }) {
   return (
-    <p className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">
+    <p
+      role="alert"
+      className="rounded-md border border-destructive/40 p-3 text-sm text-destructive"
+    >
       {message}
     </p>
   );
@@ -189,7 +201,10 @@ export function MoodTag({
       title={`Mood ${mood.score}: ${mood.reason}`}
       className={`ml-1 inline-flex items-center rounded border px-1 text-[11px] ${good ? "border-primary/40 text-foreground" : bad ? "border-destructive/50 text-destructive" : "text-muted-foreground"}`}
     >
-      {good ? "☺" : bad ? "☹" : ""} {mood.label}
+      <span aria-hidden>{good ? "☺" : bad ? "☹" : ""}</span> {mood.label}
+      <span className="sr-only">
+        . Mood {mood.score}: {mood.reason}
+      </span>
     </span>
   );
 }
@@ -218,7 +233,9 @@ export function FitTag({ label, always = false }: { label: string | null; always
       title={`Scheme fit: ${label.toLowerCase()} in his team's scheme`}
       className={`ml-1 inline-flex items-center rounded border px-1 text-[11px] ${good ? "border-primary/40 text-foreground" : "text-muted-foreground"}`}
     >
-      {good ? "▲" : label === "Neutral" ? "" : "▼"} {label.replace(" fit", "")}
+      <span aria-hidden>{good ? "▲" : label === "Neutral" ? "" : "▼"}</span>{" "}
+      {label.replace(" fit", "")}
+      <span className="sr-only">. Scheme fit: {label.toLowerCase()} in his team's scheme.</span>
     </span>
   );
 }

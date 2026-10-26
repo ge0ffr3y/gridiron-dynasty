@@ -18,3 +18,5 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      # The real-league file must never be part of a build that gets uploaded.
+      - run: test ! -e apps/web/dist/private

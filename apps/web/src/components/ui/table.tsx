@@ -1,10 +1,40 @@
-import type { ComponentProps } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
-export function Table({ className, ...props }: ComponentProps<"table">) {
+/**
+ * A table that scrolls sideways when it is wider than the screen. The scrolling area can be focused
+ * and scrolled with the keyboard, and `caption` (read by screen readers, not shown) names it.
+ */
+export function Table({
+  className,
+  caption,
+  children,
+  ...props
+}: ComponentProps<"table"> & { caption?: string }) {
+  // Only a table that really scrolls is a tab stop and a named region.
+  const [box, setBox] = useState<HTMLDivElement | null>(null);
+  const [scrolls, setScrolls] = useState(false);
+  useEffect(() => {
+    if (!box) return;
+    const check = () => setScrolls(box.scrollWidth > box.clientWidth + 1);
+    check();
+    const watch = new ResizeObserver(check);
+    watch.observe(box);
+    if (box.firstElementChild) watch.observe(box.firstElementChild);
+    return () => watch.disconnect();
+  }, [box]);
   return (
-    <div className="relative w-full overflow-x-auto">
-      <table className={cn("w-full caption-bottom text-sm", className)} {...props} />
+    <div
+      ref={setBox}
+      className="relative w-full overflow-x-auto"
+      {...(scrolls
+        ? { role: "region", "aria-label": caption ?? "Scrollable table", tabIndex: 0 }
+        : {})}
+    >
+      <table className={cn("w-full caption-bottom text-sm", className)} {...props}>
+        {caption && <caption className="sr-only">{caption}</caption>}
+        {children}
+      </table>
     </div>
   );
 }
@@ -26,6 +56,7 @@ export function TableRow({ className, ...props }: ComponentProps<"tr">) {
 export function TableHead({ className, ...props }: ComponentProps<"th">) {
   return (
     <th
+      scope="col"
       className={cn(
         "h-9 px-2 text-left align-middle text-xs font-medium whitespace-nowrap text-muted-foreground",
         className,

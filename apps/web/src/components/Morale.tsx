@@ -38,7 +38,7 @@ const money = (d: number) => `$${(d / 1e6).toFixed(2)}M`;
 function FactorBar({ label, points }: { label: string; points: number }) {
   const width = Math.min(50, Math.abs(points) * 2.5);
   return (
-    <div className="grid grid-cols-[9rem_1fr_3rem] items-center gap-2 text-sm">
+    <div className="grid grid-cols-[6.5rem_1fr_2.5rem] sm:grid-cols-[9rem_1fr_3rem] items-center gap-2 text-sm">
       <span className="text-muted-foreground">{label}</span>
       <div className="relative h-2 rounded bg-muted">
         <div className="absolute inset-y-0 left-1/2 w-px bg-border" />
@@ -314,13 +314,13 @@ export function DisputesCard() {
         )}
         {open.length > 0 && (
           <div className="flex flex-col gap-1">
-            <h4 className="text-sm font-semibold">Under way</h4>
+            <h3 className="text-sm font-semibold">Under way</h3>
             <DisputeTable rows={open} />
           </div>
         )}
         {recent.length > 0 && (
           <div className="flex flex-col gap-1">
-            <h4 className="text-sm font-semibold">This year and last</h4>
+            <h3 className="text-sm font-semibold">This year and last</h3>
             <DisputeTable rows={recent} />
           </div>
         )}

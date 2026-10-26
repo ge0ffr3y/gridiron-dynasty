@@ -25,9 +25,11 @@ export interface SavesRow {
   fingerprintMs: number;
   gzipMs: number;
   parseMs: number;
-  /** Seconds for the regular season and playoffs, and for the offseason that followed. */
-  seasonSeconds: number;
-  offseasonSeconds: number;
+  /**
+   * Seconds for one league year: the offseason (free agency, the draft, camp, cuts) and then the
+   * regular season and playoffs, up to the championship.
+   */
+  yearSeconds: number;
   /** The five biggest top-level parts of the league, in MB. */
   biggest: [string, number][];
 }
@@ -39,18 +41,15 @@ export function runSaves(seed: number, count: number, every: number, out?: strin
   const league = createLeague({ seed, name: `Saves ${seed}` });
   console.log(
     `\nSaves: ${count} seasons from seed ${seed}, measured every ${every}.\n` +
-      "after  season   raw MB  gzip MB  serialize  fingerprint  gzip   parse    season  offseason  biggest parts",
+      "after  season   raw MB  gzip MB  serialize  fingerprint  gzip   parse    league year  biggest parts",
   );
   const rows: SavesRow[] = [];
-  let seasonSeconds = 0;
-  let offseasonSeconds = 0;
+  let yearSeconds = 0;
   for (let i = 1; i <= count; i++) {
     let t = process.hrtime.bigint();
     advanceUntil(league, (l) => l.calendar.stage === "complete");
-    seasonSeconds = ms(t) / 1000;
-    t = process.hrtime.bigint();
-    advance(league);
-    offseasonSeconds = ms(t) / 1000;
+    yearSeconds = ms(t) / 1000;
+    advance(league); // the step into the next offseason (retirements)
     if (i !== 1 && i % every !== 0 && i !== count) continue;
     t = process.hrtime.bigint();
     const text = serializeLeague(league);
@@ -78,13 +77,12 @@ export function runSaves(seed: number, count: number, every: number, out?: strin
       fingerprintMs: Math.round(fingerprintMs),
       gzipMs: Math.round(gzipMs),
       parseMs: Math.round(parseMs),
-      seasonSeconds: round(seasonSeconds),
-      offseasonSeconds: round(offseasonSeconds),
+      yearSeconds: round(yearSeconds),
       biggest: parts,
     };
     rows.push(row);
     console.log(
-      `${String(i).padStart(5)}  ${row.season}  ${String(row.rawMB).padStart(7)}  ${String(row.gzipMB).padStart(7)}  ${String(row.serializeMs).padStart(7)} ms  ${String(row.fingerprintMs).padStart(8)} ms  ${String(row.gzipMs).padStart(4)} ms  ${String(row.parseMs).padStart(5)} ms  ${String(row.seasonSeconds).padStart(5)} s  ${String(row.offseasonSeconds).padStart(7)} s  ${parts.map(([k, v]) => `${k} ${v}`).join(", ")}`,
+      `${String(i).padStart(5)}  ${row.season}  ${String(row.rawMB).padStart(7)}  ${String(row.gzipMB).padStart(7)}  ${String(row.serializeMs).padStart(7)} ms  ${String(row.fingerprintMs).padStart(8)} ms  ${String(row.gzipMs).padStart(4)} ms  ${String(row.parseMs).padStart(5)} ms  ${String(row.yearSeconds).padStart(8)} s  ${parts.map(([k, v]) => `${k} ${v}`).join(", ")}`,
     );
   }
   if (out) writeFileSync(out, JSON.stringify({ seed, rows }, null, 2) + "\n");

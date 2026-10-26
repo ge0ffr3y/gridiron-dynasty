@@ -21,7 +21,14 @@ export interface Backup {
   season: number;
   date: string;
   savedAt: number;
-  text: string;
+  /**
+   * The league's text, gzipped (about 7x smaller). Backups made before Phase 18 hold the plain
+   * `text` instead; both are read. The live save stays plain: measured in the browser, writing
+   * 14 MB of text took about 40 ms and gzipping it 160 ms, so compressing every save would cost
+   * more than it saves.
+   */
+  gz?: Uint8Array;
+  text?: string;
 }
 
 /** Season backups kept per league. */

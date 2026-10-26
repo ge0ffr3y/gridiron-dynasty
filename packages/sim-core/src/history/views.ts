@@ -255,6 +255,17 @@ export interface SeasonRecapView {
     exit: string | null;
   }[];
   playoffs: { round: string; home: string; away: string; score: string; overtime: boolean }[];
+  /** Every regular-season score, by week (seasons played here; older seasons have none). */
+  scores: {
+    week: number;
+    games: {
+      home: string;
+      away: string;
+      homeScore: number;
+      awayScore: number;
+      overtime: boolean;
+    }[];
+  }[];
   awards: {
     award: string;
     label: string;
@@ -283,6 +294,25 @@ export interface SeasonRecapView {
     previous: string;
   }[];
   news: NewsItem[];
+}
+
+function weeklyScores(
+  league: League,
+  results: League["history"][number]["results"],
+): SeasonRecapView["scores"] {
+  const byWeek = new Map<number, SeasonRecapView["scores"][number]["games"]>();
+  for (const [week, home, away, homeScore, awayScore, overtime] of results) {
+    const list = byWeek.get(week) ?? [];
+    list.push({
+      home: teamName(league, home),
+      away: teamName(league, away),
+      homeScore,
+      awayScore,
+      overtime: overtime === 1,
+    });
+    byWeek.set(week, list);
+  }
+  return [...byWeek].sort((a, b) => a[0] - b[0]).map(([week, games]) => ({ week, games }));
 }
 
 export function seasonRecapView(league: League, season?: number): SeasonRecapView {
@@ -329,6 +359,7 @@ export function seasonRecapView(league: League, season?: number): SeasonRecapVie
       score: `${g.homeScore}-${g.awayScore}`,
       overtime: g.overtime,
     })),
+    scores: weeklyScores(league, own?.results ?? []),
     awards: awards
       .filter((a) => !["all-pro-1", "all-pro-2", "pro-bowl"].includes(a.award))
       .sort(

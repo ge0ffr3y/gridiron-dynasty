@@ -302,6 +302,16 @@ function upgrade(data: Record<string, unknown>): void {
     data["priorSeason"] = null;
     data["formatVersion"] = 21;
   }
+  // Version 21 -> 22: past games' scores and the drafts held (Phase 18). Old seasons have no scores
+  // (their games were never kept); the drafts held are read from the transactions still there.
+  if (data["formatVersion"] === 21) {
+    for (const h of (data["history"] as Record<string, unknown>[]) ?? []) h["results"] = [];
+    const held = new Set<number>();
+    for (const t of (data["transactions"] as { type: string; date: string }[]) ?? [])
+      if (t.type === "drafted") held.add(Number(t.date.slice(0, 4)));
+    data["draftsHeld"] = [...held].sort((a, b) => a - b);
+    data["formatVersion"] = 22;
+  }
 }
 
 /** Set on an upgraded save whose teams still need their Phase 10 staff (removed before validation). */

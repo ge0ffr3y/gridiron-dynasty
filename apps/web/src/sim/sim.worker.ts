@@ -152,7 +152,7 @@ async function save(league: League, existing?: SavedLeague): Promise<SavedLeague
       season: saved.season,
       date: saved.date,
       savedAt: now,
-      text,
+      gz: await encodeLeagueFile(text),
     });
     const all = await db.backups.where("leagueId").equals(saved.id).sortBy("season");
     for (const old of all.slice(0, Math.max(0, all.length - BACKUPS_KEPT)))
@@ -411,7 +411,7 @@ const handlers: Handlers = {
   async restoreBackup({ id, season }) {
     const backup = await db.backups.get([id, season]);
     if (!backup) throw new Error("That backup isn't saved any more.");
-    const league = parseLeague(backup.text);
+    const league = parseLeague(backup.text ?? (await decodeLeagueFile(backup.gz!)));
     league.meta.name = `${league.meta.name} (${season} backup)`;
     return save(league);
   },

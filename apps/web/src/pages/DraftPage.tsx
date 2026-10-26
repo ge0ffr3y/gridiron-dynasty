@@ -19,6 +19,7 @@ import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { ErrorNote, Loading, OverallBadge, PageHeader } from "@/components/shared";
 import { Button } from "@/components/ui/button";
+import { TabPanel, Tabs, type TabItem } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Select } from "@/components/ui/input";
 import {
@@ -48,6 +49,14 @@ export function RangeCell({ value, range }: { value: number; range: [number, num
 
 type DraftTab = "room" | "class" | "board" | "mock" | "history";
 
+const DRAFT_TABS: TabItem<DraftTab>[] = [
+  { id: "room", label: "Draft room" },
+  { id: "class", label: "Class" },
+  { id: "board", label: "Big board" },
+  { id: "mock", label: "Mock draft" },
+  { id: "history", label: "History" },
+];
+
 export function DraftPage() {
   const options = useSim("viewingOptions", {}, useLeagueKey());
   const calendar = useSim("calendar", {}, useLeagueKey());
@@ -57,36 +66,20 @@ export function DraftPage() {
   const team = options.data?.current ?? null;
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex gap-1 overflow-x-auto border-b">
-        {(
-          [
-            ["room", "Draft room"],
-            ["class", "Class"],
-            ["board", "Big board"],
-            ["mock", "Mock draft"],
-            ["history", "History"],
-          ] as [DraftTab, string][]
-        ).map(([id, label]) => (
-          <Button
-            key={id}
-            variant="ghost"
-            size="sm"
-            onClick={() => setTab(id)}
-            className={
-              shown === id
-                ? "rounded-b-none border-b-2 border-primary"
-                : "rounded-b-none text-muted-foreground"
-            }
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
-      {shown === "room" && <DraftRoomTab viewingTeam={team} />}
-      {shown === "class" && <ClassTab team={team} />}
-      {shown === "board" && <BigBoardTab viewingTeam={team} />}
-      {shown === "mock" && <MockDraftTab />}
-      {shown === "history" && <DraftHistoryTab />}
+      <Tabs
+        tabs={DRAFT_TABS}
+        value={shown}
+        onChange={setTab}
+        label="Draft sections"
+        idPrefix="draft"
+      />
+      <TabPanel idPrefix="draft" id={shown} className="flex flex-col gap-6">
+        {shown === "room" && <DraftRoomTab viewingTeam={team} />}
+        {shown === "class" && <ClassTab team={team} />}
+        {shown === "board" && <BigBoardTab viewingTeam={team} />}
+        {shown === "mock" && <MockDraftTab />}
+        {shown === "history" && <DraftHistoryTab />}
+      </TabPanel>
     </div>
   );
 }

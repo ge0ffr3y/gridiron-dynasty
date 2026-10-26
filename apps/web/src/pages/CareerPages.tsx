@@ -8,6 +8,7 @@ import { ErrorNote, Loading, PageHeader } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
+import { RadioGroup } from "@/components/ui/radio-group";
 import {
   Table,
   TableBody,
@@ -138,7 +139,6 @@ export function StartCareerPage() {
                 <TableRow
                   key={j.teamId}
                   onClick={() => setTeamId(j.teamId)}
-                  aria-selected={teamId === j.teamId}
                   className={cn("cursor-pointer", teamId === j.teamId && "bg-primary/10")}
                 >
                   <TableCell className="font-medium">
@@ -383,27 +383,22 @@ export function InboxPage() {
                 <div className="text-sm font-medium">{d.label}</div>
                 <div className="text-xs text-muted-foreground">{d.staff}</div>
               </div>
-              <div
+              <RadioGroup
+                label={d.label}
                 className="flex overflow-hidden rounded-md border"
-                role="radiogroup"
-                aria-label={d.label}
-              >
-                {(["you", "staff"] as const).map((who) => (
-                  <button
-                    key={who}
-                    type="button"
-                    role="radio"
-                    aria-checked={d.who === who}
-                    onClick={() => void delegate(d.area, who)}
-                    className={cn(
-                      "px-3 py-1 text-xs",
-                      d.who === who ? "bg-primary text-primary-foreground" : "hover:bg-accent",
-                    )}
-                  >
-                    {who === "you" ? "You" : "Staff"}
-                  </button>
-                ))}
-              </div>
+                value={d.who}
+                onChange={(who) => void delegate(d.area, who)}
+                optionClassName={(checked) =>
+                  cn(
+                    "min-h-9 px-3 py-1 text-xs",
+                    checked ? "bg-primary text-primary-foreground" : "hover:bg-accent",
+                  )
+                }
+                options={[
+                  { value: "you", content: "You" },
+                  { value: "staff", content: "Staff" },
+                ]}
+              />
             </div>
           ))}
         </CardContent>

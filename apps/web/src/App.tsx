@@ -30,13 +30,14 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { lazy, Suspense, type ReactNode } from "react";
+import { lazy, Suspense, useRef, type ReactNode } from "react";
 import { Link, Route, Router, Switch, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { SimControls } from "@/components/SimControls";
 import { Loading } from "@/components/shared";
 import { Button } from "@/components/ui/button";
 import { SessionProvider, useLeagueKey, useSession } from "@/lib/session";
+import { useRouteAnnouncer } from "@/lib/routeAnnouncer";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { Select } from "@/components/ui/input";
@@ -182,12 +183,21 @@ export function App() {
 function Shell() {
   const [theme, toggleTheme] = useTheme();
   const { league } = useSession();
+  const main = useRef<HTMLElement>(null);
+  useRouteAnnouncer(main);
 
   return (
     <div className="flex min-h-svh">
+      <button
+        type="button"
+        onClick={() => main.current?.focus()}
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:border focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:shadow-md"
+      >
+        Skip to main content
+      </button>
       <aside className="hidden w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
         <div className="px-5 py-4 text-sm font-semibold tracking-tight">Gridiron Dynasty</div>
-        <nav className="flex flex-col gap-0.5 px-2">
+        <nav aria-label="Main" className="flex flex-col gap-0.5 px-2">
           {NAV.map((item) => (
             <NavButton key={item.label} item={item} leagueOpen={league !== null} />
           ))}
@@ -197,7 +207,7 @@ function Shell() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-4 border-b px-4 py-3 md:px-6">
-          <h1 className="truncate text-lg font-semibold tracking-tight">
+          <div className="truncate text-lg font-semibold tracking-tight">
             {league ? (
               <Link href="/league" className="hover:underline">
                 {league.name}
@@ -205,7 +215,7 @@ function Shell() {
             ) : (
               "Gridiron Dynasty"
             )}
-          </h1>
+          </div>
           <div className="flex items-center gap-2">
             {league && <ViewingAsSwitch />}
             <Button
@@ -224,13 +234,21 @@ function Shell() {
           </div>
         )}
 
-        <nav className="flex gap-1 overflow-x-auto border-b px-2 py-2 md:hidden">
+        <nav
+          aria-label="Main"
+          className="flex gap-1 overflow-x-auto border-b px-2 py-2 [mask-image:linear-gradient(to_right,transparent,black_12px,black_calc(100%-24px),transparent)] md:hidden"
+        >
           {NAV.filter((item) => item.href).map((item) => (
             <NavButton key={item.label} item={item} leagueOpen={league !== null} compact />
           ))}
         </nav>
 
-        <main className="mx-auto w-full max-w-6xl p-4 md:p-6">
+        <main
+          ref={main}
+          id="main-content"
+          tabIndex={-1}
+          className="mx-auto w-full max-w-6xl p-4 outline-none md:p-6"
+        >
           <Suspense fallback={<Loading />}>
             <Switch>
               <Route path="/" component={HomePage} />
@@ -481,7 +499,7 @@ function NavButton({
     item.href !== undefined &&
     (item.href === "/" ? location === "/" : location.startsWith(item.href));
   const className = cn(
-    "flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm",
+    "flex min-h-10 shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm md:min-h-0",
     active ? "bg-accent font-medium text-accent-foreground" : "text-muted-foreground",
     disabled ? "cursor-not-allowed opacity-60" : "hover:bg-accent",
   );
@@ -493,13 +511,14 @@ function NavButton({
   );
   if (disabled) {
     return (
-      <span className={className} title="Open a league first">
+      <span className={className} aria-disabled="true" title="Open a league first">
         {content}
+        <span className="sr-only"> (open a league first)</span>
       </span>
     );
   }
   return (
-    <Link href={item.href!} className={className}>
+    <Link href={item.href!} className={className} aria-current={active ? "page" : undefined}>
       {content}
     </Link>
   );

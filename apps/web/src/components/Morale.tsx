@@ -314,13 +314,13 @@ export function DisputesCard() {
         )}
         {open.length > 0 && (
           <div className="flex flex-col gap-1">
-            <h4 className="text-sm font-semibold">Under way</h4>
+            <h3 className="text-sm font-semibold">Under way</h3>
             <DisputeTable rows={open} />
           </div>
         )}
         {recent.length > 0 && (
           <div className="flex flex-col gap-1">
-            <h4 className="text-sm font-semibold">This year and last</h4>
+            <h3 className="text-sm font-semibold">This year and last</h3>
             <DisputeTable rows={recent} />
           </div>
         )}

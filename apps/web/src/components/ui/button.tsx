@@ -14,9 +14,10 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md gap-1.5 px-3",
-        icon: "size-9",
+        // On a phone, controls are at least 40 px tall (finger-sized).
+        default: "h-10 px-4 py-2 md:h-9",
+        sm: "h-10 rounded-md gap-1.5 px-3 md:h-8",
+        icon: "size-10 md:size-9",
       },
     },
     defaultVariants: { variant: "default", size: "default" },

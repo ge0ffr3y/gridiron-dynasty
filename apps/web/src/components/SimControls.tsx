@@ -34,7 +34,7 @@ export function SimControls() {
   const [primary, ...others] = c.actions;
 
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-2">
+    <div className="flex min-w-0 flex-wrap items-center gap-2" aria-busy={busy !== null}>
       <div className="mr-1 text-sm leading-tight">
         <div className="font-medium">
           {c.season} · {c.label}
@@ -77,7 +77,11 @@ export function SimControls() {
           )}
         </Link>
       )}
-      {error && <span className="text-sm text-destructive">{error}</span>}
+      {error && (
+        <span role="alert" className="text-sm text-destructive">
+          {error}
+        </span>
+      )}
     </div>
   );
 }

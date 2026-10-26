@@ -164,7 +164,7 @@ export function StatTables({
         const members = rows.filter((r) => group.has.some((k) => n(r.line, k) > 0));
         return (
           <div key={group.title}>
-            <h4 className="mb-1 text-sm font-semibold">{group.title}</h4>
+            <h3 className="mb-1 text-sm font-semibold">{group.title}</h3>
             <Table>
               <TableHeader>
                 <TableRow>

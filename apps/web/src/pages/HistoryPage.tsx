@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { ErrorNote, Loading, PageHeader } from "@/components/shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TabPanel, Tabs, type TabItem } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -19,12 +20,12 @@ import { cn } from "@/lib/utils";
 import { useSim } from "@/sim/client";
 import type { AlmanacView } from "@fgm/sim-core";
 
-const TABS = [
-  ["seasons", "Seasons"],
-  ["franchises", "Franchises"],
-  ["hall", "Hall of Fame"],
-] as const;
-type Tab = (typeof TABS)[number][0];
+type Tab = "seasons" | "franchises" | "hall";
+const HISTORY_TABS: TabItem<Tab>[] = [
+  { id: "seasons", label: "Seasons" },
+  { id: "franchises", label: "Franchises" },
+  { id: "hall", label: "Hall of Fame" },
+];
 
 const teamLink = (t: { id: string; name: string } | null) =>
   t ? (
@@ -61,28 +62,18 @@ export function HistoryPage() {
           </Link>
         </div>
       </PageHeader>
-      <div className="flex gap-1 border-b" role="tablist">
-        {TABS.map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            onClick={() => setTab(id)}
-            className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm",
-              tab === id
-                ? "border-primary font-medium"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {tab === "seasons" && <Seasons v={v} />}
-      {tab === "franchises" && <Franchises v={v} />}
-      {tab === "hall" && <Hall v={v} />}
+      <Tabs
+        tabs={HISTORY_TABS}
+        value={tab}
+        onChange={setTab}
+        label="Almanac sections"
+        idPrefix="almanac"
+      />
+      <TabPanel idPrefix="almanac" id={tab} className="flex flex-col gap-6">
+        {tab === "seasons" && <Seasons v={v} />}
+        {tab === "franchises" && <Franchises v={v} />}
+        {tab === "hall" && <Hall v={v} />}
+      </TabPanel>
     </div>
   );
 }

@@ -38,7 +38,7 @@ export function CoachPage({ coachId }: { coachId: number }) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="text-2xl font-semibold tracking-tight">{c.name}</h2>
+        <h1 className="text-2xl font-semibold tracking-tight">{c.name}</h1>
         <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           {c.team && <TeamChip team={c.team} />}
           <span>

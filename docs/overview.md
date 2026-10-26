@@ -44,7 +44,7 @@ Sibling projects: [[Projects/Evolution Sim Project/01 - Overview|Evolution Sim]]
 
 ## Starting state: the real league after the 2025 season
 
-The simulation begins **the day after championship game LX** (Feb 8, 2026), where Seattle beat New England 29–13. Seattle is the reigning champion; New England is the runner-up.
+The simulation begins **the day after the 2025 championship game** (Feb 8, 2026), where Seattle beat New England 29–13. Seattle is the reigning champion; New England is the runner-up.
 
 What carries over from reality, all renamed:
 
@@ -338,7 +338,7 @@ football-sim/
 - **AI exploitability.** Classic GM-game failure: users fleecing the AI in trades or free agency. Trade and negotiation AI need serious attention and testing.
 - **Rules accuracy.** The cap rules are intricate. Every rule gets unit tests with worked examples.
 - **UI load.** Dozens of screens. Use a component library and consistent patterns from day one.
-- **Trademarks.** Real cities are fine; avoid NFL names, team names, logos, and the "championship game" name.
+- **Trademarks.** Real cities are fine; avoid NFL names, team names, logos, and the league's trademarked championship name.
 
 ## Open questions
 

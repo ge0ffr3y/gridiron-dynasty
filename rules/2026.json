@@ -3,11 +3,11 @@
   "season": 2026,
   "startDate": "2026-02-09",
   "structure": {
-    "source": "Two conferences of four 4-team divisions, in the real league's alignment. Conference names are placeholders until the Phase 6 naming session.",
+    "source": "Two conferences of four 4-team divisions, in the real league's alignment. The conference names are fictional.",
     "conferences": [
       {
         "id": "A",
-        "name": "Conference A",
+        "name": "Heartland Conference",
         "divisions": [
           {
             "id": "A-EAST",
@@ -33,7 +33,7 @@
       },
       {
         "id": "B",
-        "name": "Conference B",
+        "name": "Frontier Conference",
         "divisions": [
           {
             "id": "B-EAST",

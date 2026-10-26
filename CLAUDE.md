@@ -18,7 +18,7 @@ Planning notes live in the owner's Obsidian vault: `Projects/FootballGM Sim Proj
 7. **Truth vs. perception.** Players' true ratings are never shown directly; screens read through the perception layer (what the team's staff believes).
 8. **Everything has a reason.** AI decisions, contract demands, play calls, and player development record why they happened.
 9. **The league stays legal.** Roster sizes and cap compliance are validated after every transaction; validators run in tests.
-10. **No real names or trademarks** in committed code or data: no real player or coach names, no NFL team names, logos, or "championship game". Real cities are fine. Restricted source data (e.g. Madden ratings) stays in `pipeline/private/`, which is git-ignored. Never commit it.
+10. **No real names or trademarks** in committed code or data: no real player or coach names, no NFL team names, logos, or the league's trademarked championship name. Real cities are fine. Restricted source data (e.g. Madden ratings) stays in `pipeline/private/`, which is git-ignored. Never commit it.
 11. Run `npm test` and `npm run typecheck` before every commit. Never commit with failing tests.
 12. Prefer simple, readable code over clever code. Add a short comment explaining _why_ for anything non-obvious.
 

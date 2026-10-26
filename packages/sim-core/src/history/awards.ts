@@ -3,7 +3,7 @@
  * against the others at a player's position (EPA for quarterbacks, yards and touchdowns for
  * runners and receivers, sacks, takeaways and stops on defense), the team's record, and the
  * voters' habits by position (quarterbacks win most MVPs; edge rushers most DPOYs), fitted to the
- * real winners since 1999 (`calibration/awards.json`). All-Pro teams and the Pro Bowl add the
+ * real winners since 1999 (`calibration/awards.json`). All-Pro teams and the All-Star Game add the
  * league's read of each player (his reputation), which is all voters have for linemen.
  *
  * Every award line keeps a reason; vote shares come from the scores (no random draws).
@@ -49,11 +49,11 @@ export const AWARDS = {
   } as Record<string, Partial<Record<Position, number>>>,
   /** The MVP rarely wins OPOY too. */
   mvpAlsoOpoy: -0.6,
-  /** All-Pro and Pro Bowl: weight of production vs. reputation (the league's read). */
+  /** All-Pro and All-Star Game: weight of production vs. reputation (the league's read). */
   honorProduction: 0.55,
   /** All-Pro slots per team (first and second teams), from the real AP teams. */
   allProSlots: (awardsData.allProSlots ?? {}) as Slots,
-  /** Pro Bowl spots per conference, from the real rosters. */
+  /** All-Star Game spots per conference, from the real rosters. */
   proBowlSlots: (awardsData.proBowlSlots ?? {}) as Slots,
   /** Comeback: last season he played this few games, or produced this far below the norm. */
   comebackGames: 7,
@@ -284,7 +284,7 @@ function vote(
 
 const bonus = (award: string, pos: Position) => AWARDS.positionBonus[award]?.[pos] ?? -9;
 
-/** All-Pro first and second teams, or each conference's Pro Bowl roster. */
+/** All-Pro first and second teams, or each conference's All-Star Game roster. */
 function honors(league: League, all: Ballot[]): void {
   const score = (b: Ballot) => AWARDS.honorProduction * b.z + (1 - AWARDS.honorProduction) * b.rep;
   const byPos = new Map<Position, Ballot[]>();
@@ -479,10 +479,10 @@ export const AWARD_LABELS: Record<AwardKind, string> = {
   coach: "Coach of the Year",
   "all-pro-1": "All-Pro (first team)",
   "all-pro-2": "All-Pro (second team)",
-  "pro-bowl": "Pro Bowl",
+  "pro-bowl": "All-Star Game",
 };
 
-/** Pro Bowls in these seasons (the fifth-year option's tiers count the first three). */
+/** All-Star Game selections in these seasons (the fifth-year option's tiers count the first three). */
 export function proBowls(league: League, playerId: number, from: number, to: number): number {
   return league.awards.filter(
     (a) => a.award === "pro-bowl" && a.playerId === playerId && a.season >= from && a.season <= to,

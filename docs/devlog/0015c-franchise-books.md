@@ -21,7 +21,7 @@ I compared the new lists with the old, Wikipedia-based ones for the clubs that h
 - **1 is a counting convention:** Seattle's career sacks, where the reference site includes the unofficial sacks of 1980-81.
 - **3 were field-goal lists** that were wrong until the kicking top-up from the play-by-play files went in; they agree now.
 
-Spot checks against totals I know: [name removed]'s Buffalo rushing yards, [name removed]'s Detroit field goals, [name removed]'s Denver field goals and [name removed]'s Oakland and Las Vegas field goals all read right.
+Spot checks against career totals I know (a club's career rushing yards, three clubs' career field goals) all read right.
 
 ## What changed in the game
 

@@ -48,7 +48,7 @@ Every phase adds its own screens, so there's always something to click through.
 | 13 | AI general managers & owners | Distinct AI front offices; exploit-resistant trade AI | XL | ✅ **v0.3** (Simulation Mode) |
 | 14 | GM Mode career layer | Owner, job security, inbox, autopilot, getting fired | M | ✅ **v0.4** (GM Mode) |
 | 15 | League history & storytelling | Real history, awards, records, Hall of Fame, newsfeed | L | — |
-| 16 | Day One: the real 2026 start | Exact post–championship game LX starting state, fully validated | M | ✅ **v0.5** |
+| 16 | Day One: the real 2026 start | Exact starting state the day after the 2025 championship game, fully validated | M | ✅ **v0.5** |
 | 17 | Experiments & analytics | 1,000 alternate 2026 seasons; strategy experiments | M | — |
 | 18 | Ship it | Licensing resolved, polish, performance, write-ups | M | ✅ **v1.0** |
 | ★ | Stretch goals | 2D play viewer, hot-seat multiplayer, rules editor… | — | — |
@@ -104,7 +104,7 @@ Decisions that block a phase. Record the answer here when made.
 - **Rules as data:** every league rule (cap, roster limits, overtime, kickoffs, playoff format, tiebreakers) lives in the versioned `rules/` config. Every tuning number lives in config. Nothing hard-coded.
 - **Money is integers** (whole dollars). Every cap or contract rule gets a unit test with a worked example.
 - **Everything has a reason:** every AI decision, contract demand, and play call records why.
-- **No real names or trademarks** in committed code or data: no real player/coach names, no NFL team names, logos, or "championship game". Restricted source data stays in `pipeline/private/` (gitignored).
+- **No real names or trademarks** in committed code or data: no real player/coach names, no NFL team names, logos, or the league's trademarked championship name. Restricted source data stays in `pipeline/private/` (gitignored).
 - The league must stay **legal** after every action (roster sizes, cap compliance); validators run in tests.
 - Run tests before every commit; never commit with failing tests.
 - Explain changes in plain English for a non-programmer. Prefer simple, readable code over clever code.
@@ -548,7 +548,7 @@ Decisions that block a phase. Record the answer here when made.
 
 ## Phase 16 — Day One: the real 2026 start
 
-**Goal:** The real-league start is exactly right: the day after championship game LX, with everything as it actually stood.
+**Goal:** The real-league start is exactly right: the day after the 2025 championship game, with everything as it actually stood.
 
 ### Steps
 - [x] Start date is the day after the 2025 championship (Feb 9, 2026); Seattle champion, New England runner-up, playoff results stand *(the real file's 2025 season matches the real results, 29-13 in the final; tested against nflverse)*
@@ -597,7 +597,7 @@ Decisions that block a phase. Record the answer here when made.
 
 ### Steps
 - [ ] **Data licensing review resolved** and recorded: exactly what's published, what's built locally, and credits
-- [ ] **Trademark sweep:** automated check for NFL names, team names, "championship game", logos across code, data, and UI
+- [ ] **Trademark sweep:** automated check for NFL names, team names, the championship game's trademarked name, logos across code, data, and UI
 - [ ] **Performance & save size:** budget for a 50-season save; keep box-score summaries, prune old play-by-play; fast load times
 - [ ] Accessibility pass; usable layouts for the main screens on a phone
 - [ ] **README:** screenshots / GIFs, architecture diagram, how to play, how to rebuild the data

@@ -319,7 +319,8 @@ export function parseLeague(text: string): League {
     throw new Error("This isn't a league file (it isn't valid JSON).");
   }
   const header = data as { format?: unknown; formatVersion?: unknown } | null;
-  if (header?.format !== LEAGUE_FORMAT) throw new Error("This isn't a Gridiron Dynasty league file.");
+  if (header?.format !== LEAGUE_FORMAT)
+    throw new Error("This isn't a Gridiron Dynasty league file.");
   upgrade(data as Record<string, unknown>);
   if (header.formatVersion !== LEAGUE_FORMAT_VERSION) {
     const older =

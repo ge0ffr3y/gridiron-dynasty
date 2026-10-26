@@ -42,12 +42,6 @@ export function LeaguePage() {
               ["File fingerprint", <span className="font-mono">{s.saved.fingerprint}</span>],
             ]}
           />
-          {s.placeholderNames && (
-            <p className="mt-4 text-xs text-muted-foreground">
-              Conference and team names are placeholders; the real names get chosen in a later
-              phase.
-            </p>
-          )}
         </CardContent>
       </Card>
 

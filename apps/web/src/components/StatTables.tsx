@@ -28,7 +28,7 @@ const avg = (a: number, b: number) => (b > 0 ? (a / b).toFixed(1) : "-");
 const rate = (a: number, b: number) => (b > 0 ? (a / b).toFixed(2) : "-");
 const pct = (a: number, b: number) => (b > 0 ? `${Math.round((100 * a) / b)}%` : "-");
 
-/** The NFL passer rating formula. */
+/** The standard passer rating formula. */
 export function passerRating(line: StatLine): string {
   const att = n(line, "passAtt");
   if (att === 0) return "-";

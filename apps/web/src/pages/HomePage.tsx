@@ -146,7 +146,8 @@ export function HomePage() {
             <CardTitle>No leagues yet</CardTitle>
             <CardDescription>
               Create a fictional league: 32 teams with full 90-man offseason rosters, coaching
-              staffs, and draft picks. The real-league start arrives in Phase 6.
+              staffs, and draft picks. If the real-league file has been built on this computer, you
+              can start from it instead.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -286,7 +287,8 @@ function NewLeagueDialog({
           <DialogHeader>
             <DialogTitle>New league</DialogTitle>
             <DialogDescription>
-              The same seed always plays out the same way. Team names are placeholders for now.
+              The same seed always plays out the same way. Every team and person in the game is
+              fictional.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2" role="radiogroup" aria-label="Kind of league">

@@ -119,9 +119,11 @@ describe("division tiebreakers (three clubs)", () => {
     expectTied(s.table, ["BUF", "MIA", "NE"]);
     expect(s.divisionOrder.get("A-EAST")!.slice(0, 3)).toEqual(["BUF", "MIA", "NE"]);
     expect(s.notes).toContain(
-      "BUF ahead of MIA, NE for the Conference A East order (head-to-head)",
+      "BUF ahead of MIA, NE for the Heartland Conference East order (head-to-head)",
     );
-    expect(s.notes).toContain("MIA ahead of NE for the Conference A East order (head-to-head)");
+    expect(s.notes).toContain(
+      "MIA ahead of NE for the Heartland Conference East order (head-to-head)",
+    );
   });
 
   it("when a step drops one club, the other two restart at step 1 (head-to-head)", () => {

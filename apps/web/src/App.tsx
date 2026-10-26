@@ -77,11 +77,9 @@ type NavItem = {
   label: string;
   icon: LucideIcon;
   href?: string;
-  phase?: number;
   needsLeague?: boolean;
 };
 
-// Screens arrive phase by phase (see docs/roadmap.md); until then they show which phase builds them.
 const NAV: NavItem[] = [
   { label: "Leagues", icon: FolderOpen, href: "/" },
   { label: "Experiments", icon: FlaskConical, href: "/experiments" },
@@ -429,17 +427,11 @@ function NavButton({
     <>
       <Icon className="size-4" />
       <span>{item.label}</span>
-      {item.phase !== undefined && !compact && (
-        <span className="ml-auto text-xs">P{item.phase}</span>
-      )}
     </>
   );
   if (disabled) {
     return (
-      <span
-        className={className}
-        title={item.phase ? `Built in roadmap Phase ${item.phase}` : "Open a league first"}
-      >
+      <span className={className} title="Open a league first">
         {content}
       </span>
     );

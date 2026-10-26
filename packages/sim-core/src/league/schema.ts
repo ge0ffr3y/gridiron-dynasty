@@ -847,7 +847,7 @@ export const AWARD_KINDS = [
   "pro-bowl",
 ] as const;
 
-/** One award line: a winner (place 1) or a runner-up in the vote; All-Pro and Pro Bowl spots. */
+/** One award line: a winner (place 1) or a runner-up in the vote; All-Pro and All-Star Game spots. */
 export const AwardSchema = z.object({
   season: z.number().int(),
   award: z.enum(AWARD_KINDS),

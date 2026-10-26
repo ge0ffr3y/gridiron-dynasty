@@ -319,7 +319,7 @@ export function buildRealHistory(ctx: HistoryContext): RealHistoryInput {
     });
   }
 
-  // The last three Pro Bowls, for current players: they set the 2023 draft class's fifth-year options.
+  // The last three All-Star Game selections, for current players: they set the 2023 draft class's fifth-year options.
   for (const season of [2023, 2024, 2025])
     for (const b of parseProBowl(season)) {
       const key = b.pfrId ? ctx.currentByPfr.get(b.pfrId) : undefined;
@@ -333,7 +333,7 @@ export function buildRealHistory(ctx: HistoryContext): RealHistoryInput {
         name: n ? `${n.firstName} ${n.lastName}` : "",
         position: ourPosition(b.position) ?? b.position,
         teamId: franchise(b.teamCode),
-        reason: "Selected to the real Pro Bowl on the original ballot.",
+        reason: "Selected to the real All-Star Game on the original ballot.",
       });
     }
 
@@ -344,7 +344,7 @@ export function buildRealHistory(ctx: HistoryContext): RealHistoryInput {
     if (h.kind === "player") {
       if (num(r.all_pros_first_team))
         bits.push(`${num(r.all_pros_first_team)}x first-team All-Pro`);
-      if (num(r.pro_bowls)) bits.push(`${num(r.pro_bowls)} Pro Bowls`);
+      if (num(r.pro_bowls)) bits.push(`${num(r.pro_bowls)} All-Star Game selections`);
       if (num(r.years_as_primary_starter))
         bits.push(`${num(r.years_as_primary_starter)} seasons as a starter`);
     } else if (h.kind === "coach") {

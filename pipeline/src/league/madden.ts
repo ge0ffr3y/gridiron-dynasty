@@ -118,7 +118,7 @@ function maddenDate(v: string): string {
   return "";
 }
 
-/** Lower case, no punctuation, no suffixes: "[name removed] Jr." -> "dj moore". */
+/** Lower case, no punctuation, no suffixes: "A.B. Example Jr." -> "ab example". */
 export function normName(s: string): string {
   return s
     .toLowerCase()

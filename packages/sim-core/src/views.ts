@@ -96,8 +96,6 @@ export interface LeagueSummary {
     name: string;
     divisions: { id: string; name: string; teams: (TeamCard & { starterOverall: number })[] }[];
   }[];
-  /** Team identities are placeholders until the Phase 6 naming session. */
-  placeholderNames: boolean;
   recentTransactions: { date: string; text: string; reason: string }[];
 }
 
@@ -365,7 +363,6 @@ export function leagueSummary(league: League, viewer: Viewer): LeagueSummary {
         }),
       })),
     })),
-    placeholderNames: league.meta.kind === "fictional",
     recentTransactions: league.transactions
       .slice(-10)
       .reverse()

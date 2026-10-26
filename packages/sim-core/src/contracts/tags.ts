@@ -137,7 +137,7 @@ export function tagTender(
 
 /**
  * Fifth-year option salary (Article 7, Section 7(g)) for a first-round pick's fifth season.
- * Pro Bowls on the original ballot in his first three seasons set the top tiers (one: the
+ * All-Star Game selections on the original ballot in his first three seasons set the top tiers (one: the
  * transition tender, two or more: the franchise tender); otherwise the tiers are playing time:
  * 75% of snaps in two of his first three seasons, a 75% average, or 50% in each.
  */
@@ -146,7 +146,7 @@ export function fifthYearOptionSalary(
   position: string,
   optionSeason: number,
   snapShares: number[],
-  /** Pro Bowls in his first three seasons (Phase 15). */
+  /** All-Star Game selections in his first three seasons (Phase 15). */
   proBowls = 0,
 ): Dollars {
   const cap = league.rules.cap;

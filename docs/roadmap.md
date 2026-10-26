@@ -572,19 +572,19 @@ Decisions that block a phase. Record the answer here when made.
 **Goal:** Turn the league into a tool for answering questions, with statistics behind each claim.
 
 ### Steps
-- [ ] **Experiment files:** JSON describing start, settings, seeds, number of seasons, and metrics
-- [ ] **Parallel runner:** many seeds across all CPU cores
-- [ ] **Analytics pages** in the web app: compare groups with charts and confidence intervals
-- [ ] Headline experiments:
-  - [ ] **Alternate histories:** the 2026 season 1,000 times from the real start; title odds per team
-  - [ ] Cap-aggressive vs. conservative GMs: more titles, or sooner rise and harder collapse?
-  - [ ] Draft-and-develop vs. free-agency spending over 20 years
-  - [ ] A great head coach vs. a great quarterback, in wins
-  - [ ] Aggressive 4th-down coaches vs. conservative ones
-  - [ ] How random is a single-elimination playoff? How often does the best team win?
+- [x] **Experiment files:** JSON describing start, settings, seeds, number of seasons, and metrics *(`experiments/*.json`, checked on load; the result carries a copy)*
+- [x] **Parallel runner:** many seeds across all CPU cores *(`npm run sim -- --experiment <file> --workers 6`; worker processes, resumable, the same result for any worker count)*
+- [x] **Analytics pages** in the web app: compare groups with charts and confidence intervals *(`/experiments`: dot-and-whisker, line with band, bars, a table under each chart; chart text is small on a phone, for Phase 18's phone pass)*
+- [x] Headline experiments:
+  - [x] **Alternate histories:** the 2026 season 1,000 times from the real start; title odds per team *(private: the page exists only on the machine with the real league)*
+  - [x] Cap-aggressive vs. conservative GMs: more titles, or sooner rise and harder collapse? *(60 x 20 seasons: an early edge, a slightly worse twenty years, no harder collapse)*
+  - [x] Draft-and-develop vs. free-agency spending over 20 years *(60 x 20 seasons: the draft won, about 44% more titles)*
+  - [x] A great head coach vs. a great quarterback, in wins *(150 runs: the quarterback is worth about three times the staff)*
+  - [x] Aggressive 4th-down coaches vs. conservative ones *(200 x 2 seasons: about a fifth of a win a season at four standard deviations apart)*
+  - [x] How random is a single-elimination playoff? How often does the best team win? *(40 leagues x 200 replays: 30%, against 9% for a coin flip)*
 
 ### Done when
-- [ ] Each headline experiment has a clear chart and a written conclusion
+- [x] Each headline experiment has a clear chart and a written conclusion *(`docs/findings/` and the Experiments pages; the alternate-histories conclusion is private. The answers are the simulation's, and each finding says what is set by the model)*
 
 > [!example]- Kickoff prompt
 > "Phase 17: build experiment files, a parallel headless runner, and analytics pages with confidence intervals. Then run the headline experiments from the roadmap and write up each with a chart and conclusion. Plan first."

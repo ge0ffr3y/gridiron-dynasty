@@ -3,24 +3,52 @@
   "title": "Cap-aggressive vs conservative general managers",
   "question": "Do general managers who run the cap hard win more titles, or do they rise sooner and collapse harder than conservative ones?",
   "kind": "team-groups",
-  "start": { "type": "generated" },
-  "runs": { "count": 60, "firstSeed": 1000 },
+  "start": {
+    "type": "generated"
+  },
+  "runs": {
+    "count": 60,
+    "firstSeed": 1000
+  },
   "seasons": 20,
   "hold": true,
   "baseline": [
-    { "type": "owner", "style": {} },
-    { "type": "gm", "knobs": {}, "skill": 55 }
+    {
+      "type": "owner",
+      "style": {}
+    },
+    {
+      "type": "gm",
+      "knobs": {},
+      "skill": 55
+    }
   ],
   "groups": [
     {
       "name": "conservative",
       "label": "Conservative cap management",
-      "levers": [{ "type": "gm", "knobs": { "capAggression": -1 }, "skill": 55 }]
+      "levers": [
+        {
+          "type": "gm",
+          "knobs": {
+            "capAggression": -1
+          },
+          "skill": 55
+        }
+      ]
     },
     {
       "name": "aggressive",
       "label": "Aggressive cap management",
-      "levers": [{ "type": "gm", "knobs": { "capAggression": 1 }, "skill": 55 }]
+      "levers": [
+        {
+          "type": "gm",
+          "knobs": {
+            "capAggression": 1
+          },
+          "skill": 55
+        }
+      ]
     }
   ],
   "params": {
@@ -31,5 +59,5 @@
     ]
   },
   "visibility": "public",
-  "conclusion": ""
+  "conclusion": "Running the cap hard buys an early edge and a slightly worse twenty years. Teams with the aggressive cap manager won 0.8 points more of their games in years 1 to 5 (95% interval 0.1 to 1.5), then fell behind: 0.8 points fewer in years 6 to 10 (-1.6 to 0.0) and 1.1 points fewer in years 11 to 20 (-1.8 to -0.4). Over the whole twenty years they won 0.6 points fewer games (-1.1 to 0.0) and 0.6 points fewer of the titles available to a team in a season (2.8% against 3.4%; interval -1.2 to -0.1).\nThere is no sign of a harder collapse: their worst three-season stretch is no worse (-0.3 points, interval -0.9 to 0.5) and their season-to-season swings are no bigger. What they lose is the top end: their best three-season stretch is 0.8 points lower (-1.5 to -0.2). They carry 2.8 more points of the cap as dead money (7.9% against 5.1%), spend 6 more points of the cap on free agents each year, and make fewer trades.\nThe effects are small: a point of win share is about a sixth of a win a season. The groups play each other, so one group's gain is the other's loss. Only the cap knob differs between them (every other manager trait, skill and owner trait is the same, held for all twenty years), which is cleaner than real managers, whose habits come in bundles."
 }

@@ -207,7 +207,7 @@ export function TrajectoryChart({
   const n = series[0]?.points.length ?? 0;
   if (n === 0) return null;
   const H = 260;
-  const PAD = { left: 48, right: 90, top: 14, bottom: 30 };
+  const PAD = { left: 66, right: 90, top: 14, bottom: 30 };
   const all = series.flatMap((s) => s.points.flatMap((p) => [p.lo, p.hi]));
   let lo = Math.min(...all);
   let hi = Math.max(...all);
@@ -278,7 +278,7 @@ export function TrajectoryChart({
             </g>
           ))}
           {Array.from({ length: n }, (_, i) =>
-            i % every === 0 || i === n - 1 ? (
+            (i % every === 0 && n - 1 - i >= every) || i === n - 1 ? (
               <text
                 key={i}
                 x={x(i)}

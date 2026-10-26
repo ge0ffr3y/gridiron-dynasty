@@ -142,6 +142,19 @@ if (experimentArg !== undefined) {
   process.exit(0);
 }
 
+const savesArg = option(args, "--saves");
+if (savesArg !== undefined) {
+  const { runSaves } = await import("./saves");
+  const out = option(args, "--out");
+  runSaves(
+    readSeed(args),
+    Number(savesArg),
+    Number(option(args, "--every") ?? 5),
+    out ? fromCaller(out) : undefined,
+  );
+  process.exit(0);
+}
+
 const carouselArg = option(args, "--carousel");
 if (carouselArg !== undefined) {
   runCarousel(readSeed(args), Number(carouselArg), option(args, "--league"));
@@ -213,6 +226,9 @@ if (!args.includes("--new-league")) {
   console.log("  npm run sim -- --seasons N [--seed N]");
   console.log("  npm run sim -- --experiment experiments/<file>.json [--workers N] [--runs N]");
   console.log("  npm run sim -- --experiments   (list the experiment files)");
+  console.log(
+    "  npm run sim -- --saves N [--seed N] [--every N] [--out file.json]   save size and speed over N seasons",
+  );
   process.exit(0);
 }
 

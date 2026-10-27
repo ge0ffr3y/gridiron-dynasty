@@ -30,7 +30,7 @@ Both modes start from a **fictional league** generated from a seed. The author a
 
 ## How to play
 
-The easiest way is the hosted build, if the author has turned it on (see the repository's About section for the link). To run it on your own computer you need [Node.js](https://nodejs.org) 22 or newer:
+The easiest way is the hosted build: **<https://ge0ffr3y.github.io/gridiron-dynasty/>**. To run it on your own computer you need [Node.js](https://nodejs.org) 22 or newer:
 
 ```bash
 npm install
